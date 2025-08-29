@@ -11,7 +11,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint .",
+		"lint": "eslint . --fix",
 		"init-db": "node src/lib/init-db.js",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
@@ -28,8 +28,8 @@
 		"@types/better-sqlite3": "^7.6.12",
 		"@types/node": "^22",
 		"drizzle-kit": "^0.30.2",
-		"eslint": "^9.18.0",
-		"eslint-config-prettier": "^10.0.1",
+		"eslint": "^9.34.0",
+		"eslint-plugin-prettier": "^5.5.4",
 		"eslint-plugin-svelte": "^3.0.0",
 		"globals": "^16.0.0",
 		"prettier": "^3.4.2",
@@ -43,11 +43,16 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
+			"@tailwindcss/oxide",
+			"better-sqlite3",
 			"esbuild",
-			"better-sqlite3"
+			"sqlite3"
 		]
 	},
 	"dependencies": {
+		"@node-rs/argon2": "^2.0.2",
+		"@oslojs/crypto": "^1.0.1",
+		"@oslojs/encoding": "^1.1.0",
 		"better-sqlite3": "^11.8.0",
 		"drizzle-orm": "^0.40.0",
 		"sqlite3": "^5.1.7"

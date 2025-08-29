@@ -1,0 +1,25 @@
+{
+	"sqltools.connections": [
+		{
+			"previewLimit": 50,
+			"driver": "SQLite",
+			"name": "Local DB",
+			"database": "data/local.db"
+		}
+	],
+	"sqltools.useNodeRuntime": true,
+	"eslint.useFlatConfig": true,
+	"eslint.workingDirectories": [
+		{
+			"mode": "auto"
+		}
+	],
+	"eslint.validate": [
+		"javascript",
+		"javascriptreact",
+		"svelte"
+	],
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit"
+	}
+}
