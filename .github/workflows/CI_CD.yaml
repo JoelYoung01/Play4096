@@ -1,0 +1,15 @@
+name: Continuous Integration / Continuous Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  BuildApp:
+    uses: ./.github/workflows/BuildApp.yml
+    with:
+      image_name: ${{ vars.IMAGE_NAME }}
+    secrets:
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}

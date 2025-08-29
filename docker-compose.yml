@@ -1,0 +1,10 @@
+services:
+  fast-api:
+    restart: unless-stopped
+    image: ${IMAGE_URL}
+    env_file:
+      - .env
+    ports:
+      - "8056:3000"
+    volumes:
+      - ./data:/app/data
