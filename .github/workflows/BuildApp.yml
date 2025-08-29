@@ -51,7 +51,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
-          pnpm i --prod --frozen-lockfile
+          pnpm i --frozen-lockfile
           pnpm run build
 
       - name: Upload Svelte build artifacts
