@@ -12,6 +12,7 @@ RUN pnpm fetch --prod
 COPY package.json ./
 RUN pnpm install -r --offline --prod --frozen-lockfile
 
+COPY drizzle.config.ts ./drizzle.config.ts
 COPY ./build ./build
 
 
