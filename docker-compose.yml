@@ -8,3 +8,4 @@ services:
       - "8056:3000"
     volumes:
       - ./data:/app/data
+      - ./drizzle:/app/drizzle
