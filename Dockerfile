@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN corepack enable pnpm && corepack install -g pnpm@latest
 
-# pnpm fetch does require only lockfile
+# pnpm fetch requires lockfile only
 COPY pnpm-lock.yaml ./
 RUN pnpm fetch --prod
 
