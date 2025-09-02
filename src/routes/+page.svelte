@@ -2,7 +2,7 @@
 	import { Game, DIRECTIONS, TILE_COLORS } from "$lib/game.svelte.js";
 	import { onMount } from "svelte";
 
-	const TOUCH_THRESHOLD = 100;
+	const TOUCH_THRESHOLD = 5;
 
 	let game = $state(new Game());
 	let bestScore = $state(0);
