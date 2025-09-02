@@ -1,6 +1,5 @@
 import { encodeBase32LowerCase } from "@oslojs/encoding";
 
-
 /**
  * Generate a random user ID.
  * @returns {string}

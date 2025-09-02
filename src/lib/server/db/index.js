@@ -20,9 +20,12 @@ export { getDb };
 
 /** @type {import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof schema> & {$client: Database.Database;}} */
 // @ts-expect-error deal with it
-export const db = new Proxy({}, {
-	get(target, prop) {
-		// @ts-expect-error deal with it
-		return getDb()[prop];
+export const db = new Proxy(
+	{},
+	{
+		get(target, prop) {
+			// @ts-expect-error deal with it
+			return getDb()[prop];
+		},
 	}
-});
+);
