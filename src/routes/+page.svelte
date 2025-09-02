@@ -70,6 +70,14 @@
 
 		if (Math.abs(diffX) < TOUCH_THRESHOLD && Math.abs(diffY) < TOUCH_THRESHOLD) return;
 
+		// Check if the touch started within the game board area
+		const gameBoard = document.querySelector(".game-board");
+		if (gameBoard && event.target) {
+			// Prevent default behavior only when swiping within the game board
+			event.preventDefault();
+			event.stopPropagation();
+		}
+
 		if (Math.abs(diffX) > Math.abs(diffY)) {
 			if (diffX > 0) handleMove(DIRECTIONS.LEFT);
 			else handleMove(DIRECTIONS.RIGHT);
@@ -80,6 +88,20 @@
 
 		touchStartX = 0;
 		touchStartY = 0;
+	}
+
+	/**
+	 * Handle touch move events to prevent scrolling during swipe
+	 * @param {TouchEvent} event
+	 */
+	function handleTouchMove(event) {
+		// Check if the touch started within the game board area
+		const gameBoard = document.querySelector(".game-board");
+		if (gameBoard && event.target && touchStartX && touchStartY) {
+			// Prevent default behavior only when swiping within the game board
+			event.preventDefault();
+			event.stopPropagation();
+		}
 	}
 
 	/**
@@ -184,7 +206,12 @@
 	<title>4096 Game</title>
 </svelte:head>
 
-<div class="game-container" ontouchstart={handleTouchStart} ontouchend={handleTouchEnd}>
+<div
+	class="game-container"
+	ontouchstart={handleTouchStart}
+	ontouchmove={handleTouchMove}
+	ontouchend={handleTouchEnd}
+>
 	<!-- Header -->
 	<div class="mb-3 flex items-start justify-between">
 		<div>
@@ -269,6 +296,11 @@
 		font-family: "Arial", sans-serif;
 		user-select: none;
 		color: var(--text-color);
+		/* Prevent browser gestures and scrolling */
+		touch-action: manipulation;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
+		-webkit-overscroll-behavior: contain;
 	}
 
 	.game-title {
@@ -332,6 +364,25 @@
 		border-radius: 8px;
 		margin-bottom: 20px;
 		aspect-ratio: 1;
+		/* Prevent Chrome's pull-to-refresh and other touch gestures */
+		touch-action: none;
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		-khtml-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+		/* Additional gesture prevention */
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
+		-webkit-overscroll-behavior: contain;
+		-webkit-tap-highlight-color: transparent;
+		-webkit-touch-callout: none;
+		-webkit-user-drag: none;
+		-khtml-user-drag: none;
+		-moz-user-drag: none;
+		-o-user-drag: none;
+		user-drag: none;
 	}
 
 	.tile {
