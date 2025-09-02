@@ -46,13 +46,8 @@ export class Game {
 		this.won = $state(false);
 		this.canContinue = $state(false);
 
-		Object.keys(TILE_COLORS)
-			.slice(-16)
-			.forEach((color) => {
-				this.addNewTile(Number(color));
-			});
-
-		this.addNewTile(16384);
+		this.addNewTile();
+		this.addNewTile();
 	}
 
 	/**

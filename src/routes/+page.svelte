@@ -102,7 +102,8 @@
 	 * @returns {string}
 	 */
 	function getTileFontSize(value) {
-		const baseSize = 3; // rem
+		const mobile = typeof window !== "undefined" && window.innerWidth <= 600;
+		const baseSize = mobile ? 2.5 : 3;
 		const digits = value.toString().length;
 		const fontSize = Math.max(baseSize - (digits - 1) * 0.3, 1);
 		return `${fontSize}rem`;
@@ -124,9 +125,49 @@
 	 * @param {number} value
 	 * @returns {string}
 	 */
-	function getTileColor(value) {
-		if (value >= 8) return "#f9f6f2";
-		return "#776e65";
+	function getTileColor(value, threshold = 0.7) {
+		// Get the background color for this tile
+		const bg = getTileBackground(value);
+
+		/**
+		 * Helper to parse hex color to RGB
+		 * @param {string} hex
+		 * @returns {{r: number, g: number, b: number}}
+		 */
+		function hexToRgb(hex) {
+			hex = hex.replace(/^#/, "");
+			if (hex.length === 3) {
+				hex = hex
+					.split("")
+					.map((x) => x + x)
+					.join("");
+			}
+			const num = parseInt(hex, 16);
+			return {
+				r: (num >> 16) & 255,
+				g: (num >> 8) & 255,
+				b: num & 255,
+			};
+		}
+
+		/**
+		 * Helper to calculate luminance
+		 * @param {{r: number, g: number, b: number}} rgb
+		 * @returns {number}
+		 */
+		function luminance({ r, g, b }) {
+			const a = [r, g, b].map(function (v) {
+				v /= 255;
+				return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+			});
+			return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+		}
+
+		const rgb = hexToRgb(bg);
+		const lum = luminance(rgb);
+
+		// If background is dark, use light text; else, use dark text
+		return lum < threshold ? "#f9f6f2" : "#776e65";
 	}
 
 	// Setup listeners on mount
@@ -148,17 +189,17 @@
 	<div class="mb-3 flex items-start justify-between">
 		<div>
 			<h1 class="game-title text-4xl font-bold">4096</h1>
-			<p>Join the tiles, get to 4096!</p>
+			<p class="game-description">Join the tiles, get to 4096!</p>
 		</div>
 
 		<div class="flex gap-2">
-			<div class="score-box rounded-md p-2 text-center text-sm">
-				<div class="text-sm font-bold uppercase">SCORE</div>
-				<div class="mt-1 text-2xl font-bold">{game.score}</div>
+			<div class="score-box rounded-md p-2 text-center">
+				<div class="font-bold uppercase">SCORE</div>
+				<div class="score-value mt-1 font-bold">{game.score}</div>
 			</div>
-			<div class="score-box rounded-md p-2 text-center text-sm">
-				<div class="text-sm font-bold uppercase">BEST</div>
-				<div class="mt-1 text-2xl font-bold">{bestScore}</div>
+			<div class="score-box rounded-md p-2 text-center">
+				<div class="font-bold uppercase">BEST</div>
+				<div class="score-value mt-1 font-bold">{bestScore}</div>
 			</div>
 		</div>
 	</div>
@@ -232,17 +273,37 @@
 
 	.game-title {
 		font-size: 3rem;
+
+		@media (max-width: 600px) {
+			font-size: 2.5rem;
+		}
 	}
 
-	.scores-section {
-		display: flex;
-		gap: 10px;
+	.game-description {
+		font-size: 1.2rem;
+
+		@media (max-width: 600px) {
+			font-size: 0.75rem;
+		}
 	}
 
 	.score-box {
 		background: var(--board-bg);
 		color: var(--background-color);
-		min-width: 80px;
+		flex: 0 0 80px;
+		font-size: 1.2rem;
+
+		@media (max-width: 600px) {
+			font-size: 0.75rem;
+		}
+	}
+
+	.score-value {
+		font-size: 1.2rem;
+
+		@media (max-width: 600px) {
+			font-size: 1rem;
+		}
 	}
 
 	.new-game-btn {
@@ -383,33 +444,9 @@
 			font-size: 2.5rem;
 		}
 
-		.scores-section {
-			flex-direction: column;
-			gap: 5px;
-		}
-
 		.score-box {
 			min-width: 60px;
 			padding: 8px 12px;
-		}
-
-		.score-value {
-			font-size: 1.2rem;
-		}
-
-		.tile {
-			font-size: 1.5rem;
-		}
-
-		.tile-128,
-		.tile-256,
-		.tile-512 {
-			font-size: 1.3rem;
-		}
-
-		.tile-1024,
-		.tile-2048 {
-			font-size: 1.1rem;
 		}
 	}
 </style>
