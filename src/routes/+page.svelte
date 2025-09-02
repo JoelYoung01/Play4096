@@ -1,6 +1,15 @@
 <script>
 	import { onMount } from "svelte";
 
+	const TWO_TO_FOUR_RATIO = 0.5;
+
+	const DIRECTIONS = {
+		LEFT: 10,
+		RIGHT: 20,
+		UP: 30,
+		DOWN: 40,
+	};
+
 	// Game state
 	let board = $state(
 		Array(4)
@@ -13,10 +22,6 @@
 	let won = $state(false);
 	let canContinue = $state(false);
 	let mergingTiles = $state(new Set());
-
-	// Animation state for smooth tile movement
-	let tileAnimations = $state(new Map());
-	let animationId = $state(0);
 
 	// Initialize the game
 	function initGame() {
@@ -32,7 +37,9 @@
 		addNewTile();
 	}
 
-	// Add a new tile (2 or 4) to a random empty position
+	/**
+	 * Add a new tile (2 or 4) to a random empty position
+	 */
 	function addNewTile() {
 		const emptyCells = [];
 		for (let i = 0; i < 4; i++) {
@@ -45,11 +52,14 @@
 
 		if (emptyCells.length > 0) {
 			const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-			board[randomCell.row][randomCell.col] = Math.random() < 0.9 ? 2 : 4;
+			board[randomCell.row][randomCell.col] = Math.random() < TWO_TO_FOUR_RATIO ? 2 : 4;
 		}
 	}
 
-	// Check if the game is over
+	/**
+	 * Check if the game is over
+	 * @returns {boolean}
+	 */
 	function checkGameOver() {
 		// Check if there are empty cells
 		for (let i = 0; i < 4; i++) {
@@ -74,7 +84,10 @@
 		return true;
 	}
 
-	// Check if player has won
+	/**
+	 * Check if player has won
+	 * @returns {boolean}
+	 */
 	function checkWin() {
 		for (let i = 0; i < 4; i++) {
 			for (let j = 0; j < 4; j++) {
@@ -87,66 +100,89 @@
 		return false;
 	}
 
-	// Move tiles in a specific direction
+	/**
+	 * Move tiles in a specific direction
+	 * @param {number} direction
+	 */
 	function moveTiles(direction) {
 		if (gameOver) return;
 
 		let moved = false;
 		const newBoard = board.map((row) => [...row]);
 
-		// Helper function to check if a line can move
-		function canMove(line, isReversed = false) {
-			const nonZero = line.filter((cell) => cell !== 0);
-
-			// If there are no non-zero tiles, no movement possible
-			if (nonZero.length === 0) return false;
-
-			// If there are gaps (zeros) between tiles, movement is possible
-			if (nonZero.length < line.length) return true;
-
-			// Check if any adjacent tiles can merge
-			for (let i = 0; i < nonZero.length - 1; i++) {
-				if (nonZero[i] === nonZero[i + 1]) return true;
+		/**
+		 * Check if a line can move
+		 * @param {number[]} line
+		 * @returns {boolean}
+		 */
+		function canMove(line) {
+			for (let i = 0; i < line.length - 1; i++) {
+				if (line[i] === line[i + 1] || line[i] === 0) {
+					return true;
+				}
 			}
 
 			return false;
 		}
 
-		// Helper function to move and merge tiles in one direction
-		function moveLine(line, isReversed = false) {
-			// Remove zeros
-			let tiles = line.filter((cell) => cell !== 0);
+		/**
+		 * Move and merge tiles in one direction
+		 * @param {number[]} inputLine
+		 * @returns {number[]}
+		 */
+		function collapseLine(inputLine) {
+			let lastPlaced = 0;
+			let current = 1;
+			let line = [...inputLine];
 
-			// Merge adjacent tiles (only once per move)
-			for (let i = 0; i < tiles.length - 1; i++) {
-				if (tiles[i] === tiles[i + 1]) {
-					tiles[i] *= 2;
-					score += tiles[i];
-					tiles.splice(i + 1, 1);
+			// For each tile, move it to the 'end'
+			while (current < line.length) {
+				// If the current tile is empty, skip it
+				if (line[current] === 0) {
+					// do nothing
 				}
+
+				// If the last placed tile is empty, move the current tile to the last placed tile
+				else if (line[lastPlaced] === 0) {
+					line[lastPlaced] = line[current];
+					line[current] = 0;
+				}
+
+				// If the last placed tile is the same as the current tile, merge them
+				else if (line[lastPlaced] === line[current]) {
+					line[lastPlaced] *= 2;
+					line[current] = 0;
+					score += line[lastPlaced];
+					lastPlaced++;
+				}
+
+				// If the last placed is different, move the current tile to the space after the last placed tile
+				else if (lastPlaced + 1 !== current) {
+					line[lastPlaced + 1] = line[current];
+					line[current] = 0;
+					lastPlaced++;
+				}
+
+				// If the last placed is the same as the current, mark current tile as placed.
+				else {
+					lastPlaced++;
+				}
+
+				current++;
 			}
 
-			// Pad with zeros
-			while (tiles.length < 4) {
-				tiles.push(0);
-			}
-
-			// Reverse if needed
-			if (isReversed) {
-				tiles.reverse();
-			}
-
-			return tiles;
+			console.log("collapsed line", inputLine, line);
+			return line;
 		}
 
-		if (direction === "left") {
+		if (direction === DIRECTIONS.LEFT) {
 			// Move left: tiles slide to the left and merge
 			for (let i = 0; i < 4; i++) {
 				const originalRow = [...newBoard[i]];
 
 				// Only process if movement is possible
-				if (canMove(originalRow, false)) {
-					const newRow = moveLine(originalRow, false);
+				if (canMove(originalRow)) {
+					const newRow = collapseLine(originalRow);
 
 					// Only update if the row actually changed
 					if (JSON.stringify(originalRow) !== JSON.stringify(newRow)) {
@@ -155,23 +191,23 @@
 					}
 				}
 			}
-		} else if (direction === "right") {
+		} else if (direction === DIRECTIONS.RIGHT) {
 			// Move right: tiles slide to the right and merge
 			for (let i = 0; i < 4; i++) {
-				const originalRow = [...newBoard[i]];
+				const originalRow = [...newBoard[i]].toReversed();
 
 				// Only process if movement is possible
-				if (canMove(originalRow, true)) {
-					const newRow = moveLine(originalRow, true);
+				if (canMove(originalRow)) {
+					const newRow = collapseLine(originalRow);
 
 					// Only update if the row actually changed
 					if (JSON.stringify(originalRow) !== JSON.stringify(newRow)) {
 						moved = true;
-						newBoard[i] = newRow;
+						newBoard[i] = newRow.toReversed();
 					}
 				}
 			}
-		} else if (direction === "up") {
+		} else if (direction === DIRECTIONS.UP) {
 			// Move up: tiles slide up and merge
 			for (let j = 0; j < 4; j++) {
 				const col = [];
@@ -180,8 +216,8 @@
 				}
 
 				// Only process if movement is possible
-				if (canMove(col, false)) {
-					const newCol = moveLine(col, false);
+				if (canMove(col)) {
+					const newCol = collapseLine(col);
 
 					// Only update if the column actually changed
 					if (JSON.stringify(col) !== JSON.stringify(newCol)) {
@@ -193,24 +229,24 @@
 					}
 				}
 			}
-		} else if (direction === "down") {
+		} else if (direction === DIRECTIONS.DOWN) {
 			// Move down: tiles slide down and merge
 			for (let j = 0; j < 4; j++) {
 				const col = [];
 				for (let i = 0; i < 4; i++) {
-					col.push(newBoard[i][j]);
+					col.push(newBoard[3 - i][j]);
 				}
 
 				// Only process if movement is possible
-				if (canMove(col, true)) {
-					const newCol = moveLine(col, true);
+				if (canMove(col)) {
+					const newCol = collapseLine(col);
 
 					// Only update if the column actually changed
 					if (JSON.stringify(col) !== JSON.stringify(newCol)) {
 						moved = true;
 						// Update the column
 						for (let i = 0; i < 4; i++) {
-							newBoard[i][j] = newCol[i];
+							newBoard[3 - i][j] = newCol[i];
 						}
 					}
 				}
@@ -233,24 +269,27 @@
 		}
 	}
 
-	// Handle keyboard events
+	/**
+	 * Handle keyboard events
+	 * @param {KeyboardEvent} event
+	 */
 	function handleKeydown(event) {
 		switch (event.key) {
 			case "ArrowLeft":
 				event.preventDefault();
-				moveTiles("left");
+				moveTiles(DIRECTIONS.LEFT);
 				break;
 			case "ArrowRight":
 				event.preventDefault();
-				moveTiles("right");
+				moveTiles(DIRECTIONS.RIGHT);
 				break;
 			case "ArrowUp":
 				event.preventDefault();
-				moveTiles("up");
+				moveTiles(DIRECTIONS.UP);
 				break;
 			case "ArrowDown":
 				event.preventDefault();
-				moveTiles("down");
+				moveTiles(DIRECTIONS.DOWN);
 				break;
 		}
 	}
@@ -259,11 +298,19 @@
 	let touchStartX = 0;
 	let touchStartY = 0;
 
+	/**
+	 * Handle touch/swipe events for mobile
+	 * @param {TouchEvent} event
+	 */
 	function handleTouchStart(event) {
 		touchStartX = event.touches[0].clientX;
 		touchStartY = event.touches[0].clientY;
 	}
 
+	/**
+	 * Handle touch/swipe events for mobile
+	 * @param {TouchEvent} event
+	 */
 	function handleTouchEnd(event) {
 		if (!touchStartX || !touchStartY) return;
 
@@ -274,46 +321,22 @@
 		const diffY = touchStartY - touchEndY;
 
 		if (Math.abs(diffX) > Math.abs(diffY)) {
-			if (diffX > 0) moveTiles("left");
-			else moveTiles("right");
+			if (diffX > 0) moveTiles(DIRECTIONS.LEFT);
+			else moveTiles(DIRECTIONS.RIGHT);
 		} else {
-			if (diffY > 0) moveTiles("up");
-			else moveTiles("down");
+			if (diffY > 0) moveTiles(DIRECTIONS.UP);
+			else moveTiles(DIRECTIONS.DOWN);
 		}
 
 		touchStartX = 0;
 		touchStartY = 0;
 	}
 
-	// Continue playing after winning
+	/**
+	 * Continue playing after winning
+	 */
 	function continuePlaying() {
 		canContinue = true;
-	}
-
-	// Handle tile merging animation
-	function animateMerge(row, col) {
-		const key = `${row}-${col}`;
-		mergingTiles.add(key);
-		setTimeout(() => {
-			mergingTiles.delete(key);
-		}, 300);
-	}
-
-	// Create smooth tile movement animation
-	function animateTileMovement(oldBoard, newBoard) {
-		// Just update the board immediately - let CSS handle the transitions
-		board = newBoard;
-		addNewTile();
-		checkWin();
-
-		if (checkGameOver()) {
-			gameOver = true;
-		}
-
-		// Update best score
-		if (score > bestScore) {
-			bestScore = score;
-		}
 	}
 
 	// Initialize game on mount
@@ -328,15 +351,15 @@
 </script>
 
 <svelte:head>
-	<title>2048 Game</title>
+	<title>4096 Game</title>
 </svelte:head>
 
 <div class="game-container" ontouchstart={handleTouchStart} ontouchend={handleTouchEnd}>
 	<!-- Header -->
 	<div class="header">
 		<div class="title-section">
-			<h1 class="game-title">2048</h1>
-			<p class="subtitle">Join the tiles, get to 2048!</p>
+			<h1 class="game-title">4096</h1>
+			<p class="subtitle">Join the tiles, get to 4096!</p>
 		</div>
 
 		<div class="scores-section">
@@ -376,6 +399,7 @@
 						class:tile-512={cell === 512}
 						class:tile-1024={cell === 1024}
 						class:tile-2048={cell === 2048}
+						class:tile-4096={cell === 4096}
 						class:merging={mergingTiles.has(tileKey)}
 					>
 						{cell}
@@ -517,7 +541,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 2rem;
+		font-size: 3.5rem;
 		font-weight: bold;
 		color: #776e65;
 		transition: all 0.15s ease;
@@ -612,6 +636,12 @@
 
 	.tile-2048 {
 		background: #edc22e;
+		color: #f9f6f2;
+		font-size: 1.5rem;
+	}
+
+	.tile-4096 {
+		background: #5eda92;
 		color: #f9f6f2;
 		font-size: 1.5rem;
 	}
