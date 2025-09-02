@@ -1,272 +1,20 @@
 <script>
+	import { Game, DIRECTIONS } from "$lib/game.svelte.js";
 	import { onMount } from "svelte";
 
-	const TWO_TO_FOUR_RATIO = 0.5;
+	const TOUCH_THRESHOLD = 100;
 
-	const DIRECTIONS = {
-		LEFT: 10,
-		RIGHT: 20,
-		UP: 30,
-		DOWN: 40,
-	};
-
-	// Game state
-	let board = $state(
-		Array(4)
-			.fill(null)
-			.map(() => Array(4).fill(0))
-	);
-	let score = $state(0);
+	let game = $state(new Game());
 	let bestScore = $state(0);
-	let gameOver = $state(false);
-	let won = $state(false);
-	let canContinue = $state(false);
-	let mergingTiles = $state(new Set());
-
-	// Initialize the game
-	function initGame() {
-		board = Array(4)
-			.fill(null)
-			.map(() => Array(4).fill(0));
-		score = 0;
-		gameOver = false;
-		won = false;
-		canContinue = false;
-		mergingTiles.clear();
-		addNewTile();
-		addNewTile();
-	}
 
 	/**
-	 * Add a new tile (2 or 4) to a random empty position
-	 */
-	function addNewTile() {
-		const emptyCells = [];
-		for (let i = 0; i < 4; i++) {
-			for (let j = 0; j < 4; j++) {
-				if (board[i][j] === 0) {
-					emptyCells.push({ row: i, col: j });
-				}
-			}
-		}
-
-		if (emptyCells.length > 0) {
-			const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-			board[randomCell.row][randomCell.col] = Math.random() < TWO_TO_FOUR_RATIO ? 2 : 4;
-		}
-	}
-
-	/**
-	 * Check if the game is over
-	 * @returns {boolean}
-	 */
-	function checkGameOver() {
-		// Check if there are empty cells
-		for (let i = 0; i < 4; i++) {
-			for (let j = 0; j < 4; j++) {
-				if (board[i][j] === 0) return false;
-			}
-		}
-
-		// Check if any moves are possible
-		for (let i = 0; i < 4; i++) {
-			for (let j = 0; j < 3; j++) {
-				if (board[i][j] === board[i][j + 1]) return false;
-			}
-		}
-
-		for (let i = 0; i < 3; i++) {
-			for (let j = 0; j < 4; j++) {
-				if (board[i][j] === board[i + 1][j]) return false;
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Check if player has won
-	 * @returns {boolean}
-	 */
-	function checkWin() {
-		for (let i = 0; i < 4; i++) {
-			for (let j = 0; j < 4; j++) {
-				if (board[i][j] === 2048) {
-					won = true;
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Move tiles in a specific direction
+	 * Handle move
 	 * @param {number} direction
+	 * @param direction
 	 */
-	function moveTiles(direction) {
-		if (gameOver) return;
-
-		let moved = false;
-		const newBoard = board.map((row) => [...row]);
-
-		/**
-		 * Check if a line can move
-		 * @param {number[]} line
-		 * @returns {boolean}
-		 */
-		function canMove(line) {
-			for (let i = 0; i < line.length - 1; i++) {
-				if (line[i] === line[i + 1] || line[i] === 0) {
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		/**
-		 * Move and merge tiles in one direction
-		 * @param {number[]} inputLine
-		 * @returns {number[]}
-		 */
-		function collapseLine(inputLine) {
-			let lastPlaced = 0;
-			let current = 1;
-			let line = [...inputLine];
-
-			// For each tile, move it to the 'end'
-			while (current < line.length) {
-				// If the current tile is empty, skip it
-				if (line[current] === 0) {
-					// do nothing
-				}
-
-				// If the last placed tile is empty, move the current tile to the last placed tile
-				else if (line[lastPlaced] === 0) {
-					line[lastPlaced] = line[current];
-					line[current] = 0;
-				}
-
-				// If the last placed tile is the same as the current tile, merge them
-				else if (line[lastPlaced] === line[current]) {
-					line[lastPlaced] *= 2;
-					line[current] = 0;
-					score += line[lastPlaced];
-					lastPlaced++;
-				}
-
-				// If the last placed is different, move the current tile to the space after the last placed tile
-				else if (lastPlaced + 1 !== current) {
-					line[lastPlaced + 1] = line[current];
-					line[current] = 0;
-					lastPlaced++;
-				}
-
-				// If the last placed is the same as the current, mark current tile as placed.
-				else {
-					lastPlaced++;
-				}
-
-				current++;
-			}
-
-			console.log("collapsed line", inputLine, line);
-			return line;
-		}
-
-		if (direction === DIRECTIONS.LEFT) {
-			// Move left: tiles slide to the left and merge
-			for (let i = 0; i < 4; i++) {
-				const originalRow = [...newBoard[i]];
-
-				// Only process if movement is possible
-				if (canMove(originalRow)) {
-					const newRow = collapseLine(originalRow);
-
-					// Only update if the row actually changed
-					if (JSON.stringify(originalRow) !== JSON.stringify(newRow)) {
-						moved = true;
-						newBoard[i] = newRow;
-					}
-				}
-			}
-		} else if (direction === DIRECTIONS.RIGHT) {
-			// Move right: tiles slide to the right and merge
-			for (let i = 0; i < 4; i++) {
-				const originalRow = [...newBoard[i]].toReversed();
-
-				// Only process if movement is possible
-				if (canMove(originalRow)) {
-					const newRow = collapseLine(originalRow);
-
-					// Only update if the row actually changed
-					if (JSON.stringify(originalRow) !== JSON.stringify(newRow)) {
-						moved = true;
-						newBoard[i] = newRow.toReversed();
-					}
-				}
-			}
-		} else if (direction === DIRECTIONS.UP) {
-			// Move up: tiles slide up and merge
-			for (let j = 0; j < 4; j++) {
-				const col = [];
-				for (let i = 0; i < 4; i++) {
-					col.push(newBoard[i][j]);
-				}
-
-				// Only process if movement is possible
-				if (canMove(col)) {
-					const newCol = collapseLine(col);
-
-					// Only update if the column actually changed
-					if (JSON.stringify(col) !== JSON.stringify(newCol)) {
-						moved = true;
-						// Update the column
-						for (let i = 0; i < 4; i++) {
-							newBoard[i][j] = newCol[i];
-						}
-					}
-				}
-			}
-		} else if (direction === DIRECTIONS.DOWN) {
-			// Move down: tiles slide down and merge
-			for (let j = 0; j < 4; j++) {
-				const col = [];
-				for (let i = 0; i < 4; i++) {
-					col.push(newBoard[3 - i][j]);
-				}
-
-				// Only process if movement is possible
-				if (canMove(col)) {
-					const newCol = collapseLine(col);
-
-					// Only update if the column actually changed
-					if (JSON.stringify(col) !== JSON.stringify(newCol)) {
-						moved = true;
-						// Update the column
-						for (let i = 0; i < 4; i++) {
-							newBoard[3 - i][j] = newCol[i];
-						}
-					}
-				}
-			}
-		}
-
-		if (moved) {
-			board = newBoard;
-			addNewTile();
-			checkWin();
-
-			if (checkGameOver()) {
-				gameOver = true;
-			}
-
-			// Update best score
-			if (score > bestScore) {
-				bestScore = score;
-			}
-		}
+	function handleMove(direction) {
+		game.moveTiles(direction);
+		bestScore = Math.max(bestScore, game.score);
 	}
 
 	/**
@@ -277,19 +25,19 @@
 		switch (event.key) {
 			case "ArrowLeft":
 				event.preventDefault();
-				moveTiles(DIRECTIONS.LEFT);
+				handleMove(DIRECTIONS.LEFT);
 				break;
 			case "ArrowRight":
 				event.preventDefault();
-				moveTiles(DIRECTIONS.RIGHT);
+				handleMove(DIRECTIONS.RIGHT);
 				break;
 			case "ArrowUp":
 				event.preventDefault();
-				moveTiles(DIRECTIONS.UP);
+				handleMove(DIRECTIONS.UP);
 				break;
 			case "ArrowDown":
 				event.preventDefault();
-				moveTiles(DIRECTIONS.DOWN);
+				handleMove(DIRECTIONS.DOWN);
 				break;
 		}
 	}
@@ -320,12 +68,14 @@
 		const diffX = touchStartX - touchEndX;
 		const diffY = touchStartY - touchEndY;
 
+		if (Math.abs(diffX) < TOUCH_THRESHOLD && Math.abs(diffY) < TOUCH_THRESHOLD) return;
+
 		if (Math.abs(diffX) > Math.abs(diffY)) {
-			if (diffX > 0) moveTiles(DIRECTIONS.LEFT);
-			else moveTiles(DIRECTIONS.RIGHT);
+			if (diffX > 0) handleMove(DIRECTIONS.LEFT);
+			else handleMove(DIRECTIONS.RIGHT);
 		} else {
-			if (diffY > 0) moveTiles(DIRECTIONS.UP);
-			else moveTiles(DIRECTIONS.DOWN);
+			if (diffY > 0) handleMove(DIRECTIONS.UP);
+			else handleMove(DIRECTIONS.DOWN);
 		}
 
 		touchStartX = 0;
@@ -336,12 +86,18 @@
 	 * Continue playing after winning
 	 */
 	function continuePlaying() {
-		canContinue = true;
+		game.canContinue = true;
 	}
 
-	// Initialize game on mount
+	/**
+	 * Create a new game
+	 */
+	function newGame() {
+		game = new Game();
+	}
+
+	// Setup listeners on mount
 	onMount(() => {
-		initGame();
 		window.addEventListener("keydown", handleKeydown);
 
 		return () => {
@@ -365,7 +121,7 @@
 		<div class="scores-section">
 			<div class="score-box">
 				<div class="score-label">SCORE</div>
-				<div class="score-value">{score}</div>
+				<div class="score-value">{game.score}</div>
 			</div>
 			<div class="score-box">
 				<div class="score-label">BEST</div>
@@ -376,12 +132,12 @@
 
 	<!-- Game Controls -->
 	<div class="controls">
-		<button class="new-game-btn" onclick={initGame}>New Game</button>
+		<button class="new-game-btn" onclick={newGame}>New Game</button>
 	</div>
 
 	<!-- Game Board -->
 	<div class="game-board">
-		{#each board as row, rowIndex}
+		{#each game.board as row, rowIndex}
 			{#each row as cell, colIndex}
 				{@const tileKey = `${rowIndex}-${colIndex}`}
 
@@ -400,7 +156,6 @@
 						class:tile-1024={cell === 1024}
 						class:tile-2048={cell === 2048}
 						class:tile-4096={cell === 4096}
-						class:merging={mergingTiles.has(tileKey)}
 					>
 						{cell}
 					</div>
@@ -412,23 +167,23 @@
 	</div>
 
 	<!-- Game Overlay -->
-	{#if gameOver}
+	{#if game.gameOver}
 		<div class="overlay game-over">
 			<div class="overlay-content">
 				<h2>Game Over!</h2>
-				<p>Final Score: {score}</p>
-				<button class="overlay-btn" onclick={initGame}>Try Again</button>
+				<p>Final Score: {game.score}</p>
+				<button class="overlay-btn" onclick={newGame}>Try Again</button>
 			</div>
 		</div>
 	{/if}
 
-	{#if won && !canContinue}
+	{#if game.won && !game.canContinue}
 		<div class="overlay win">
 			<div class="overlay-content">
 				<h2>You Won!</h2>
-				<p>Score: {score}</p>
+				<p>Score: {game.score}</p>
 				<button class="overlay-btn" onclick={continuePlaying}>Keep Playing</button>
-				<button class="overlay-btn secondary" onclick={initGame}>New Game</button>
+				<button class="overlay-btn secondary" onclick={newGame}>New Game</button>
 			</div>
 		</div>
 	{/if}
@@ -445,6 +200,7 @@
 <style>
 	.game-container {
 		max-width: 500px;
+		min-height: 100vh;
 		margin: 0 auto;
 		padding: 20px;
 		font-family: "Arial", sans-serif;
