@@ -1,5 +1,5 @@
 <script>
-	import { Game, DIRECTIONS } from "$lib/game.svelte.js";
+	import { Game, DIRECTIONS, TILE_COLORS } from "$lib/game.svelte.js";
 	import { onMount } from "svelte";
 
 	const TOUCH_THRESHOLD = 100;
@@ -96,6 +96,39 @@
 		game = new Game();
 	}
 
+	/**
+	 * Get the font size for a tile
+	 * @param {number} value
+	 * @returns {string}
+	 */
+	function getTileFontSize(value) {
+		const baseSize = 3; // rem
+		const digits = value.toString().length;
+		const fontSize = Math.max(baseSize - (digits - 1) * 0.3, 1);
+		return `${fontSize}rem`;
+	}
+
+	/**
+	 * Get the background color for a tile
+	 * @param {number} value
+	 * @returns {string}
+	 */
+	function getTileBackground(value) {
+		// @ts-expect-error
+		if (value in TILE_COLORS) return TILE_COLORS[value];
+		return "#5f5f5f";
+	}
+
+	/**
+	 * Get the color for a tile
+	 * @param {number} value
+	 * @returns {string}
+	 */
+	function getTileColor(value) {
+		if (value >= 8) return "#f9f6f2";
+		return "#776e65";
+	}
+
 	// Setup listeners on mount
 	onMount(() => {
 		window.addEventListener("keydown", handleKeydown);
@@ -112,50 +145,39 @@
 
 <div class="game-container" ontouchstart={handleTouchStart} ontouchend={handleTouchEnd}>
 	<!-- Header -->
-	<div class="header">
-		<div class="title-section">
-			<h1 class="game-title">4096</h1>
-			<p class="subtitle">Join the tiles, get to 4096!</p>
+	<div class="mb-3 flex items-start justify-between">
+		<div>
+			<h1 class="game-title text-4xl font-bold">4096</h1>
+			<p>Join the tiles, get to 4096!</p>
 		</div>
 
-		<div class="scores-section">
-			<div class="score-box">
-				<div class="score-label">SCORE</div>
-				<div class="score-value">{game.score}</div>
+		<div class="flex gap-2">
+			<div class="score-box rounded-md p-2 text-center text-sm">
+				<div class="text-sm font-bold uppercase">SCORE</div>
+				<div class="mt-1 text-2xl font-bold">{game.score}</div>
 			</div>
-			<div class="score-box">
-				<div class="score-label">BEST</div>
-				<div class="score-value">{bestScore}</div>
+			<div class="score-box rounded-md p-2 text-center text-sm">
+				<div class="text-sm font-bold uppercase">BEST</div>
+				<div class="mt-1 text-2xl font-bold">{bestScore}</div>
 			</div>
 		</div>
 	</div>
 
 	<!-- Game Controls -->
-	<div class="controls">
+	<div class="mb-4 text-center">
 		<button class="new-game-btn" onclick={newGame}>New Game</button>
 	</div>
 
 	<!-- Game Board -->
 	<div class="game-board">
-		{#each game.board as row, rowIndex}
-			{#each row as cell, colIndex}
-				{@const tileKey = `${rowIndex}-${colIndex}`}
-
+		{#each game.board as row, rowIndex (rowIndex)}
+			{#each row as cell, colIndex (colIndex)}
 				{#if cell !== 0}
 					<div
-						class="tile {`tile-${cell}`}"
-						class:tile-2={cell === 2}
-						class:tile-4={cell === 4}
-						class:tile-8={cell === 8}
-						class:tile-16={cell === 16}
-						class:tile-32={cell === 32}
-						class:tile-64={cell === 64}
-						class:tile-128={cell === 128}
-						class:tile-256={cell === 256}
-						class:tile-512={cell === 512}
-						class:tile-1024={cell === 1024}
-						class:tile-2048={cell === 2048}
-						class:tile-4096={cell === 4096}
+						class="tile"
+						style:font-size={getTileFontSize(cell)}
+						style:background={getTileBackground(cell)}
+						style:color={getTileColor(cell)}
 					>
 						{cell}
 					</div>
@@ -197,7 +219,7 @@
 	</div>
 </div>
 
-<style>
+<style lang="postcss">
 	.game-container {
 		max-width: 500px;
 		min-height: 100vh;
@@ -205,30 +227,11 @@
 		padding: 20px;
 		font-family: "Arial", sans-serif;
 		user-select: none;
-	}
-
-	.header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 20px;
-	}
-
-	.title-section {
-		flex: 1;
+		color: var(--text-color);
 	}
 
 	.game-title {
 		font-size: 3rem;
-		font-weight: bold;
-		margin: 0;
-		color: #776e65;
-	}
-
-	.subtitle {
-		margin: 5px 0 0 0;
-		color: #776e65;
-		font-size: 0.9rem;
 	}
 
 	.scores-section {
@@ -237,34 +240,13 @@
 	}
 
 	.score-box {
-		background: #bbada0;
-		padding: 10px 15px;
-		border-radius: 6px;
-		text-align: center;
+		background: var(--board-bg);
+		color: var(--background-color);
 		min-width: 80px;
 	}
 
-	.score-label {
-		color: #eee4da;
-		font-size: 0.8rem;
-		font-weight: bold;
-		text-transform: uppercase;
-	}
-
-	.score-value {
-		color: white;
-		font-size: 1.5rem;
-		font-weight: bold;
-		margin-top: 5px;
-	}
-
-	.controls {
-		margin-bottom: 20px;
-		text-align: center;
-	}
-
 	.new-game-btn {
-		background: #8f7a66;
+		background: var(--primary-color);
 		color: white;
 		border: none;
 		padding: 12px 24px;
@@ -273,10 +255,10 @@
 		font-weight: bold;
 		cursor: pointer;
 		transition: background-color 0.2s;
-	}
 
-	.new-game-btn:hover {
-		background: #7f6a56;
+		&:hover {
+			background: var(--primary-color-dark);
+		}
 	}
 
 	.game-board {
@@ -295,14 +277,20 @@
 		background: #cdc1b4;
 		border-radius: 6px;
 		display: flex;
+		flex: 0 0 auto;
+		overflow: hidden;
 		align-items: center;
 		justify-content: center;
-		font-size: 3.5rem;
+		font-size: 3rem;
 		font-weight: bold;
 		color: #776e65;
 		transition: all 0.15s ease;
 		position: relative;
 		animation: tileAppear 0.2s ease-out;
+		white-space: normal;
+		word-break: break-all;
+		text-align: center;
+		padding: 0.2em;
 	}
 
 	@keyframes tileAppear {
@@ -316,90 +304,8 @@
 		}
 	}
 
-	.tile.merging {
-		animation: tileMerge 0.3s ease-out;
-	}
-
-	@keyframes tileMerge {
-		0% {
-			transform: scale(1);
-		}
-		50% {
-			transform: scale(1.2);
-		}
-		100% {
-			transform: scale(1);
-		}
-	}
-
 	.tile.empty {
 		background: #cdc1b4;
-	}
-
-	.tile-2 {
-		background: #eee4da;
-		color: #776e65;
-	}
-
-	.tile-4 {
-		background: #ede0c8;
-		color: #776e65;
-	}
-
-	.tile-8 {
-		background: #f2b179;
-		color: #f9f6f2;
-	}
-
-	.tile-16 {
-		background: #f59563;
-		color: #f9f6f2;
-	}
-
-	.tile-32 {
-		background: #f67c5f;
-		color: #f9f6f2;
-	}
-
-	.tile-64 {
-		background: #f65e3b;
-		color: #f9f6f2;
-	}
-
-	.tile-128 {
-		background: #edcf72;
-		color: #f9f6f2;
-		font-size: 1.8rem;
-	}
-
-	.tile-256 {
-		background: #edcc61;
-		color: #f9f6f2;
-		font-size: 1.8rem;
-	}
-
-	.tile-512 {
-		background: #edc850;
-		color: #f9f6f2;
-		font-size: 1.8rem;
-	}
-
-	.tile-1024 {
-		background: #edc53f;
-		color: #f9f6f2;
-		font-size: 1.5rem;
-	}
-
-	.tile-2048 {
-		background: #edc22e;
-		color: #f9f6f2;
-		font-size: 1.5rem;
-	}
-
-	.tile-4096 {
-		background: #5eda92;
-		color: #f9f6f2;
-		font-size: 1.5rem;
 	}
 
 	.overlay {
