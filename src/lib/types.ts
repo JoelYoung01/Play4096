@@ -4,4 +4,5 @@ export interface GameEvent {
   merged?: number;
   gameLost?: boolean;
   gameWon?: boolean;
+  snapshot?: number[][];
 }

@@ -1,6 +1,13 @@
+export const EVENT_TYPES = {
+	MOVE: "move",
+	SPAWN: "spawn",
+	SNAPSHOT: "snapshot",
+};
+
 export const TWO_TO_FOUR_RATIO = 0.5;
 export const DEFAULT_BOARD_SIZE = 4;
 export const DEFAULT_STARTING_TILES = 1;
+export const SPAWN_START_SCALE = 0.5;
 
 export const DIRECTIONS = {
 	LEFT: 10,
@@ -36,6 +43,8 @@ export const TILE_COLORS = {
 export class Game {
 	constructor(boardSize = DEFAULT_BOARD_SIZE, startingTiles = DEFAULT_STARTING_TILES) {
 		this.boardSize = boardSize;
+
+		/** @type {number[][]} */
 		this.board = $state(
 			Array(boardSize)
 				.fill(null)
@@ -195,13 +204,13 @@ export class Game {
 	/**
 	 * Move tiles in a specific direction
 	 * @param {number} direction
-	 * @returns Queued events to be rendered
+	 * @returns {import("./types").GameEvent[]}
 	 */
 	moveTiles(direction) {
-		if (this.gameOver) return;
+		if (this.gameOver) return [];
 
 		/**
-		 * @type {{ start?: {x: number, y: number}, end?: {x: number, y: number}, merged?: number, gameLost?: boolean, gameWon?: boolean}[]}
+		 * @type {import("./types").GameEvent[]}
 		 */
 		let moveQueue = [];
 
@@ -313,12 +322,15 @@ export class Game {
 			moveQueue.push({ gameWon: true });
 		}
 		if (moveQueue.length > 0) {
+			moveQueue.push({ snapshot: newBoard });
 			this.board = newBoard;
-		}
 
-		const tileAddMove = this.addNewTile();
-		if (tileAddMove) {
-			moveQueue.push({ ...tileAddMove });
+			// Only add a new tile if a move was made
+			const tileAddMove = this.addNewTile();
+			if (tileAddMove) {
+				moveQueue.push({ ...tileAddMove });
+				moveQueue.push({ snapshot: this.board });
+			}
 		}
 
 		if (this.checkGameOver()) {

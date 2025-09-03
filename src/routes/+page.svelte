@@ -127,10 +127,6 @@
 	});
 </script>
 
-<svelte:head>
-	<title>4096 Game</title>
-</svelte:head>
-
 <div
 	class="game-container"
 	ontouchstart={handleTouchStart}

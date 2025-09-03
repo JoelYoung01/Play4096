@@ -24,11 +24,11 @@
 	}
 
 	/**
-	 * Remove an event from the pending events
-	 * @param {import("$lib/types").GameEvent} event
+	 * Pop an event from the pending events
+	 * @returns {import("$lib/types").GameEvent | undefined}
 	 */
-	function removeEvent(event) {
-		pendingEvents = pendingEvents.filter((e) => e !== event);
+	function popEvent() {
+		return pendingEvents.shift();
 	}
 
 	/**
@@ -125,6 +125,13 @@
 		game = new Game();
 	}
 
+	/**
+	 * Continue playing
+	 */
+	function continuePlaying() {
+		game.canContinue = true;
+	}
+
 	// Setup listeners on mount
 	onMount(() => {
 		window.addEventListener("keydown", handleKeydown);
@@ -166,7 +173,7 @@
 	</div>
 
 	<!-- Game Board -->
-	<CanvasGameBoard {game} {pendingEvents} {newGame} {removeEvent} />
+	<CanvasGameBoard {game} {pendingEvents} {newGame} {popEvent} {continuePlaying} />
 
 	<!-- Instructions -->
 	<div class="instructions mt-3">
