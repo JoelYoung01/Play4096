@@ -145,7 +145,7 @@ export class Game {
 		if (emptyCells.length > 0) {
 			const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
 			this.board[randomCell.row][randomCell.col] = value;
-			return { end: { x: randomCell.col, y: randomCell.row } };
+			return { end: { x: randomCell.col, y: randomCell.row }, value };
 		}
 
 		return null;
@@ -200,46 +200,47 @@ export class Game {
 	/**
 	 * Move and merge tiles in one direction
 	 * @param {number[]} inputLine
-	 * @returns {{result: number[], moves: {start?: number, end?: number, merged?: number}[]}}
+	 * @returns {{result: number[], moves: Record<string, any>[]}}
 	 */
 	collapseLine(inputLine) {
 		let lastPlaced = 0;
 		let current = 1;
 		let line = [...inputLine];
 		/**
-		 * @type {{ start?: number, end?: number, merged?: number }[]}
+		 * @type {Record<string, any>[]}
 		 */
 		let moveQueue = [];
 
 		// For each tile, move it to the 'end'
 		while (current < line.length) {
+			const value = line[current];
 			// If the current tile is empty, skip it
-			if (line[current] === 0) {
+			if (value === 0) {
 				// do nothing
 			}
 
 			// If the last placed tile is empty and this tile isn't, move the current tile to the last placed tile
 			else if (line[lastPlaced] === 0) {
-				line[lastPlaced] = line[current];
+				line[lastPlaced] = value;
 				line[current] = 0;
-				moveQueue.push({ start: current, end: lastPlaced });
+				moveQueue.push({ start: current, end: lastPlaced, value });
 			}
 
 			// If the last placed tile is the same as the current tile, merge them
-			else if (line[lastPlaced] === line[current]) {
+			else if (line[lastPlaced] === value) {
 				line[lastPlaced] *= 2;
 				line[current] = 0;
 				this.score += line[lastPlaced];
-				moveQueue.push({ start: current, end: lastPlaced, merged: line[lastPlaced] });
+				moveQueue.push({ start: current, end: lastPlaced, merged: true, value });
 				lastPlaced++;
 			}
 
 			// If the last placed is different, move the current tile to the space after the last placed tile
 			else if (lastPlaced + 1 !== current) {
-				line[lastPlaced + 1] = line[current];
+				line[lastPlaced + 1] = value;
 				line[current] = 0;
 				lastPlaced++;
-				moveQueue.push({ start: current, end: lastPlaced });
+				moveQueue.push({ start: current, end: lastPlaced, value });
 			}
 
 			// If the last placed is the same as the current, mark current tile as placed.
@@ -369,11 +370,17 @@ export class Game {
 			}
 		}
 
-		if (this.checkWin()) {
+		if (this.checkGameOver()) {
+			this.gameOver = true;
+			moveQueue.push({ gameLost: true });
+		}
+
+		if (!this.gameOver && !this.won && this.checkWin()) {
 			this.won = true;
 			moveQueue.push({ gameWon: true });
 		}
-		if (moveQueue.length > 0) {
+
+		if (!this.gameOver && moveQueue.length > 0) {
 			moveQueue.push({ snapshot: newBoard });
 			this.board = newBoard;
 
@@ -383,11 +390,6 @@ export class Game {
 				moveQueue.push({ ...tileAddMove });
 				moveQueue.push({ snapshot: this.board });
 			}
-		}
-
-		if (this.checkGameOver()) {
-			this.gameOver = true;
-			moveQueue.push({ gameLost: true });
 		}
 
 		return moveQueue;

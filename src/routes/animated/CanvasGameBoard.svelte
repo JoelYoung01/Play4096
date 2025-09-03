@@ -15,10 +15,6 @@
 	const boardBorderRadius = 12;
 	const tileSize = $derived((size - padding * (game.boardSize + 1)) / game.boardSize);
 	const positionFactor = $derived(tileSize + padding);
-	const nextBoard = $derived(
-		pendingEvents.find((/** @type {import("$lib/types").GameEvent} */ evt) => evt.snapshot)
-			?.snapshot || game.board
-	);
 	const theme = $derived(page.data.theme || defaultTheme);
 
 	/** @type {HTMLCanvasElement} */
@@ -30,9 +26,8 @@
 	let isAnimating = $state(false);
 	/** @type {number | null} */
 	let animationFrame = $state(null);
-	/** @type {import("$lib/types").GameEvent[]} */
-	let currentEvents = $state([]);
-	let animatedTiles = $state(new Map()); // Map of tile positions to animation data
+	/** @type {Record<string, any>[]} */
+	let animatedTiles = $state([]); // Map of tile positions to animation data
 
 	let previousBoard = $state(game.board.map((/** @type {number[]} */ row) => [...row]));
 
@@ -58,15 +53,13 @@
 	 * @param {number} value
 	 * @param {number} alpha - opacity for fade effects
 	 * @param {number} scale - scale for merge effects
-	 * @param {number} offsetX - optional x offset for animations
-	 * @param {number} offsetY - optional y offset for animations
 	 */
-	function drawTile(ctx, x, y, value, alpha = 1, scale = 1, offsetX = 0, offsetY = 0) {
+	function drawTile(ctx, x, y, value, alpha = 1, scale = 1, mark = false) {
 		if (!value) return;
 
 		const color = theme.tiles[value] || theme.unknownTile;
-		const px = x * positionFactor + padding + offsetX;
-		const py = y * positionFactor + padding + offsetY;
+		const px = x * positionFactor + padding;
+		const py = y * positionFactor + padding;
 		const w = tileSize * scale + 1;
 		const h = tileSize * scale + 1;
 		const centerOffsetX = (tileSize - w) / 2;
@@ -74,6 +67,15 @@
 
 		ctx.save();
 		ctx.globalAlpha = alpha;
+
+		// If mark is true, draw a shadow around the tile
+		if (mark) {
+			ctx.save();
+			ctx.shadowColor = "rgba(0,0,0,0.45)";
+			ctx.shadowBlur = 18;
+			ctx.shadowOffsetX = 0;
+			ctx.shadowOffsetY = 0;
+		}
 
 		ctx.fillStyle = color;
 
@@ -111,6 +113,11 @@
 		ctx.closePath();
 		ctx.fill();
 
+		// If mark is true, restore context to remove shadow for text
+		if (mark) {
+			ctx.restore();
+		}
+
 		// Choose text color for contrast
 		const textColor = getTileColor(value);
 		ctx.fillStyle = textColor;
@@ -138,32 +145,23 @@
 		ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
 		// Draw animated tiles
-		for (const [, tileData] of animatedTiles) {
-			// Calculate current position for moving tiles
-			const startX = tileData.startPos.x * positionFactor + padding;
-			const startY = tileData.startPos.y * positionFactor + padding;
-			const endX = tileData.endPos.x * positionFactor + padding;
-			const endY = tileData.endPos.y * positionFactor + padding;
-			const offsetX = (endX - startX) * tileData.progress;
-			const offsetY = (endY - startY) * tileData.progress;
-
+		for (const tileData of animatedTiles) {
 			drawTile(
 				ctx,
-				tileData.startPos.x,
-				tileData.startPos.y,
+				tileData.currentPos.x,
+				tileData.currentPos.y,
 				tileData.value,
 				tileData.alpha,
-				tileData.scale,
-				offsetX,
-				offsetY
+				tileData.scale
+				// true
 			);
 		}
 
 		// Draw static tiles (not being animated)
 		for (let x = 0; x < game.boardSize; x++) {
 			for (let y = 0; y < game.boardSize; y++) {
-				const key = `${x},${y}`;
-				if (!animatedTiles.has(key)) {
+				const tileAnimation = animatedTiles.find((t) => t.startPos.x === x && t.startPos.y === y);
+				if (!tileAnimation) {
 					drawTile(ctx, x, y, previousBoard[y][x]);
 				}
 			}
@@ -174,87 +172,115 @@
 	 * @param {number[][]} board
 	 */
 	function syncBoard(board) {
+		console.log("syncing board");
 		previousBoard = board.map((/** @type {number[]} */ row) => [...row]);
+	}
+
+	/**
+	 * Checks if an animation is complete
+	 * @param {Record<string, any>} tileData
+	 * @returns {boolean}
+	 */
+	function animationComplete(tileData) {
+		if (tileData.type === EVENT_TYPES.MOVE) {
+			return (
+				tileData.currentPos.x === tileData.endPos.x && tileData.currentPos.y === tileData.endPos.y
+			);
+		} else if (tileData.type === EVENT_TYPES.SPAWN) {
+			return tileData.alpha === 1 && tileData.scale === 1;
+		}
+		console.error("Unable to determine if animation is complete; unknown animation type", tileData);
+		return false;
 	}
 
 	/**
 	 * Process pending events and start animations
 	 */
 	function processEvents() {
-		if (isAnimating) return;
-
-		// Check if completed processing all events
-		if (pendingEvents.length === 0) {
-			// Sync the previous board with the current board
-			syncBoard(game.board);
-			return;
-		}
-
-		isAnimating = true;
-		currentEvents = [];
-		animatedTiles.clear();
-
-		// Pull pending events off queue (batched by type)
-		const firstType = readEventType(pendingEvents[0]);
-		while (pendingEvents.length > 0 && readEventType(pendingEvents[0]) === firstType) {
-			currentEvents.push(popEvent());
-		}
-
 		// Process events and create animation data
-		for (const event of currentEvents) {
+		while (pendingEvents.length > 0) {
+			const event = popEvent();
 			const eventType = readEventType(event);
-			if (eventType === EVENT_TYPES.SNAPSHOT) {
-				if (!event.snapshot) {
-					console.error("Invalid snapshot event", event);
-					continue;
-				}
-				syncBoard(event.snapshot);
-			} else if (eventType === EVENT_TYPES.MOVE) {
+
+			// Move
+			if (eventType === EVENT_TYPES.MOVE) {
 				if (!event.start || !event.end) {
 					console.error("Invalid move event", event);
 					continue;
 				}
-				const startKey = `${event.start.x},${event.start.y}`;
 
-				// Get the tile value from the base board (before the move)
-				const tileValue = previousBoard[event.start.y][event.start.x];
-				if (!tileValue) continue;
-				animatedTiles.set(startKey, {
-					value: tileValue,
-					startPos: { x: event.start.x, y: event.start.y },
-					endPos: { x: event.end.x, y: event.end.y },
-					alpha: 1,
-					scale: 1,
-					progress: 0,
-					startTime: Date.now(),
-					type: EVENT_TYPES.MOVE,
-				});
-			} else if (eventType === EVENT_TYPES.SPAWN) {
+				let existingAnimations = [];
+				if (event.merged) {
+					existingAnimations = animatedTiles.filter(
+						(t) =>
+							(t.endPos.x === event.start?.x && t.endPos.y === event.start?.y) ||
+							(t.endPos.x === event.end.x && t.endPos.y === event.end.y)
+					);
+				} else {
+					existingAnimations = animatedTiles.filter(
+						(t) => t.endPos.x === event.start?.x && t.endPos.y === event.start?.y
+					);
+				}
+
+				if (existingAnimations.length > 0) {
+					// If the tile is already animating, update the existing animation and add a new one
+
+					existingAnimations.forEach((animation) => {
+						if (animation.type === EVENT_TYPES.SPAWN) {
+							previousBoard[animation.startPos.y][animation.startPos.x] = animation.value;
+						}
+						animation.type = EVENT_TYPES.MOVE;
+						animation.merged = !!event.merged;
+						animation.endPos.x = event.end.x;
+						animation.endPos.y = event.end.y;
+					});
+				} else {
+					// Create a new animation entry for this tile
+					animatedTiles.push({
+						alpha: 1,
+						scale: 1,
+						value: event.value,
+						startPos: { x: event.start.x, y: event.start.y },
+						currentPos: { x: event.start.x, y: event.start.y },
+						type: EVENT_TYPES.MOVE,
+						merged: !!event.merged,
+						endPos: { x: event.end.x, y: event.end.y },
+					});
+				}
+			}
+
+			// Spawn
+			else if (eventType === EVENT_TYPES.SPAWN) {
 				if (!event.end) {
 					console.error("Invalid spawn event", event);
 					continue;
 				}
-				const spawnKey = `${event.end.x},${event.end.y}`;
-				const spawnValue = nextBoard[event.end.y][event.end.x];
-				if (!spawnValue) {
-					console.error("Invalid spawn value", event, nextBoard);
-					continue;
-				}
-				animatedTiles.set(spawnKey, {
+				animatedTiles.push({
 					startPos: { x: event.end.x, y: event.end.y },
+					currentPos: { x: event.end.x, y: event.end.y },
 					endPos: { x: event.end.x, y: event.end.y },
-					value: spawnValue,
+					value: event.value,
 					alpha: 0,
 					scale: SPAWN_START_SCALE,
-					progress: 0,
-					startTime: Date.now(),
 					type: EVENT_TYPES.SPAWN,
 				});
+			}
+
+			// Snapshot
+			else if (eventType === EVENT_TYPES.SNAPSHOT) {
+				if (!event.snapshot) {
+					console.error("Invalid snapshot event", event);
+					continue;
+				}
+				// syncBoard(event.snapshot);
 			}
 		}
 
 		// Start animation loop
-		animate();
+		if (!isAnimating) {
+			isAnimating = true;
+			animate();
+		}
 	}
 
 	/**
@@ -266,23 +292,54 @@
 		let allAnimationsComplete = true;
 
 		// Update animation states
-		for (const [, tileData] of animatedTiles) {
-			// Skip if this tile's animation is complete
-			if (tileData.progress === 1) continue;
-
+		for (const tileData of [...animatedTiles]) {
 			const speed = theme.speed[tileData.type];
-			const progress = Math.min(tileData.progress + speed / 100, 1);
 
-			tileData.progress = progress;
+			tileData.alpha = Math.min(tileData.alpha + speed / 10, 1);
+			tileData.scale = Math.min(tileData.scale + speed / 10, 1);
 
+			// Fade in and scale up for spawn
 			if (tileData.type === EVENT_TYPES.SPAWN) {
-				// Fade in and scale up for spawn
-				tileData.alpha = progress;
-				tileData.scale = SPAWN_START_SCALE + (1 - SPAWN_START_SCALE) * progress;
+				// Check completion and update board state
+				if (animationComplete(tileData)) {
+					animatedTiles.splice(animatedTiles.indexOf(tileData), 1);
+					previousBoard[tileData.startPos.y][tileData.startPos.x] = tileData.value;
+				} else {
+					allAnimationsComplete = false;
+				}
 			}
 
-			if (progress < 1) {
-				allAnimationsComplete = false;
+			// Move
+			else if (tileData.type === EVENT_TYPES.MOVE) {
+				const moveDist = Math.abs(speed / 10);
+				const angle = Math.atan2(
+					tileData.endPos.y - tileData.currentPos.y,
+					tileData.endPos.x - tileData.currentPos.x
+				);
+				const totalRemainingDistance = Math.sqrt(
+					Math.pow(tileData.endPos.x - tileData.currentPos.x, 2) +
+						Math.pow(tileData.endPos.y - tileData.currentPos.y, 2)
+				);
+				const dx = Math.cos(angle) * moveDist;
+				const dy = Math.sin(angle) * moveDist;
+				if (moveDist > totalRemainingDistance) {
+					tileData.currentPos.x = tileData.endPos.x;
+					tileData.currentPos.y = tileData.endPos.y;
+				} else {
+					tileData.currentPos.x = tileData.currentPos.x + dx;
+					tileData.currentPos.y = tileData.currentPos.y + dy;
+				}
+
+				// Check completion and update board state
+				if (animationComplete(tileData)) {
+					animatedTiles.splice(animatedTiles.indexOf(tileData), 1);
+					previousBoard[tileData.startPos.y][tileData.startPos.x] = 0;
+					previousBoard[tileData.endPos.y][tileData.endPos.x] = tileData.merged
+						? tileData.value * 2
+						: tileData.value;
+				} else {
+					allAnimationsComplete = false;
+				}
 			}
 		}
 
@@ -294,10 +351,9 @@
 			animationFrame = requestAnimationFrame(animate);
 		} else {
 			// Animation complete
-			animatedTiles.clear();
+			animatedTiles = [];
 			isAnimating = false;
 			animationFrame = null;
-			processEvents();
 		}
 	}
 
@@ -305,6 +361,12 @@
 	$effect(() => {
 		if (pendingEvents.length > 0) {
 			processEvents();
+		}
+	});
+
+	$effect(() => {
+		if (!isAnimating) {
+			syncBoard(game.board);
 		}
 	});
 

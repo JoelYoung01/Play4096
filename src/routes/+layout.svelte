@@ -8,7 +8,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>4096 Game</title>
+	<title>4096</title>
 </svelte:head>
 
 <div class="app-container" style:background-color={page.data.theme?.background}>

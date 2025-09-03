@@ -12,8 +12,8 @@ export const defaultTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.7,
 	speed: {
-		[EVENT_TYPES.MOVE]: 9,
-		[EVENT_TYPES.SPAWN]: 8,
+		[EVENT_TYPES.MOVE]: 1,
+		[EVENT_TYPES.SPAWN]: 1,
 	},
 	/** @type {Record<number, string>} */
 	tiles: {
