@@ -1,20 +1,10 @@
-export const EVENT_TYPES = {
-	MOVE: "move",
-	SPAWN: "spawn",
-	SNAPSHOT: "snapshot",
-};
-
-export const TWO_TO_FOUR_RATIO = 0.5;
-export const DEFAULT_BOARD_SIZE = 4;
-export const DEFAULT_STARTING_TILES = 1;
-export const SPAWN_START_SCALE = 0.5;
-
-export const DIRECTIONS = {
-	LEFT: 10,
-	RIGHT: 20,
-	UP: 30,
-	DOWN: 40,
-};
+import { defaultTheme } from "./assets/themes";
+import {
+	DEFAULT_BOARD_SIZE,
+	DEFAULT_STARTING_TILES,
+	DIRECTIONS,
+	TWO_TO_FOUR_RATIO,
+} from "./constants";
 
 export const TILE_COLORS = {
 	2: "#eee4d9",
@@ -39,6 +29,68 @@ export const TILE_COLORS = {
 	1048576: "#F4F7BE",
 	2097152: "#63A375",
 };
+
+/**
+ * Get the background color for a tile using current theme
+ * @param {number} value
+ * @param {typeof defaultTheme} theme
+ * @returns {string}
+ */
+export function getTileBackground(value, theme = defaultTheme) {
+	if (value in theme.tiles) return theme.tiles[value];
+	return theme.unknownTile;
+}
+
+/**
+ * Get the color for a tile using current theme
+ * @param {number} value
+ * @param {typeof defaultTheme} theme
+ * @returns {string}
+ */
+export function getTileColor(value, theme = defaultTheme) {
+	// Get the background color for this tile
+	const bg = getTileBackground(value);
+
+	/**
+	 * Helper to parse hex color to RGB
+	 * @param {string} hex
+	 * @returns {{r: number, g: number, b: number}}
+	 */
+	function hexToRgb(hex) {
+		hex = hex.replace(/^#/, "");
+		if (hex.length === 3) {
+			hex = hex
+				.split("")
+				.map((x) => x + x)
+				.join("");
+		}
+		const num = parseInt(hex, 16);
+		return {
+			r: (num >> 16) & 255,
+			g: (num >> 8) & 255,
+			b: num & 255,
+		};
+	}
+
+	/**
+	 * Helper to calculate luminance
+	 * @param {{r: number, g: number, b: number}} rgb
+	 * @returns {number}
+	 */
+	function luminance({ r, g, b }) {
+		const a = [r, g, b].map(function (v) {
+			v /= 255;
+			return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+		});
+		return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+	}
+
+	const rgb = hexToRgb(bg);
+	const lum = luminance(rgb);
+
+	// If background is dark, use light text; else, use dark text
+	return lum < theme.luminanceThreshold ? theme.textDark : theme.textLight;
+}
 
 export class Game {
 	constructor(boardSize = DEFAULT_BOARD_SIZE, startingTiles = DEFAULT_STARTING_TILES) {

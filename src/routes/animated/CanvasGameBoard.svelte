@@ -1,20 +1,25 @@
 <script>
-	import { page } from "$app/state";
 	import { onDestroy } from "svelte";
-	import { EVENT_TYPES, SPAWN_START_SCALE } from "$lib/game.svelte.js";
-	import BasicBoard from "$lib/BasicBoard.svelte";
+	import { page } from "$app/state";
+	import { defaultTheme } from "$lib/assets/themes";
+	import { getTileColor } from "$lib/game.svelte.js";
+	import { EVENT_TYPES, SPAWN_START_SCALE } from "$lib/constants.js";
 	import GameControls from "$lib/GameControls.svelte";
+	import BasicBoard from "$lib/BasicBoard.svelte";
 
 	let { game, pendingEvents, newGame, popEvent, continuePlaying } = $props();
 
-	const size = $state(460);
-	const padding = $state(10);
-	const tileSize = $derived((size - padding * 5) / game.boardSize);
+	const size = 460;
+	const padding = 10;
+	const tileBorderRadius = 8;
+	const boardBorderRadius = 12;
+	const tileSize = $derived((size - padding * (game.boardSize + 1)) / game.boardSize);
 	const positionFactor = $derived(tileSize + padding);
 	const nextBoard = $derived(
 		pendingEvents.find((/** @type {import("$lib/types").GameEvent} */ evt) => evt.snapshot)
 			?.snapshot || game.board
 	);
+	const theme = $derived(page.data.theme || defaultTheme);
 
 	/** @type {HTMLCanvasElement} */
 	let canvas;
@@ -59,8 +64,7 @@
 	function drawTile(ctx, x, y, value, alpha = 1, scale = 1, offsetX = 0, offsetY = 0) {
 		if (!value) return;
 
-		const color = page.data.theme.tiles[value] || page.data.theme.unknownTile;
-		const radius = 12;
+		const color = theme.tiles[value] || theme.unknownTile;
 		const px = x * positionFactor + padding + offsetX;
 		const py = y * positionFactor + padding + offsetY;
 		const w = tileSize * scale + 1;
@@ -75,40 +79,40 @@
 
 		// Draw rounded rectangle
 		ctx.beginPath();
-		ctx.moveTo(px + centerOffsetX + radius, py + centerOffsetY);
-		ctx.lineTo(px + centerOffsetX + w - radius, py + centerOffsetY);
+		ctx.moveTo(px + centerOffsetX + tileBorderRadius, py + centerOffsetY);
+		ctx.lineTo(px + centerOffsetX + w - tileBorderRadius, py + centerOffsetY);
 		ctx.quadraticCurveTo(
 			px + centerOffsetX + w,
 			py + centerOffsetY,
 			px + centerOffsetX + w,
-			py + centerOffsetY + radius
+			py + centerOffsetY + tileBorderRadius
 		);
-		ctx.lineTo(px + centerOffsetX + w, py + centerOffsetY + h - radius);
+		ctx.lineTo(px + centerOffsetX + w, py + centerOffsetY + h - tileBorderRadius);
 		ctx.quadraticCurveTo(
 			px + centerOffsetX + w,
 			py + centerOffsetY + h,
-			px + centerOffsetX + w - radius,
+			px + centerOffsetX + w - tileBorderRadius,
 			py + centerOffsetY + h
 		);
-		ctx.lineTo(px + centerOffsetX + radius, py + centerOffsetY + h);
+		ctx.lineTo(px + centerOffsetX + tileBorderRadius, py + centerOffsetY + h);
 		ctx.quadraticCurveTo(
 			px + centerOffsetX,
 			py + centerOffsetY + h,
 			px + centerOffsetX,
-			py + centerOffsetY + h - radius
+			py + centerOffsetY + h - tileBorderRadius
 		);
-		ctx.lineTo(px + centerOffsetX, py + centerOffsetY + radius);
+		ctx.lineTo(px + centerOffsetX, py + centerOffsetY + tileBorderRadius);
 		ctx.quadraticCurveTo(
 			px + centerOffsetX,
 			py + centerOffsetY,
-			px + centerOffsetX + radius,
+			px + centerOffsetX + tileBorderRadius,
 			py + centerOffsetY
 		);
 		ctx.closePath();
 		ctx.fill();
 
 		// Choose text color for contrast
-		const textColor = value <= 4 ? page.data.theme.textLight : page.data.theme.textDark;
+		const textColor = getTileColor(value);
 		ctx.fillStyle = textColor;
 
 		// Scale font size based on tile scale and number of digits
@@ -259,7 +263,6 @@
 	function animate() {
 		if (!ctx) return;
 
-		const currentTime = Date.now();
 		let allAnimationsComplete = true;
 
 		// Update animation states
@@ -267,9 +270,8 @@
 			// Skip if this tile's animation is complete
 			if (tileData.progress === 1) continue;
 
-			const elapsed = currentTime - tileData.startTime;
-			const duration = page.data.theme.duration[tileData.type];
-			const progress = Math.min(elapsed / duration, 1);
+			const speed = theme.speed[tileData.type];
+			const progress = Math.min(tileData.progress + speed / 100, 1);
 
 			tileData.progress = progress;
 
@@ -325,17 +327,29 @@
 <GameControls {game} {newGame} {continuePlaying} />
 
 <div
-	class="game-board-container overflow-hidden rounded-xl"
+	class="game-board-container overflow-hidden"
 	style:width={`${size}px`}
 	style:height={`${size}px`}
 >
 	<canvas width={size} height={size} bind:this={canvas}>
 		<BasicBoard {game} {newGame} />
 	</canvas>
-	<div class="game-board">
+	<div
+		class="game-board"
+		style:grid-template-columns={`repeat(${game.boardSize}, 1fr)`}
+		style:grid-template-rows={`repeat(${game.boardSize}, 1fr)`}
+		style:background-color={theme.boardBackground}
+		style:border-radius={`${boardBorderRadius}px`}
+		style:padding={`${padding}px`}
+		style:gap={`${padding}px`}
+	>
 		{#each game.board as row, rowIndex (rowIndex)}
 			{#each row, colIndex (colIndex)}
-				<div class="tile empty" style:background-color={page.data.theme.emptyTile}></div>
+				<div
+					class="tile empty"
+					style:background-color={theme.emptyTile}
+					style:border-radius={`${tileBorderRadius}px`}
+				></div>
 			{/each}
 		{/each}
 	</div>
@@ -364,19 +378,12 @@
 		width: 100%;
 		height: 100%;
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		grid-template-rows: repeat(4, 1fr);
-		gap: 10px;
-		background: #bbada0;
-		padding: 10px;
-		border-radius: 8px;
 		aspect-ratio: 1;
 
 		z-index: 1;
 	}
 
 	.tile {
-		border-radius: 12px;
 		display: flex;
 		flex: 0 0 auto;
 		overflow: hidden;

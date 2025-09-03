@@ -1,10 +1,7 @@
 <script>
 	import "../app.css";
-	import favicon from "$lib/assets/favicon.svg";
-	import { defaultTheme } from "$lib/assets/themes";
+	import favicon from "$lib/assets/favicon.png";
 	import { page } from "$app/state";
-
-	page.data.theme = defaultTheme;
 
 	let { children } = $props();
 </script>
@@ -14,7 +11,7 @@
 	<title>4096 Game</title>
 </svelte:head>
 
-<div class="app-container" style:background-color={page.data.theme.background}>
+<div class="app-container" style:background-color={page.data.theme?.background}>
 	{@render children?.()}
 </div>
 

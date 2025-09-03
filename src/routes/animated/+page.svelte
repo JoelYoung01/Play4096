@@ -1,5 +1,6 @@
 <script>
-	import { Game, DIRECTIONS } from "$lib/game.svelte.js";
+	import { DIRECTIONS } from "$lib/constants.js";
+	import { Game } from "$lib/game.svelte.js";
 	import { onMount } from "svelte";
 	import CanvasGameBoard from "./CanvasGameBoard.svelte";
 

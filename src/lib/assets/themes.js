@@ -1,4 +1,4 @@
-import { EVENT_TYPES } from "$lib/game.svelte.js";
+import { EVENT_TYPES } from "$lib/constants.js";
 
 export const defaultTheme = {
 	name: "Default",
@@ -10,10 +10,12 @@ export const defaultTheme = {
 	textDark: "#f9f6f2",
 	unknownTile: "#5f5f5f",
 	textScale: 3,
-	duration: {
-		[EVENT_TYPES.MOVE]: 100,
-		[EVENT_TYPES.SPAWN]: 50,
+	luminanceThreshold: 0.7,
+	speed: {
+		[EVENT_TYPES.MOVE]: 9,
+		[EVENT_TYPES.SPAWN]: 8,
 	},
+	/** @type {Record<number, string>} */
 	tiles: {
 		2: "#eee4d9",
 		4: "#ece0c8",
