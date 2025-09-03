@@ -1,6 +1,6 @@
 export const TWO_TO_FOUR_RATIO = 0.5;
-
 export const DEFAULT_BOARD_SIZE = 4;
+export const DEFAULT_STARTING_TILES = 1;
 
 export const DIRECTIONS = {
 	LEFT: 10,
@@ -34,7 +34,7 @@ export const TILE_COLORS = {
 };
 
 export class Game {
-	constructor(boardSize = DEFAULT_BOARD_SIZE) {
+	constructor(boardSize = DEFAULT_BOARD_SIZE, startingTiles = DEFAULT_STARTING_TILES) {
 		this.boardSize = boardSize;
 		this.board = $state(
 			Array(boardSize)
@@ -46,8 +46,9 @@ export class Game {
 		this.won = $state(false);
 		this.canContinue = $state(false);
 
-		this.addNewTile();
-		this.addNewTile();
+		for (let i = 0; i < startingTiles; i++) {
+			this.addNewTile();
+		}
 	}
 
 	/**
@@ -58,7 +59,6 @@ export class Game {
 		for (let i = 0; i < this.boardSize; i++) {
 			for (let j = 0; j < this.boardSize; j++) {
 				if (this.board[i][j] === 2048) {
-					this.won = true;
 					return true;
 				}
 			}
@@ -84,7 +84,10 @@ export class Game {
 		if (emptyCells.length > 0) {
 			const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
 			this.board[randomCell.row][randomCell.col] = value;
+			return { end: { x: randomCell.col, y: randomCell.row } };
 		}
+
+		return null;
 	}
 
 	/**
@@ -122,7 +125,10 @@ export class Game {
 	 */
 	canMove(line) {
 		for (let i = 0; i < line.length - 1; i++) {
-			if (line[i] === line[i + 1] || line[i] === 0) {
+			const isSameAsNextAndNotEmpty = line[i] === line[i + 1] && line[i] !== 0;
+			const isEmptyAndNextIsNot = line[i] === 0 && line[i + 1] !== 0;
+			const isNotEmptyButNextIs = line[i] !== 0 && line[i + 1] === 0;
+			if (isSameAsNextAndNotEmpty || isEmptyAndNextIsNot || isNotEmptyButNextIs) {
 				return true;
 			}
 		}
@@ -133,12 +139,16 @@ export class Game {
 	/**
 	 * Move and merge tiles in one direction
 	 * @param {number[]} inputLine
-	 * @returns {number[]}
+	 * @returns {{result: number[], moves: {start?: number, end?: number, merged?: number}[]}}
 	 */
 	collapseLine(inputLine) {
 		let lastPlaced = 0;
 		let current = 1;
 		let line = [...inputLine];
+		/**
+		 * @type {{ start?: number, end?: number, merged?: number }[]}
+		 */
+		let moveQueue = [];
 
 		// For each tile, move it to the 'end'
 		while (current < line.length) {
@@ -147,10 +157,11 @@ export class Game {
 				// do nothing
 			}
 
-			// If the last placed tile is empty, move the current tile to the last placed tile
+			// If the last placed tile is empty and this tile isn't, move the current tile to the last placed tile
 			else if (line[lastPlaced] === 0) {
 				line[lastPlaced] = line[current];
 				line[current] = 0;
+				moveQueue.push({ start: current, end: lastPlaced });
 			}
 
 			// If the last placed tile is the same as the current tile, merge them
@@ -158,6 +169,7 @@ export class Game {
 				line[lastPlaced] *= 2;
 				line[current] = 0;
 				this.score += line[lastPlaced];
+				moveQueue.push({ start: current, end: lastPlaced, merged: line[lastPlaced] });
 				lastPlaced++;
 			}
 
@@ -166,6 +178,7 @@ export class Game {
 				line[lastPlaced + 1] = line[current];
 				line[current] = 0;
 				lastPlaced++;
+				moveQueue.push({ start: current, end: lastPlaced });
 			}
 
 			// If the last placed is the same as the current, mark current tile as placed.
@@ -176,17 +189,22 @@ export class Game {
 			current++;
 		}
 
-		return line;
+		return { result: line, moves: moveQueue };
 	}
 
 	/**
 	 * Move tiles in a specific direction
 	 * @param {number} direction
+	 * @returns Queued events to be rendered
 	 */
 	moveTiles(direction) {
 		if (this.gameOver) return;
 
-		let moved = false;
+		/**
+		 * @type {{ start?: {x: number, y: number}, end?: {x: number, y: number}, merged?: number, gameLost?: boolean, gameWon?: boolean}[]}
+		 */
+		let moveQueue = [];
+
 		const newBoard = this.board.map((row) => [...row]);
 
 		if (direction === DIRECTIONS.LEFT) {
@@ -196,12 +214,18 @@ export class Game {
 
 				// Only process if movement is possible
 				if (this.canMove(originalRow)) {
-					const newRow = this.collapseLine(originalRow);
+					const { result, moves } = this.collapseLine(originalRow);
 
 					// Only update if the row actually changed
-					if (JSON.stringify(originalRow) !== JSON.stringify(newRow)) {
-						moved = true;
-						newBoard[i] = newRow;
+					if (moves.length > 0) {
+						newBoard[i] = result;
+						moveQueue.push(
+							...moves.map((move) => ({
+								...move,
+								start: { x: move.start ?? 0, y: i },
+								end: { x: move.end ?? 0, y: i },
+							}))
+						);
 					}
 				}
 			}
@@ -212,12 +236,18 @@ export class Game {
 
 				// Only process if movement is possible
 				if (this.canMove(originalRow)) {
-					const newRow = this.collapseLine(originalRow);
+					const { result, moves } = this.collapseLine(originalRow);
 
 					// Only update if the row actually changed
-					if (JSON.stringify(originalRow) !== JSON.stringify(newRow)) {
-						moved = true;
-						newBoard[i] = newRow.toReversed();
+					if (moves.length > 0) {
+						newBoard[i] = result.toReversed();
+						moveQueue.push(
+							...moves.map((move) => ({
+								...move,
+								start: { x: result.length - 1 - (move.start ?? 0), y: i },
+								end: { x: result.length - 1 - (move.end ?? 0), y: i },
+							}))
+						);
 					}
 				}
 			}
@@ -231,15 +261,21 @@ export class Game {
 
 				// Only process if movement is possible
 				if (this.canMove(col)) {
-					const newCol = this.collapseLine(col);
+					const { result, moves } = this.collapseLine(col);
 
 					// Only update if the column actually changed
-					if (JSON.stringify(col) !== JSON.stringify(newCol)) {
-						moved = true;
+					if (moves.length > 0) {
 						// Update the column
 						for (let i = 0; i < this.boardSize; i++) {
-							newBoard[i][j] = newCol[i];
+							newBoard[i][j] = result[i];
 						}
+						moveQueue.push(
+							...moves.map((move) => ({
+								...move,
+								start: { x: j, y: move.start ?? 0 },
+								end: { x: j, y: move.end ?? 0 },
+							}))
+						);
 					}
 				}
 			}
@@ -253,28 +289,43 @@ export class Game {
 
 				// Only process if movement is possible
 				if (this.canMove(col)) {
-					const newCol = this.collapseLine(col);
+					const { result, moves } = this.collapseLine(col);
 
 					// Only update if the column actually changed
-					if (JSON.stringify(col) !== JSON.stringify(newCol)) {
-						moved = true;
-						// Update the column
+					if (moves.length > 0) {
 						for (let i = 0; i < this.boardSize; i++) {
-							newBoard[this.boardSize - 1 - i][j] = newCol[i];
+							newBoard[this.boardSize - 1 - i][j] = result[i];
 						}
+						moveQueue.push(
+							...moves.map((move) => ({
+								...move,
+								start: { x: j, y: result.length - 1 - (move.start ?? 0) },
+								end: { x: j, y: result.length - 1 - (move.end ?? 0) },
+							}))
+						);
 					}
 				}
 			}
 		}
 
-		if (moved) {
-			this.board = newBoard;
-			this.addNewTile();
-			this.checkWin();
-
-			if (this.checkGameOver()) {
-				this.gameOver = true;
-			}
+		if (this.checkWin()) {
+			this.won = true;
+			moveQueue.push({ gameWon: true });
 		}
+		if (moveQueue.length > 0) {
+			this.board = newBoard;
+		}
+
+		const tileAddMove = this.addNewTile();
+		if (tileAddMove) {
+			moveQueue.push({ ...tileAddMove });
+		}
+
+		if (this.checkGameOver()) {
+			this.gameOver = true;
+			moveQueue.push({ gameLost: true });
+		}
+
+		return moveQueue;
 	}
 }

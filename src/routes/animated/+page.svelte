@@ -1,7 +1,7 @@
 <script>
 	import { Game, DIRECTIONS } from "$lib/game.svelte.js";
 	import { onMount } from "svelte";
-	import BasicBoard from "$lib/BasicBoard.svelte";
+	import CanvasGameBoard from "./CanvasGameBoard.svelte";
 
 	const TOUCH_THRESHOLD = 5;
 
@@ -21,6 +21,14 @@
 			pendingEvents.push(...events);
 		}
 		bestScore = Math.max(bestScore, game.score);
+	}
+
+	/**
+	 * Remove an event from the pending events
+	 * @param {import("$lib/types").GameEvent} event
+	 */
+	function removeEvent(event) {
+		pendingEvents = pendingEvents.filter((e) => e !== event);
 	}
 
 	/**
@@ -127,10 +135,6 @@
 	});
 </script>
 
-<svelte:head>
-	<title>4096 Game</title>
-</svelte:head>
-
 <div
 	class="game-container"
 	ontouchstart={handleTouchStart}
@@ -162,7 +166,7 @@
 	</div>
 
 	<!-- Game Board -->
-	<BasicBoard {game} {newGame} />
+	<CanvasGameBoard {game} {pendingEvents} {newGame} {removeEvent} />
 
 	<!-- Instructions -->
 	<div class="instructions">
