@@ -184,8 +184,8 @@
 		color: var(--text-color);
 		/* Prevent browser gestures and scrolling */
 		touch-action: manipulation;
-		-webkit-overflow-scrolling: touch;
 		overscroll-behavior: contain;
+		-webkit-overflow-scrolling: touch;
 		-webkit-overscroll-behavior: contain;
 	}
 

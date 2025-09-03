@@ -1,5 +1,5 @@
 <script>
-	import { TILE_COLORS } from "$lib/game.svelte.js";
+	import { page } from "$app/state";
 
 	let { game, newGame } = $props();
 
@@ -17,7 +17,7 @@
 	 */
 	function getTileFontSize(value) {
 		const mobile = typeof window !== "undefined" && window.innerWidth <= 600;
-		const baseSize = mobile ? 2.5 : 3;
+		const baseSize = mobile ? 2.5 : page.data.theme.textScale;
 		const digits = value.toString().length;
 		const fontSize = Math.max(baseSize - (digits - 1) * 0.3, 1);
 		return `${fontSize}rem`;
@@ -29,9 +29,8 @@
 	 * @returns {string}
 	 */
 	function getTileBackground(value) {
-		// @ts-expect-error
-		if (value in TILE_COLORS) return TILE_COLORS[value];
-		return "#5f5f5f";
+		if (value in page.data.theme.tiles) return page.data.theme.tiles[value];
+		return page.data.theme.unknownTile;
 	}
 
 	/**
@@ -81,7 +80,7 @@
 		const lum = luminance(rgb);
 
 		// If background is dark, use light text; else, use dark text
-		return lum < threshold ? "#f9f6f2" : "#776e65";
+		return lum < threshold ? page.data.theme.textDark : page.data.theme.textLight;
 	}
 </script>
 
@@ -138,25 +137,6 @@
 		border-radius: 8px;
 		margin-bottom: 20px;
 		aspect-ratio: 1;
-		/* Prevent Chrome's pull-to-refresh and other touch gestures */
-		touch-action: none;
-		-webkit-touch-callout: none;
-		-webkit-user-select: none;
-		-khtml-user-select: none;
-		-moz-user-select: none;
-		-ms-user-select: none;
-		user-select: none;
-		/* Additional gesture prevention */
-		-webkit-overflow-scrolling: touch;
-		overscroll-behavior: contain;
-		-webkit-overscroll-behavior: contain;
-		-webkit-tap-highlight-color: transparent;
-		-webkit-touch-callout: none;
-		-webkit-user-drag: none;
-		-khtml-user-drag: none;
-		-moz-user-drag: none;
-		-o-user-drag: none;
-		user-drag: none;
 	}
 
 	.tile {

@@ -169,7 +169,7 @@
 	<CanvasGameBoard {game} {pendingEvents} {newGame} {removeEvent} />
 
 	<!-- Instructions -->
-	<div class="instructions">
+	<div class="instructions mt-3">
 		<p>
 			<strong>How to play:</strong> Use arrow keys or swipe to move tiles. When two tiles with the same
 			number touch, they merge into one!
