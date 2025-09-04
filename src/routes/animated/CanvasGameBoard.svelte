@@ -9,7 +9,7 @@
 
 	let { game, pendingEvents, newGame, popEvent, continuePlaying } = $props();
 
-	const size = 460;
+	const size = $state(460);
 	const padding = 10;
 	const tileBorderRadius = 8;
 	const boardBorderRadius = 12;
@@ -17,8 +17,8 @@
 	const positionFactor = $derived(tileSize + padding);
 	const theme = $derived(page.data.theme || defaultTheme);
 
-	/** @type {HTMLCanvasElement} */
-	let canvas;
+	/** @type {HTMLCanvasElement | null} */
+	let canvas = $state(null);
 	/** @type {CanvasRenderingContext2D | null} */
 	let ctx = $state(null);
 
@@ -293,10 +293,8 @@
 
 		// Update animation states
 		for (const tileData of [...animatedTiles]) {
-			const speed = theme.speed[tileData.type];
-
-			tileData.alpha = Math.min(tileData.alpha + speed / 10, 1);
-			tileData.scale = Math.min(tileData.scale + speed / 10, 1);
+			tileData.alpha = Math.min(tileData.alpha + 10 / 10, 1);
+			tileData.scale = Math.min(tileData.scale + 10 / 10, 1);
 
 			// Fade in and scale up for spawn
 			if (tileData.type === EVENT_TYPES.SPAWN) {
@@ -311,7 +309,7 @@
 
 			// Move
 			else if (tileData.type === EVENT_TYPES.MOVE) {
-				const moveDist = Math.abs(speed / 10);
+				const moveDist = 0.4;
 				const angle = Math.atan2(
 					tileData.endPos.y - tileData.currentPos.y,
 					tileData.endPos.x - tileData.currentPos.x
@@ -388,11 +386,7 @@
 
 <GameControls {game} {newGame} {continuePlaying} />
 
-<div
-	class="game-board-container overflow-hidden"
-	style:width={`${size}px`}
-	style:height={`${size}px`}
->
+<div class="game-board-container justify-content-center align-items-center flex overflow-hidden">
 	<canvas width={size} height={size} bind:this={canvas}>
 		<BasicBoard {game} {newGame} />
 	</canvas>
@@ -434,9 +428,6 @@
 	}
 
 	.game-board {
-		position: absolute;
-		top: 0;
-		left: 0;
 		width: 100%;
 		height: 100%;
 		display: grid;

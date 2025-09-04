@@ -6,3 +6,20 @@ export interface GameEvent {
   gameWon?: boolean;
   snapshot?: number[][];
 }
+
+export interface TileAnimation {
+  moving: boolean;
+  spawning: boolean;
+  merging: boolean;
+
+  alpha: number;
+  scale: number;
+  value: number;
+  startPos: { x: number, y: number };
+  currentPos: { x: number, y: number };
+  endPos: { x: number, y: number };
+  merged: boolean;
+  duration: number;
+  startTimestamp: number;
+  progress: number;
+}

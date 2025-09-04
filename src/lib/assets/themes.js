@@ -1,5 +1,3 @@
-import { EVENT_TYPES } from "$lib/constants.js";
-
 export const defaultTheme = {
 	name: "Default",
 	primary: "#e88f4f",
@@ -11,10 +9,7 @@ export const defaultTheme = {
 	unknownTile: "#5f5f5f",
 	textScale: 3,
 	luminanceThreshold: 0.7,
-	speed: {
-		[EVENT_TYPES.MOVE]: 1,
-		[EVENT_TYPES.SPAWN]: 1,
-	},
+	movementSpeed: 50, // ms per tile space
 	/** @type {Record<number, string>} */
 	tiles: {
 		2: "#eee4d9",
