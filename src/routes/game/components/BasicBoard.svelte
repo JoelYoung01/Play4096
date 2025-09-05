@@ -1,14 +1,18 @@
 <script>
-	import { EVENT_TYPES } from "./constants.js";
-	import { getTileBackground, getTileColor } from "./game.svelte.js";
-	import { defaultTheme } from "./assets/themes";
+	import { getTileBackground, getTileColor } from "$lib/game.svelte.js";
+	import { defaultTheme } from "$lib/assets/themes.js";
+	import { EVENT_TYPES } from "$lib/constants.js";
+
 	import GameControls from "./GameControls.svelte";
+	import { gameState } from "../state.svelte.js";
 
 	const defaultBoard = Array(4)
 		.fill(null)
 		.map(() => Array(4).fill(0));
 
-	let { game, newGame, pendingEvents = [], continueGame } = $props();
+	let { pendingEvents = [] } = $props();
+
+	let game = $derived(gameState.currentGame);
 
 	let newestTile = $derived(pendingEvents.find((event) => event.type === EVENT_TYPES.SPAWN));
 	let movedTiles = $derived(
@@ -58,7 +62,7 @@
 	}
 </script>
 
-<GameControls {game} {newGame} {continueGame} />
+<GameControls />
 
 <!-- Game Board -->
 <div class="game-board">

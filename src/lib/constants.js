@@ -10,9 +10,9 @@ export const LOCAL_STORAGE_BEST_SCORE = "play-4096.bestScore";
 export const DEFAULT_WIN_TILE = 2048;
 
 export const EVENT_TYPES = {
-	MOVE: "move",
-	SPAWN: "spawn",
-	SNAPSHOT: "snapshot",
+	MOVE: 10,
+	SPAWN: 20,
+	SNAPSHOT: 30,
 };
 
 export const DIRECTIONS = {

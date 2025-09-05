@@ -1,5 +1,9 @@
 <script>
-	let { game, newGame, continueGame } = $props();
+	import { Game } from "$lib/game.svelte.js";
+	import { gameState } from "../state.svelte.js";
+	import Btn from "$lib/components/Btn.svelte";
+
+	let game = $derived(gameState.currentGame);
 
 	const GAME_OVER_DELAY = 600;
 	const GAME_WIN_DELAY = 400;
@@ -8,6 +12,8 @@
 	let showWin = $state(false);
 
 	$effect(() => {
+		if (!game) return;
+
 		if (game.gameOver) {
 			setTimeout(() => {
 				showGameOver = true;
@@ -20,31 +26,43 @@
 		}
 	});
 
-	function handleNewGame() {
+	function newGame() {
 		showGameOver = false;
 		showWin = false;
-		newGame();
+		gameState.currentGame = new Game();
+	}
+
+	function continueGame() {
+		if (!game) return;
+		game.canContinue = true;
 	}
 </script>
 
+<!-- Game Control Buttons -->
+<div class="align-items-center mb-2 flex gap-2">
+	<Btn class="flex-1 text-center" href="/">Home</Btn>
+	<Btn class="flex-1 text-center" href="/leaderboard">Leaderboard</Btn>
+	<Btn class="flex-1 text-center" onclick={newGame}>New Game</Btn>
+</div>
+
 <!-- Game Overlay -->
-{#if showGameOver}
+{#if game && showGameOver}
 	<div class="overlay game-over">
 		<div class="overlay-content">
 			<h2>Game Over!</h2>
 			<p>Final Score: {game.score}</p>
-			<button class="overlay-btn" onclick={handleNewGame}>Try Again</button>
+			<button class="overlay-btn" onclick={newGame}>Try Again</button>
 		</div>
 	</div>
 {/if}
 
-{#if showWin}
+{#if game && showWin}
 	<div class="overlay win">
 		<div class="overlay-content">
 			<h2>You Won!</h2>
 			<p>Score: {game.score}</p>
 			<button class="overlay-btn" onclick={continueGame}>Keep Playing</button>
-			<button class="overlay-btn secondary" onclick={handleNewGame}>New Game</button>
+			<button class="overlay-btn secondary" onclick={newGame}>New Game</button>
 		</div>
 	</div>
 {/if}

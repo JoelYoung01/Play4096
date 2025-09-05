@@ -4,8 +4,8 @@
 	import { defaultTheme } from "$lib/assets/themes";
 	import { getTileColor } from "$lib/game.svelte.js";
 	import { EVENT_TYPES, SPAWN_START_SCALE } from "$lib/constants.js";
-	import GameControls from "$lib/GameControls.svelte";
-	import BasicBoard from "$lib/BasicBoard.svelte";
+	import GameControls from "../game/components/GameControls.svelte";
+	import BasicBoard from "../game/components/BasicBoard.svelte";
 
 	let { game, pendingEvents, newGame, popEvent, continuePlaying } = $props();
 

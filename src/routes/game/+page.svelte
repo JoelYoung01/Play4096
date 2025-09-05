@@ -1,0 +1,252 @@
+<script>
+	import { onMount } from "svelte";
+	import { page } from "$app/state";
+
+	import { Game } from "$lib/game.svelte.js";
+	import { DIRECTIONS } from "$lib/constants.js";
+	import { saveGame } from "$lib/localStorage.svelte.js";
+
+	import BasicBoard from "./components/BasicBoard.svelte";
+	import { browser } from "$app/environment";
+	import { gameState } from "./state.svelte";
+
+	const TOUCH_THRESHOLD = 5;
+
+	/** @type {import("$lib/types").GameEvent[]} */
+	let pendingEvents = $state([]);
+
+	// Initialize the game when the page is loaded on client
+	if (browser) {
+		gameState.currentGame = new Game({ initialState: page.data.currentGame });
+	}
+
+	// Update best score and save board to localstorage
+	$effect(() => {
+		if (!gameState.currentGame) return;
+		saveGame(gameState.currentGame);
+		if (gameState.currentGame.score > gameState.bestScore) {
+			gameState.bestScore = gameState.currentGame.score;
+		}
+	});
+
+	/**
+	 * Handle move
+	 * @param {number} direction
+	 * @param direction
+	 */
+	function handleMove(direction) {
+		if (!gameState.currentGame) return;
+
+		const events = gameState.currentGame.moveTiles(direction);
+		if (events) {
+			pendingEvents = events;
+		}
+	}
+
+	/**
+	 * Handle keyboard events
+	 * @param {KeyboardEvent} event
+	 */
+	function handleKeydown(event) {
+		switch (event.key) {
+			case "ArrowLeft":
+				event.preventDefault();
+				handleMove(DIRECTIONS.LEFT);
+				break;
+			case "ArrowRight":
+				event.preventDefault();
+				handleMove(DIRECTIONS.RIGHT);
+				break;
+			case "ArrowUp":
+				event.preventDefault();
+				handleMove(DIRECTIONS.UP);
+				break;
+			case "ArrowDown":
+				event.preventDefault();
+				handleMove(DIRECTIONS.DOWN);
+				break;
+		}
+	}
+
+	// Handle touch/swipe events for mobile
+	let touchStartX = 0;
+	let touchStartY = 0;
+
+	/**
+	 * Handle touch/swipe events for mobile
+	 * @param {TouchEvent} event
+	 */
+	function handleTouchStart(event) {
+		touchStartX = event.touches[0].clientX;
+		touchStartY = event.touches[0].clientY;
+	}
+
+	/**
+	 * Handle touch/swipe events for mobile
+	 * @param {TouchEvent} event
+	 */
+	function handleTouchEnd(event) {
+		if (!touchStartX || !touchStartY) return;
+
+		const touchEndX = event.changedTouches[0].clientX;
+		const touchEndY = event.changedTouches[0].clientY;
+
+		const diffX = touchStartX - touchEndX;
+		const diffY = touchStartY - touchEndY;
+
+		if (Math.abs(diffX) < TOUCH_THRESHOLD && Math.abs(diffY) < TOUCH_THRESHOLD) return;
+
+		// Prevent default behavior
+		event.preventDefault();
+		event.stopPropagation();
+
+		if (Math.abs(diffX) > Math.abs(diffY)) {
+			if (diffX > 0) handleMove(DIRECTIONS.LEFT);
+			else handleMove(DIRECTIONS.RIGHT);
+		} else {
+			if (diffY > 0) handleMove(DIRECTIONS.UP);
+			else handleMove(DIRECTIONS.DOWN);
+		}
+
+		touchStartX = 0;
+		touchStartY = 0;
+	}
+
+	/**
+	 * Handle touch move events to prevent scrolling during swipe
+	 * @param {TouchEvent} event
+	 */
+	function handleTouchMove(event) {
+		event.preventDefault();
+		event.stopPropagation();
+	}
+
+	// Setup listeners on mount
+	onMount(() => {
+		window.addEventListener("keydown", handleKeydown);
+
+		return () => {
+			window.removeEventListener("keydown", handleKeydown);
+		};
+	});
+</script>
+
+<div
+	class="game-container"
+	ontouchstart={handleTouchStart}
+	ontouchmove={handleTouchMove}
+	ontouchend={handleTouchEnd}
+>
+	<!-- Header -->
+	<div class="mb-3 flex flex-wrap items-start gap-2">
+		<div>
+			<h1 class="text-6xl font-bold">4096</h1>
+			<p class="game-description">Join the tiles, get to 4096!</p>
+		</div>
+
+		<div class="flex-grow"></div>
+
+		<div class="score-box rounded-md p-2 text-center">
+			<div class="text-center font-bold uppercase">SCORE</div>
+			<div class="score-value mt-1 font-bold">{gameState.currentGame?.score ?? "-"}</div>
+		</div>
+		<div class="score-box rounded-md p-2 text-center">
+			<div class="text-center font-bold uppercase">BEST</div>
+			<div class="score-value mt-1 font-bold">{gameState.bestScore ?? "-"}</div>
+		</div>
+	</div>
+
+	<!-- Game Board -->
+	<BasicBoard {pendingEvents} />
+
+	<!-- Instructions -->
+	<div class="instructions">
+		<p>
+			<strong>How to play:</strong> Use arrow keys or swipe to move tiles. When two tiles with the same
+			number touch, they merge into one!
+		</p>
+	</div>
+</div>
+
+<style lang="postcss">
+	.game-container {
+		max-width: 500px;
+		min-height: 100vh;
+		margin: 0 auto;
+		padding: 20px;
+		font-family: "Arial", sans-serif;
+		user-select: none;
+		color: var(--text-color);
+		/* Prevent browser gestures and scrolling */
+		touch-action: manipulation;
+		overscroll-behavior: contain;
+		-webkit-overflow-scrolling: touch;
+		-webkit-overscroll-behavior: contain;
+	}
+
+	.game-title {
+		font-size: 5rem;
+
+		@media (max-width: 600px) {
+			font-size: 2.5rem;
+		}
+	}
+
+	.game-description {
+		font-size: 1.2rem;
+
+		@media (max-width: 600px) {
+			font-size: 0.75rem;
+		}
+	}
+
+	.score-box {
+		background: var(--board-bg);
+		color: var(--background-color);
+		flex: 0 1 6rem;
+		font-size: 1.2rem;
+	}
+
+	.score-value {
+		font-size: 1.2rem;
+
+		@media (max-width: 600px) {
+			font-size: 1rem;
+		}
+	}
+
+	.new-game-btn {
+		background: var(--primary-color);
+		color: white;
+		border: none;
+		padding: 12px 24px;
+		border-radius: 6px;
+		font-size: 1rem;
+		font-weight: bold;
+		cursor: pointer;
+		transition: background-color 0.2s;
+
+		&:hover {
+			background: var(--primary-color-dark);
+		}
+	}
+
+	.instructions {
+		text-align: center;
+		color: #776e65;
+		font-size: 0.9rem;
+		line-height: 1.4;
+	}
+
+	/* Responsive design */
+	@media (max-width: 600px) {
+		.game-container {
+			padding: 10px;
+		}
+
+		.score-box {
+			min-width: 60px;
+			padding: 8px 12px;
+		}
+	}
+</style>
