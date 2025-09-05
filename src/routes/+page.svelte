@@ -6,8 +6,7 @@
 
 	const TOUCH_THRESHOLD = 5;
 
-	let game = $state(new Game());
-	let bestScore = $state(0);
+	let game = $state(new Game({ loadFromLocalStorage: true }));
 	/** @type {import("$lib/types").GameEvent[]} */
 	let pendingEvents = $state([]);
 
@@ -19,9 +18,8 @@
 	function handleMove(direction) {
 		const events = game.moveTiles(direction);
 		if (events) {
-			pendingEvents.push(...events);
+			pendingEvents = events;
 		}
-		bestScore = Math.max(bestScore, game.score);
 	}
 
 	/**
@@ -148,7 +146,7 @@
 			</div>
 			<div class="score-box rounded-md p-2 text-center">
 				<div class="font-bold uppercase">BEST</div>
-				<div class="score-value mt-1 font-bold">{bestScore}</div>
+				<div class="score-value mt-1 font-bold">{game.bestScore}</div>
 			</div>
 		</div>
 	</div>
@@ -159,7 +157,7 @@
 	</div>
 
 	<!-- Game Board -->
-	<BasicBoard {game} {newGame} />
+	<BasicBoard {game} {newGame} {pendingEvents} />
 
 	<!-- Instructions -->
 	<div class="instructions">

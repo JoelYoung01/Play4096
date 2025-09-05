@@ -1,25 +1,47 @@
 <script>
 	let { game, newGame, continuePlaying } = $props();
+
+	let showGameOver = $state(false);
+	let showWin = $state(false);
+
+	$effect(() => {
+		if (game.gameOver) {
+			setTimeout(() => {
+				showGameOver = true;
+			}, 1000);
+		}
+		if (game.won && !game.canContinue) {
+			setTimeout(() => {
+				showWin = true;
+			}, 1000);
+		}
+	});
+
+	function handleNewGame() {
+		showGameOver = false;
+		showWin = false;
+		newGame();
+	}
 </script>
 
 <!-- Game Overlay -->
-{#if game.gameOver}
+{#if showGameOver}
 	<div class="overlay game-over">
 		<div class="overlay-content">
 			<h2>Game Over!</h2>
 			<p>Final Score: {game.score}</p>
-			<button class="overlay-btn" onclick={newGame}>Try Again</button>
+			<button class="overlay-btn" onclick={handleNewGame}>Try Again</button>
 		</div>
 	</div>
 {/if}
 
-{#if game.won && !game.canContinue}
+{#if showWin}
 	<div class="overlay win">
 		<div class="overlay-content">
 			<h2>You Won!</h2>
 			<p>Score: {game.score}</p>
 			<button class="overlay-btn" onclick={continuePlaying}>Keep Playing</button>
-			<button class="overlay-btn secondary" onclick={newGame}>New Game</button>
+			<button class="overlay-btn secondary" onclick={handleNewGame}>New Game</button>
 		</div>
 	</div>
 {/if}

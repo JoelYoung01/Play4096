@@ -1,8 +1,12 @@
+import { browser } from "$app/environment";
 import { defaultTheme } from "./assets/themes";
 import {
 	DEFAULT_BOARD_SIZE,
 	DEFAULT_STARTING_TILES,
 	DIRECTIONS,
+	EVENT_TYPES,
+	LOCAL_STORAGE_BEST_SCORE,
+	LOCAL_STORAGE_CURRENT_GAME,
 	TWO_TO_FOUR_RATIO,
 } from "./constants";
 
@@ -93,8 +97,14 @@ export function getTileColor(value, theme = defaultTheme) {
 }
 
 export class Game {
-	constructor(boardSize = DEFAULT_BOARD_SIZE, startingTiles = DEFAULT_STARTING_TILES) {
+	constructor({
+		boardSize = DEFAULT_BOARD_SIZE,
+		startingTiles = DEFAULT_STARTING_TILES,
+		loadFromLocalStorage = false,
+		useLocalStorage = true,
+	} = {}) {
 		this.boardSize = boardSize;
+		this.useLocalStorage = useLocalStorage;
 
 		/** @type {number[][]} */
 		this.board = $state(
@@ -103,6 +113,7 @@ export class Game {
 				.map(() => Array(boardSize).fill(0))
 		);
 		this.score = $state(0);
+		this.bestScore = $state(0);
 		this.gameOver = $state(false);
 		this.won = $state(false);
 		this.canContinue = $state(false);
@@ -110,6 +121,17 @@ export class Game {
 		for (let i = 0; i < startingTiles; i++) {
 			this.addNewTile();
 		}
+
+		if (loadFromLocalStorage) {
+			this.loadGameFromLocalStorage();
+			if (this.checkGameOver()) {
+				this.gameOver = true;
+			}
+		} else {
+			this.saveGameToLocalStorage();
+		}
+
+		this.addScore(0);
 	}
 
 	/**
@@ -132,6 +154,7 @@ export class Game {
 	 * @param {number | null} valueInput
 	 */
 	addNewTile(valueInput = null) {
+		const type = EVENT_TYPES.SPAWN;
 		const value = valueInput ?? (Math.random() < TWO_TO_FOUR_RATIO ? 2 : 4);
 		const emptyCells = [];
 		for (let i = 0; i < this.boardSize; i++) {
@@ -145,7 +168,7 @@ export class Game {
 		if (emptyCells.length > 0) {
 			const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
 			this.board[randomCell.row][randomCell.col] = value;
-			return { end: { x: randomCell.col, y: randomCell.row }, value };
+			return { end: { x: randomCell.col, y: randomCell.row }, value, type };
 		}
 
 		return null;
@@ -213,6 +236,7 @@ export class Game {
 
 		// For each tile, move it to the 'end'
 		while (current < line.length) {
+			const type = EVENT_TYPES.MOVE;
 			const value = line[current];
 			// If the current tile is empty, skip it
 			if (value === 0) {
@@ -223,15 +247,15 @@ export class Game {
 			else if (line[lastPlaced] === 0) {
 				line[lastPlaced] = value;
 				line[current] = 0;
-				moveQueue.push({ start: current, end: lastPlaced, value });
+				moveQueue.push({ start: current, end: lastPlaced, value, type });
 			}
 
 			// If the last placed tile is the same as the current tile, merge them
 			else if (line[lastPlaced] === value) {
 				line[lastPlaced] *= 2;
 				line[current] = 0;
-				this.score += line[lastPlaced];
-				moveQueue.push({ start: current, end: lastPlaced, merged: true, value });
+				this.addScore(line[lastPlaced]);
+				moveQueue.push({ start: current, end: lastPlaced, merged: true, value, type });
 				lastPlaced++;
 			}
 
@@ -240,7 +264,7 @@ export class Game {
 				line[lastPlaced + 1] = value;
 				line[current] = 0;
 				lastPlaced++;
-				moveQueue.push({ start: current, end: lastPlaced, value });
+				moveQueue.push({ start: current, end: lastPlaced, value, type });
 			}
 
 			// If the last placed is the same as the current, mark current tile as placed.
@@ -370,12 +394,7 @@ export class Game {
 			}
 		}
 
-		if (this.checkGameOver()) {
-			this.gameOver = true;
-			moveQueue.push({ gameLost: true });
-		}
-
-		if (!this.gameOver && !this.won && this.checkWin()) {
+		if (!this.won && this.checkWin()) {
 			this.won = true;
 			moveQueue.push({ gameWon: true });
 		}
@@ -390,8 +409,46 @@ export class Game {
 				moveQueue.push({ ...tileAddMove });
 				moveQueue.push({ snapshot: this.board });
 			}
+
+			if (this.checkGameOver()) {
+				this.gameOver = true;
+				moveQueue.push({ gameLost: true });
+			}
 		}
 
+		this.saveGameToLocalStorage();
+
 		return moveQueue;
+	}
+
+	/**
+	 * Add points to the game's score.
+	 *
+	 * Also updates the best score and saves to local storage
+	 * @param {number} score
+	 */
+	addScore(score) {
+		this.score += score;
+		this.bestScore = Math.max(this.bestScore, this.score);
+		if (browser && this.useLocalStorage) {
+			const storageScore = localStorage.getItem(LOCAL_STORAGE_BEST_SCORE);
+			if (storageScore) {
+				this.bestScore = Math.max(this.bestScore, parseInt(storageScore));
+			}
+			localStorage.setItem(LOCAL_STORAGE_BEST_SCORE, `${this.bestScore}}`);
+		}
+	}
+
+	saveGameToLocalStorage() {
+		if (!browser || !this.useLocalStorage) return;
+		localStorage.setItem(LOCAL_STORAGE_CURRENT_GAME, JSON.stringify(this.board));
+	}
+
+	loadGameFromLocalStorage() {
+		if (!browser || !this.useLocalStorage) return;
+		const board = localStorage.getItem(LOCAL_STORAGE_CURRENT_GAME);
+		if (board) {
+			this.board = JSON.parse(board);
+		}
 	}
 }

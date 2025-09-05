@@ -1,8 +1,43 @@
 <script>
+	import { EVENT_TYPES } from "./constants.js";
 	import { getTileBackground, getTileColor } from "./game.svelte.js";
 	import { defaultTheme } from "./assets/themes";
 	import GameControls from "./GameControls.svelte";
-	let { game, newGame } = $props();
+
+	let { game, newGame, pendingEvents = [] } = $props();
+
+	let newestTile = $derived(pendingEvents.find((event) => event.type === EVENT_TYPES.SPAWN));
+	let movedTiles = $derived(
+		pendingEvents.filter((event) => event.type === EVENT_TYPES.MOVE && !event.merged)
+	);
+	let mergedTiles = $derived(pendingEvents.filter((event) => event.merged));
+
+	/**
+	 * @param {number} x
+	 * @param {number} y
+	 * @returns {boolean}
+	 */
+	function isNewest(x, y) {
+		return newestTile?.end.x === x && newestTile?.end.y === y;
+	}
+
+	/**
+	 * @param {number} x
+	 * @param {number} y
+	 * @returns {boolean}
+	 */
+	function isMoved(x, y) {
+		return movedTiles.some((event) => event.end.x === x && event.end.y === y);
+	}
+
+	/**
+	 * @param {number} x
+	 * @param {number} y
+	 * @returns {boolean}
+	 */
+	function isMerged(x, y) {
+		return mergedTiles.some((event) => event.end.x === x && event.end.y === y);
+	}
 
 	/**
 	 * Continue playing after winning
@@ -35,6 +70,9 @@
 			{#if cell !== 0}
 				<div
 					class="tile"
+					class:new-tile={isNewest(colIndex, rowIndex)}
+					class:moved-tile={isMoved(colIndex, rowIndex)}
+					class:merged-tile={isMerged(colIndex, rowIndex)}
 					style:font-size={getTileFontSize(cell)}
 					style:background={getTileBackground(cell)}
 					style:color={getTileColor(cell)}
@@ -64,7 +102,6 @@
 	.tile {
 		--animation-duration: 0.1s;
 
-		background: #cdc1b4;
 		border-radius: 6px;
 		display: flex;
 		flex: 0 0 auto;
@@ -73,7 +110,6 @@
 		justify-content: center;
 		font-size: 3rem;
 		font-weight: bold;
-		color: #776e65;
 		transition: all var(--animation-duration) ease-in;
 		position: relative;
 		white-space: normal;
@@ -81,8 +117,16 @@
 		text-align: center;
 		padding: 0.2em;
 
-		&:not(.empty) {
-			animation: tileAppear var(--animation-duration) ease-out;
+		&.new-tile {
+			animation: tileAppear 300ms ease-in-out;
+		}
+
+		&.merged-tile {
+			animation: tileMerge 200ms ease-in-out;
+		}
+
+		&.empty {
+			background: #cdc1b4;
 		}
 	}
 
@@ -96,7 +140,16 @@
 			transform: scale(1);
 		}
 	}
-	.tile.empty {
-		background: #cdc1b4;
+
+	@keyframes tileMerge {
+		0% {
+			transform: scale(1);
+		}
+		80% {
+			transform: scale(1.1);
+		}
+		100% {
+			transform: scale(1);
+		}
 	}
 </style>
