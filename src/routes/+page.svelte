@@ -4,7 +4,7 @@
 
 	import { Game } from "$lib/game.svelte.js";
 	import { DIRECTIONS } from "$lib/constants.js";
-	import { saveBoard } from "$lib/localStorage.svelte.js";
+	import { saveGame } from "$lib/localStorage.svelte.js";
 
 	import BasicBoard from "$lib/BasicBoard.svelte";
 	import { browser } from "$app/environment";
@@ -25,7 +25,7 @@
 	// Update best score and save board to localstorage
 	$effect(() => {
 		if (!game) return;
-		saveBoard(game.board);
+		saveGame(game);
 		if (game.score > gameState.bestScore) {
 			gameState.bestScore = game.score;
 		}

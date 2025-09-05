@@ -3,6 +3,7 @@ import { defaultTheme } from "./assets/themes";
 import {
 	DEFAULT_BOARD_SIZE,
 	DEFAULT_STARTING_TILES,
+	DEFAULT_WIN_TILE,
 	DIRECTIONS,
 	EVENT_TYPES,
 	TWO_TO_FOUR_RATIO,
@@ -70,6 +71,11 @@ export function getTileColor(value, theme = defaultTheme) {
 	return lum < theme.luminanceThreshold ? theme.textDark : theme.textLight;
 }
 
+/**
+ * Game Class
+ *
+ * Encapsulates the game state and logic
+ */
 export class Game {
 	/**
 	 * Create a new Game
@@ -98,28 +104,31 @@ export class Game {
 
 	/**
 	 * Initialize game state
-	 * @param {number[][] | null} initialState
+	 * @param {import("./types").GameState?} initialState
 	 * @param {number} startingTiles
 	 */
 	initialize(initialState, startingTiles) {
 		// Don't load tiles during SSR
 		if (!browser) return;
 
-		// Add starting tiles
-		for (let i = 0; i < startingTiles; i++) {
-			this.addNewTile();
-		}
-
-		// If initial state is provided, use it
-		if (
-			Array.isArray(initialState) &&
-			initialState.every(
-				(row) => Array.isArray(row) && row.every((cell) => typeof cell === "number")
-			)
-		) {
-			this.board = initialState;
+		// Load initial state if provided
+		if (initialState) {
+			this.board = initialState.board;
+			this.score = initialState.score;
+			this.boardSize = this.board.length;
 			this.checkWin();
 			this.checkGameOver();
+
+			if (this.won) {
+				this.canContinue = true;
+			}
+		}
+
+		// Add starting tiles if no initial state is provided
+		else {
+			for (let i = 0; i < startingTiles; i++) {
+				this.addNewTile();
+			}
 		}
 	}
 
@@ -130,7 +139,7 @@ export class Game {
 	checkWin() {
 		for (let i = 0; i < this.boardSize; i++) {
 			for (let j = 0; j < this.boardSize; j++) {
-				if (this.board[i][j] === 2048) {
+				if (this.board[i][j] === DEFAULT_WIN_TILE) {
 					this.win = true;
 					return true;
 				}
@@ -146,7 +155,9 @@ export class Game {
 	 */
 	addNewTile(valueInput = null) {
 		const type = EVENT_TYPES.SPAWN;
-		const value = valueInput ?? (Math.random() < TWO_TO_FOUR_RATIO ? 2 : 4);
+		const newTileValue = valueInput ?? (Math.random() < TWO_TO_FOUR_RATIO ? 2 : 4);
+
+		// Find all empty cells
 		const emptyCells = [];
 		for (let i = 0; i < this.boardSize; i++) {
 			for (let j = 0; j < this.boardSize; j++) {
@@ -156,13 +167,15 @@ export class Game {
 			}
 		}
 
-		if (emptyCells.length > 0) {
-			const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-			this.board[randomCell.row][randomCell.col] = value;
-			return { end: { x: randomCell.col, y: randomCell.row }, value, type };
-		}
+		if (emptyCells.length === 0) return null;
 
-		return null;
+		// Pick a random empty cell and set it to the new tile value
+		const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+		this.board[randomCell.row][randomCell.col] = newTileValue;
+
+		// Generate the spawn event
+		const event = { end: { x: randomCell.col, y: randomCell.row }, newTileValue, type };
+		return event;
 	}
 
 	/**
@@ -170,23 +183,14 @@ export class Game {
 	 * @returns {boolean}
 	 */
 	checkGameOver() {
-		// Check if there are empty cells
 		for (let i = 0; i < this.boardSize; i++) {
 			for (let j = 0; j < this.boardSize; j++) {
-				if (this.board[i][j] === 0) return false;
-			}
-		}
+				// Check for empty cell
+				const emptyCell = this.board[i][j] === 0;
+				const horizontalMove = j < this.boardSize - 1 && this.board[i][j] === this.board[i][j + 1];
+				const verticalMove = i < this.boardSize - 1 && this.board[i][j] === this.board[i + 1][j];
 
-		// Check if any moves are possible
-		for (let i = 0; i < this.boardSize; i++) {
-			for (let j = 0; j < this.boardSize - 1; j++) {
-				if (this.board[i][j] === this.board[i][j + 1]) return false;
-			}
-		}
-
-		for (let i = 0; i < this.boardSize - 1; i++) {
-			for (let j = 0; j < this.boardSize; j++) {
-				if (this.board[i][j] === this.board[i + 1][j]) return false;
+				if (emptyCell || horizontalMove || verticalMove) return false;
 			}
 		}
 
@@ -386,21 +390,25 @@ export class Game {
 			}
 		}
 
+		// If a move was made, do some stuff
 		if (moveQueue.length > 0) {
+			// Add a snapshot of the board to the move queue and update state
 			moveQueue.push({ snapshot: newBoard });
 			this.board = newBoard;
 
+			// Update win state and add events
 			if (!this.won && this.checkWin()) {
 				moveQueue.push({ gameWon: true });
 			}
 
-			// Only add a new tile if a move was made
+			// Spawn a new tile and take another snapshot
 			const tileAddMove = this.addNewTile();
 			if (tileAddMove) {
 				moveQueue.push({ ...tileAddMove });
 				moveQueue.push({ snapshot: this.board });
 			}
 
+			// Update game over state and add event
 			if (this.checkGameOver()) {
 				moveQueue.push({ gameLost: true });
 			}

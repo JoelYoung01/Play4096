@@ -27,6 +27,10 @@ export interface TileAnimation {
 export interface GameOptions {
   boardSize?: number;
   startingTiles?: number;
-  initialState?: number[][] | null;
-  bestScore?: number;
+  initialState?: GameState | null;
+}
+
+export interface GameState {
+  board: number[][];
+  score: number;
 }

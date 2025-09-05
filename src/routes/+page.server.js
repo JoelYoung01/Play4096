@@ -5,7 +5,7 @@ export function load() {
 		theme: defaultTheme,
 		bestScore: 0,
 
-		/** @type {number[][] | null} */
+		/** @type {import("$lib/types").GameState?} */
 		currentGame: null,
 	};
 }

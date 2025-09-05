@@ -2,25 +2,25 @@ import { browser } from "$app/environment";
 import { LOCAL_STORAGE_BEST_SCORE, LOCAL_STORAGE_CURRENT_GAME } from "./constants";
 
 /**
- * Save the board to local storage
- * @param {number[][]} board
+ * Save the game to local storage
+ * @param {import("./types").GameState} game
  */
-export function saveBoard(board) {
+export function saveGame({ board, score }) {
 	if (!browser) return;
-	localStorage.setItem(LOCAL_STORAGE_CURRENT_GAME, JSON.stringify(board));
+	localStorage.setItem(LOCAL_STORAGE_CURRENT_GAME, JSON.stringify({ board, score }));
 }
 
 /**
- * Load the board from local storage
- * @returns {number[][] | null}
+ * Load the game from local storage
+ * @returns {import("./types").GameState?}
  */
-export function loadBoard() {
+export function loadGame() {
 	if (!browser) return null;
-	const board = localStorage.getItem(LOCAL_STORAGE_CURRENT_GAME);
-	return board ? JSON.parse(board) : null;
+	const game = localStorage.getItem(LOCAL_STORAGE_CURRENT_GAME);
+	return game ? JSON.parse(game) : null;
 }
 
-export function clearBoard() {
+export function clearGame() {
 	if (!browser) return;
 	localStorage.removeItem(LOCAL_STORAGE_CURRENT_GAME);
 }
