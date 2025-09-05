@@ -1,12 +1,17 @@
 <script>
+	import { onMount } from "svelte";
+	import { page } from "$app/state";
+
 	import { DIRECTIONS } from "$lib/constants.js";
 	import { Game } from "$lib/game.svelte.js";
-	import { onMount } from "svelte";
 	import CanvasGameBoard from "./CanvasGameBoard.svelte";
 
 	const TOUCH_THRESHOLD = 5;
 
-	let game = $state(new Game({ loadFromLocalStorage: true }));
+	/** @type {import("$lib/game.svelte.js").Game} */
+	let game = $state(
+		new Game({ bestScore: page.data.bestScore, initialState: page.data.initialState })
+	);
 	/** @type {import("$lib/types").GameEvent[]} */
 	let pendingEvents = $state([]);
 
@@ -16,6 +21,8 @@
 	 * @param direction
 	 */
 	function handleMove(direction) {
+		if (!game) return;
+
 		const events = game.moveTiles(direction);
 		if (events) {
 			pendingEvents.push(...events);
@@ -128,6 +135,7 @@
 	 * Continue playing
 	 */
 	function continuePlaying() {
+		if (!game) return;
 		game.canContinue = true;
 	}
 
@@ -157,11 +165,11 @@
 		<div class="flex gap-2">
 			<div class="score-box rounded-md p-2 text-center">
 				<div class="font-bold uppercase">SCORE</div>
-				<div class="score-value mt-1 font-bold">{game.score}</div>
+				<div class="score-value mt-1 font-bold">{game?.score}</div>
 			</div>
 			<div class="score-box rounded-md p-2 text-center">
 				<div class="font-bold uppercase">BEST</div>
-				<div class="score-value mt-1 font-bold">{game.bestScore}</div>
+				<div class="score-value mt-1 font-bold">{game?.bestScore}</div>
 			</div>
 		</div>
 	</div>

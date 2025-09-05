@@ -1,5 +1,8 @@
 <script>
-	let { game, newGame, continuePlaying } = $props();
+	let { game, newGame, continueGame } = $props();
+
+	const GAME_OVER_DELAY = 600;
+	const GAME_WIN_DELAY = 400;
 
 	let showGameOver = $state(false);
 	let showWin = $state(false);
@@ -8,12 +11,12 @@
 		if (game.gameOver) {
 			setTimeout(() => {
 				showGameOver = true;
-			}, 1000);
+			}, GAME_OVER_DELAY);
 		}
 		if (game.won && !game.canContinue) {
 			setTimeout(() => {
 				showWin = true;
-			}, 1000);
+			}, GAME_WIN_DELAY);
 		}
 	});
 
@@ -40,7 +43,7 @@
 		<div class="overlay-content">
 			<h2>You Won!</h2>
 			<p>Score: {game.score}</p>
-			<button class="overlay-btn" onclick={continuePlaying}>Keep Playing</button>
+			<button class="overlay-btn" onclick={continueGame}>Keep Playing</button>
 			<button class="overlay-btn secondary" onclick={handleNewGame}>New Game</button>
 		</div>
 	</div>

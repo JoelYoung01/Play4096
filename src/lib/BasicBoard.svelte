@@ -4,7 +4,11 @@
 	import { defaultTheme } from "./assets/themes";
 	import GameControls from "./GameControls.svelte";
 
-	let { game, newGame, pendingEvents = [] } = $props();
+	const defaultBoard = Array(4)
+		.fill(null)
+		.map(() => Array(4).fill(0));
+
+	let { game, newGame, pendingEvents = [], continueGame } = $props();
 
 	let newestTile = $derived(pendingEvents.find((event) => event.type === EVENT_TYPES.SPAWN));
 	let movedTiles = $derived(
@@ -40,13 +44,6 @@
 	}
 
 	/**
-	 * Continue playing after winning
-	 */
-	function continuePlaying() {
-		game.canContinue = true;
-	}
-
-	/**
 	 * Get the font size for a tile
 	 * @param {number} value
 	 * @param {typeof defaultTheme} theme
@@ -61,11 +58,11 @@
 	}
 </script>
 
-<GameControls {game} {newGame} {continuePlaying} />
+<GameControls {game} {newGame} {continueGame} />
 
 <!-- Game Board -->
 <div class="game-board">
-	{#each game.board as row, rowIndex (rowIndex)}
+	{#each game?.board || defaultBoard as row, rowIndex (rowIndex)}
 		{#each row as cell, colIndex (colIndex)}
 			{#if cell !== 0}
 				<div

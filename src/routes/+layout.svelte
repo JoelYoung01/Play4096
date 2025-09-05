@@ -2,8 +2,15 @@
 	import "../app.css";
 	import favicon from "$lib/assets/favicon.png";
 	import { page } from "$app/state";
+	import { saveBestScore } from "$lib/localStorage.svelte";
+	import { gameState } from "./state.svelte";
 
 	let { children } = $props();
+
+	// Save best score to localstorage
+	$effect(() => {
+		saveBestScore(gameState.bestScore);
+	});
 </script>
 
 <svelte:head>

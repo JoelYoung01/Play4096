@@ -1,14 +1,35 @@
 <script>
-	import { DIRECTIONS } from "$lib/constants.js";
-	import { Game } from "$lib/game.svelte.js";
 	import { onMount } from "svelte";
+	import { page } from "$app/state";
+
+	import { Game } from "$lib/game.svelte.js";
+	import { DIRECTIONS } from "$lib/constants.js";
+	import { saveBoard } from "$lib/localStorage.svelte.js";
+
 	import BasicBoard from "$lib/BasicBoard.svelte";
+	import { browser } from "$app/environment";
+	import { gameState } from "./state.svelte";
 
 	const TOUCH_THRESHOLD = 5;
 
-	let game = $state(new Game({ loadFromLocalStorage: true }));
+	/** @type {import("$lib/game.svelte.js").Game | null} */
+	let game = $state(null);
+
 	/** @type {import("$lib/types").GameEvent[]} */
 	let pendingEvents = $state([]);
+
+	if (browser) {
+		game = new Game({ initialState: page.data.currentGame });
+	}
+
+	// Update best score and save board to localstorage
+	$effect(() => {
+		if (!game) return;
+		saveBoard(game.board);
+		if (game.score > gameState.bestScore) {
+			gameState.bestScore = game.score;
+		}
+	});
 
 	/**
 	 * Handle move
@@ -16,6 +37,8 @@
 	 * @param direction
 	 */
 	function handleMove(direction) {
+		if (!game) return;
+
 		const events = game.moveTiles(direction);
 		if (events) {
 			pendingEvents = events;
@@ -116,6 +139,15 @@
 		game = new Game();
 	}
 
+	/**
+	 * Continue playing after winning
+	 */
+	function continueGame() {
+		if (!game) return;
+
+		game.canContinue = true;
+	}
+
 	// Setup listeners on mount
 	onMount(() => {
 		window.addEventListener("keydown", handleKeydown);
@@ -142,11 +174,11 @@
 		<div class="flex gap-2">
 			<div class="score-box rounded-md p-2 text-center">
 				<div class="font-bold uppercase">SCORE</div>
-				<div class="score-value mt-1 font-bold">{game.score}</div>
+				<div class="score-value mt-1 font-bold">{game?.score ?? "-"}</div>
 			</div>
 			<div class="score-box rounded-md p-2 text-center">
 				<div class="font-bold uppercase">BEST</div>
-				<div class="score-value mt-1 font-bold">{game.bestScore}</div>
+				<div class="score-value mt-1 font-bold">{gameState.bestScore ?? "-"}</div>
 			</div>
 		</div>
 	</div>
@@ -157,7 +189,7 @@
 	</div>
 
 	<!-- Game Board -->
-	<BasicBoard {game} {newGame} {pendingEvents} />
+	<BasicBoard {game} {newGame} {pendingEvents} {continueGame} />
 
 	<!-- Instructions -->
 	<div class="instructions">

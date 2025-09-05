@@ -23,3 +23,10 @@ export interface TileAnimation {
   startTimestamp: number;
   progress: number;
 }
+
+export interface GameOptions {
+  boardSize?: number;
+  startingTiles?: number;
+  initialState?: number[][] | null;
+  bestScore?: number;
+}
