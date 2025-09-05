@@ -70,7 +70,7 @@
 					class:new-tile={isNewest(colIndex, rowIndex)}
 					class:moved-tile={isMoved(colIndex, rowIndex)}
 					class:merged-tile={isMerged(colIndex, rowIndex)}
-					style:font-size={getTileFontSize(cell)}
+					style:--base-font-size={getTileFontSize(cell)}
 					style:background={getTileBackground(cell)}
 					style:color={getTileColor(cell)}
 				>
@@ -105,14 +105,12 @@
 		overflow: hidden;
 		align-items: center;
 		justify-content: center;
-		font-size: 3rem;
 		font-weight: bold;
 		transition: all var(--animation-duration) ease-in;
 		position: relative;
-		white-space: normal;
-		word-break: break-all;
 		text-align: center;
 		padding: 0.2em;
+		font-size: var(--base-font-size, 1rem);
 
 		&.new-tile {
 			animation: tileAppear 300ms ease-in-out;
@@ -131,22 +129,27 @@
 		0% {
 			opacity: 0;
 			transform: scale(0.5);
+			font-size: calc(var(--base-font-size) * 0.5);
 		}
 		100% {
 			opacity: 1;
 			transform: scale(1);
+			font-size: var(--base-font-size);
 		}
 	}
 
 	@keyframes tileMerge {
 		0% {
 			transform: scale(1);
+			font-size: var(--base-font-size);
 		}
 		80% {
 			transform: scale(1.1);
+			font-size: calc(var(--base-font-size) * 1.1);
 		}
 		100% {
 			transform: scale(1);
+			font-size: var(--base-font-size);
 		}
 	}
 </style>

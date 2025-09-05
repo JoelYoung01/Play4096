@@ -7,7 +7,7 @@
 
 	let { children } = $props();
 
-	// Save best score to localstorage
+	// Save best score to localstorage whenever it changes
 	$effect(() => {
 		saveBestScore(gameState.bestScore);
 	});
@@ -24,6 +24,8 @@
 
 <style lang="postcss">
 	.app-container {
+		overflow: hidden;
+
 		/* Prevent Chrome's pull-to-refresh and other touch gestures */
 		touch-action: none;
 		user-select: none;

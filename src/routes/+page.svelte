@@ -165,21 +165,21 @@
 	ontouchend={handleTouchEnd}
 >
 	<!-- Header -->
-	<div class="mb-3 flex items-start justify-between">
+	<div class="mb-3 flex flex-wrap items-start gap-2">
 		<div>
-			<h1 class="game-title text-4xl font-bold">4096</h1>
+			<h1 class="text-6xl font-bold">4096</h1>
 			<p class="game-description">Join the tiles, get to 4096!</p>
 		</div>
 
-		<div class="flex gap-2">
-			<div class="score-box rounded-md p-2 text-center">
-				<div class="font-bold uppercase">SCORE</div>
-				<div class="score-value mt-1 font-bold">{game?.score ?? "-"}</div>
-			</div>
-			<div class="score-box rounded-md p-2 text-center">
-				<div class="font-bold uppercase">BEST</div>
-				<div class="score-value mt-1 font-bold">{gameState.bestScore ?? "-"}</div>
-			</div>
+		<div class="flex-grow"></div>
+
+		<div class="score-box rounded-md p-2 text-center">
+			<div class="text-center font-bold uppercase">SCORE</div>
+			<div class="score-value mt-1 font-bold">{game?.score ?? "-"}</div>
+		</div>
+		<div class="score-box rounded-md p-2 text-center">
+			<div class="text-center font-bold uppercase">BEST</div>
+			<div class="score-value mt-1 font-bold">{gameState.bestScore ?? "-"}</div>
 		</div>
 	</div>
 
@@ -217,7 +217,7 @@
 	}
 
 	.game-title {
-		font-size: 3rem;
+		font-size: 5rem;
 
 		@media (max-width: 600px) {
 			font-size: 2.5rem;
@@ -235,12 +235,8 @@
 	.score-box {
 		background: var(--board-bg);
 		color: var(--background-color);
-		flex: 0 0 80px;
+		flex: 0 1 6rem;
 		font-size: 1.2rem;
-
-		@media (max-width: 600px) {
-			font-size: 0.75rem;
-		}
 	}
 
 	.score-value {
@@ -278,10 +274,6 @@
 	@media (max-width: 600px) {
 		.game-container {
 			padding: 10px;
-		}
-
-		.game-title {
-			font-size: 2.5rem;
 		}
 
 		.score-box {
