@@ -137,30 +137,11 @@
 	ontouchmove={handleTouchMove}
 	ontouchend={handleTouchEnd}
 >
-	<!-- Header -->
-	<div class="mb-3 flex flex-wrap items-start gap-2">
-		<div>
-			<h1 class="text-6xl font-bold">4096</h1>
-			<p class="game-description">Join the tiles, get to 4096!</p>
-		</div>
-
-		<div class="flex-grow"></div>
-
-		<div class="score-box rounded-md p-2 text-center">
-			<div class="text-center font-bold uppercase">SCORE</div>
-			<div class="score-value mt-1 font-bold">{gameState.currentGame?.score ?? "-"}</div>
-		</div>
-		<div class="score-box rounded-md p-2 text-center">
-			<div class="text-center font-bold uppercase">BEST</div>
-			<div class="score-value mt-1 font-bold">{gameState.bestScore ?? "-"}</div>
-		</div>
-	</div>
-
 	<!-- Game Board -->
 	<BasicBoard {pendingEvents} />
 
 	<!-- Instructions -->
-	<div class="instructions">
+	<div class="text-center text-sm" style:color={page.data.theme?.textLight}>
 		<p>
 			<strong>How to play:</strong> Use arrow keys or swipe to move tiles. When two tiles with the same
 			number touch, they merge into one!
@@ -172,9 +153,9 @@
 	.game-container {
 		max-width: 500px;
 		min-height: 100vh;
+		font-weight: 500;
 		margin: 0 auto;
 		padding: 20px;
-		font-family: "Arial", sans-serif;
 		user-select: none;
 		color: var(--text-color);
 		/* Prevent browser gestures and scrolling */
@@ -182,71 +163,5 @@
 		overscroll-behavior: contain;
 		-webkit-overflow-scrolling: touch;
 		-webkit-overscroll-behavior: contain;
-	}
-
-	.game-title {
-		font-size: 5rem;
-
-		@media (max-width: 600px) {
-			font-size: 2.5rem;
-		}
-	}
-
-	.game-description {
-		font-size: 1.2rem;
-
-		@media (max-width: 600px) {
-			font-size: 0.75rem;
-		}
-	}
-
-	.score-box {
-		background: var(--board-bg);
-		color: var(--background-color);
-		flex: 0 1 6rem;
-		font-size: 1.2rem;
-	}
-
-	.score-value {
-		font-size: 1.2rem;
-
-		@media (max-width: 600px) {
-			font-size: 1rem;
-		}
-	}
-
-	.new-game-btn {
-		background: var(--primary-color);
-		color: white;
-		border: none;
-		padding: 12px 24px;
-		border-radius: 6px;
-		font-size: 1rem;
-		font-weight: bold;
-		cursor: pointer;
-		transition: background-color 0.2s;
-
-		&:hover {
-			background: var(--primary-color-dark);
-		}
-	}
-
-	.instructions {
-		text-align: center;
-		color: #776e65;
-		font-size: 0.9rem;
-		line-height: 1.4;
-	}
-
-	/* Responsive design */
-	@media (max-width: 600px) {
-		.game-container {
-			padding: 10px;
-		}
-
-		.score-box {
-			min-width: 60px;
-			padding: 8px 12px;
-		}
 	}
 </style>

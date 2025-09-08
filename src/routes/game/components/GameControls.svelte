@@ -1,4 +1,5 @@
 <script>
+	import { page } from "$app/state";
 	import { Game } from "$lib/game.svelte.js";
 	import { gameState } from "../state.svelte.js";
 	import Btn from "$lib/components/Btn.svelte";
@@ -38,12 +39,37 @@
 	}
 </script>
 
-<!-- Game Control Buttons -->
-<div class="align-items-center mb-2 flex gap-2">
-	<Btn class="flex-1 text-center" href="/">Home</Btn>
-	<Btn class="flex-1 text-center" href="/leaderboard">Leaderboard</Btn>
-	<Btn class="flex-1 text-center" onclick={newGame}>New Game</Btn>
+<!-- Header -->
+<div class="mb-2 flex items-start gap-2">
+	<div class="flex-1">
+		<h1 class=" text-6xl font-bold">4096</h1>
+		<p>Join the tiles, get to 4096!</p>
+	</div>
+
+	<div class="flex-[0_0_14rem]">
+		<div class="mb-2 flex gap-2">
+			<div
+				class="flex-1/2 rounded-md py-2 text-center"
+				style:background-color={page.data.theme?.boardBackground}
+				style:color={page.data.theme?.textDark}
+			>
+				<div class="text-center font-bold uppercase sm:text-lg">SCORE</div>
+				<div class="mt-1 text-lg font-bold sm:text-xl">{gameState.currentGame?.score ?? "-"}</div>
+			</div>
+			<div
+				class="flex-1/2 rounded-md py-2 text-center"
+				style:background-color={page.data.theme?.boardBackground}
+				style:color={page.data.theme?.textDark}
+			>
+				<div class="text-center font-bold uppercase sm:text-lg">BEST</div>
+				<div class="mt-1 text-lg font-bold sm:text-xl">{gameState.bestScore ?? "-"}</div>
+			</div>
+		</div>
+		<Btn class="w-full text-center" onclick={newGame}>New Game</Btn>
+	</div>
 </div>
+
+<!-- Game Control Buttons -->
 
 <!-- Game Overlay -->
 {#if game && showGameOver}

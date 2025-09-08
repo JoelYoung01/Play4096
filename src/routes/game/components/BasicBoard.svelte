@@ -109,7 +109,7 @@
 		overflow: hidden;
 		align-items: center;
 		justify-content: center;
-		font-weight: bold;
+		font-weight: 800;
 		transition: all var(--animation-duration) ease-in;
 		position: relative;
 		text-align: center;

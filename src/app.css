@@ -1,13 +1,18 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+
+
+@import "./lib/assets/fonts/Nunito/Nunito.css";
 
 :root {
-  --background-color: #fbf8ef;
-  --board-bg: #bbaea0;
-  --primary-color: #ec995b;
-  --primary-color-dark: #e88f4f;
-  --text-color: #776e65;
+	--background-color: #fbf8ef;
+	--board-bg: #bbaea0;
+	--primary-color: #ec995b;
+	--primary-color-dark: #e88f4f;
+	--text-color: #776e65;
+
+	font-family: "Nunito", "Arial", sans-serif;
 }
 
 .bg-board-bg {
-  background-color: var(--board-bg);
+	background-color: var(--board-bg);
 }

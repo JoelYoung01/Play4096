@@ -7,7 +7,7 @@
 	import GameControls from "../game/components/GameControls.svelte";
 	import BasicBoard from "../game/components/BasicBoard.svelte";
 
-	let { game, pendingEvents, newGame, popEvent, continuePlaying } = $props();
+	let { game, pendingEvents, popEvent } = $props();
 
 	const size = $state(460);
 	const padding = 10;
@@ -33,7 +33,7 @@
 
 	/**
 	 * @param {import("$lib/types").GameEvent} evt
-	 * @returns {string | null}
+	 * @returns {number | null}
 	 */
 	function readEventType(evt) {
 		if (evt.start && evt.end) {
@@ -384,11 +384,11 @@
 	});
 </script>
 
-<GameControls {game} {newGame} {continuePlaying} />
+<GameControls />
 
 <div class="game-board-container justify-content-center align-items-center flex overflow-hidden">
 	<canvas width={size} height={size} bind:this={canvas}>
-		<BasicBoard {game} {newGame} />
+		<BasicBoard />
 	</canvas>
 	<div
 		class="game-board"
