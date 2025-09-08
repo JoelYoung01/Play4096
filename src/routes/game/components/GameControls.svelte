@@ -42,8 +42,8 @@
 <!-- Header -->
 <div class="mb-2 flex items-start gap-2">
 	<div class="flex-1">
-		<h1 class=" text-6xl font-bold">4096</h1>
-		<p>Join the tiles, get to 4096!</p>
+		<h1 class="text-4xl font-bold sm:text-6xl">4096</h1>
+		<p class="text-sm sm:text-base">Join the tiles, get to 4096!</p>
 	</div>
 
 	<div class="flex-[0_0_14rem]">

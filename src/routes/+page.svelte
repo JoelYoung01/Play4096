@@ -1,6 +1,9 @@
 <script>
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
+	import { loadGame } from "$lib/localStorage.svelte";
+
+	const game = $state(loadGame());
 </script>
 
 <main
@@ -20,7 +23,13 @@
 	</div>
 
 	<div class="mx-auto mb-16 flex max-w-md flex-col gap-4">
-		<Btn href="/game" class="text-center">Start New Game</Btn>
+		<Btn href="/game" class="text-center">
+			{#if game}
+				Continue Game
+			{:else}
+				Start New Game
+			{/if}
+		</Btn>
 		<Btn href="/login" class="text-center">Login / Create Account</Btn>
 		<Btn href="/leaderboard" class="text-center">View Leaderboard</Btn>
 	</div>
