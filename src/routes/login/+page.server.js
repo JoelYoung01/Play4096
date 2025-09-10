@@ -79,6 +79,13 @@ export const actions = {
 			return fail(400, { message: "Invalid password: " + passwordErrors.join(", ") });
 		}
 
+		// Check if username already exists
+		const results = await db.select().from(table.user).where(eq(table.user.username, username));
+		const existingUser = results.at(0);
+		if (existingUser) {
+			return fail(400, { message: "Username already exists" });
+		}
+
 		// Generate user ID and hash password
 		const userId = generateUserId();
 		const passwordHash = await hash(password, {
