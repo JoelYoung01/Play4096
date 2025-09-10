@@ -1,11 +1,17 @@
-import * as auth from "$lib/server/auth";
 import { fail, redirect } from "@sveltejs/kit";
-import { getRequestEvent } from "$app/server";
+import * as auth from "$lib/server/auth";
+import { db } from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
+import { eq } from "drizzle-orm";
+import assert from "node:assert";
 
-export const load = async () => {
-	const user = requireLogin();
+export function load({ locals }) {
+	const user = db.select().from(table.user).where(eq(table.user.id, locals.user.id)).get();
+
+	assert(user, "User not found");
+
 	return { user };
-};
+}
 
 export const actions = {
 	logout: async (event) => {
@@ -18,13 +24,3 @@ export const actions = {
 		return redirect(302, "/login");
 	},
 };
-
-function requireLogin() {
-	const { locals } = getRequestEvent();
-
-	if (!locals.user) {
-		return redirect(302, "/login");
-	}
-
-	return locals.user;
-}

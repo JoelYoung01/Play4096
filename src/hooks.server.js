@@ -1,5 +1,10 @@
 import * as auth from "$lib/server/auth";
 
+/**
+ * Handle Authentication
+ * @param {{ event: import("@sveltejs/kit").RequestEvent, resolve: (event: import("@sveltejs/kit").RequestEvent) => Promise<Response> }} param0
+ * @returns
+ */
 const handleAuth = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
 

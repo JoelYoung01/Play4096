@@ -25,7 +25,11 @@
 		},
 	];
 
-	let activeNavItem = $derived(navItems.find((item) => item.href === page.url.pathname));
+	let activeNavItem = $derived(
+		navItems.find((item) =>
+			item.href === "/" ? page.url.pathname === item.href : page.url.pathname.includes(item.href)
+		)
+	);
 </script>
 
 <nav

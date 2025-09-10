@@ -12,7 +12,13 @@ export const load = async (event) => {
 	if (event.locals.user) {
 		return redirect(302, "/account");
 	}
-	return {};
+
+	// Get redirectTo from query parameters
+	const redirectTo = event.url.searchParams.get("redirectTo");
+
+	return {
+		redirectTo,
+	};
 };
 
 export const actions = {

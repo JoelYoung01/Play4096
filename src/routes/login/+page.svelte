@@ -1,6 +1,7 @@
 <script>
 	import { page } from "$app/state";
 	import { enhance } from "$app/forms";
+	import Btn from "$lib/components/Btn.svelte";
 
 	let { form } = $props();
 </script>
@@ -27,15 +28,10 @@
 			/>
 		</label>
 
-		<button class="rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700">
-			Login
-		</button>
-		<button
-			formaction="?/register"
-			class="rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
-		>
-			Register
-		</button>
+		<input type="hidden" name="redirectTo" value={page.data.redirectTo ?? ""} />
+
+		<Btn class="px-4 py-2">Login</Btn>
+		<Btn class="px-4 py-2" formaction="?/register">Register</Btn>
 	</form>
 	<p style="color: red">{form?.message ?? ""}</p>
 </main>
