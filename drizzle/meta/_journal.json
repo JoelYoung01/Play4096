@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1756506187923,
+      "when": 1757484823210,
       "tag": "0000_initial",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1757477541425,
-      "tag": "0001_heavy_omega_flight",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1757481970825,
-      "tag": "0002_milky_leper_queen",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1757482538634,
-      "tag": "0003_small_lady_bullseye",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1757482588492,
-      "tag": "0004_clever_thundra",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1757482764252,
-      "tag": "0005_dashing_millenium_guard",
       "breakpoints": true
     }
   ]
