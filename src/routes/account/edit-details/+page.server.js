@@ -5,13 +5,17 @@ import assert from "node:assert";
 import { eq } from "drizzle-orm";
 
 export function load({ locals }) {
-	const user = db.select().from(table.user).where(eq(table.user.id, locals.user.id)).get();
+	const userProfile = db
+		.select()
+		.from(table.userProfile)
+		.where(eq(table.userProfile.userId, locals.user.id))
+		.get();
 
 	// This shouldn't be possible, this page should not be accessible to users who are not logged in
-	assert(user, "User not found");
+	assert(userProfile, "User not found");
 
 	const form = {
-		displayName: user.displayName ?? "",
+		displayName: userProfile.displayName ?? "",
 	};
 
 	return { form };
@@ -22,7 +26,10 @@ export const actions = {
 		const formData = await request.formData();
 		const displayName = formData.get("displayName")?.toString() ?? "";
 
-		await db.update(table.user).set({ displayName }).where(eq(table.user.id, locals.user.id));
+		await db
+			.update(table.userProfile)
+			.set({ displayName })
+			.where(eq(table.userProfile.userId, locals.user.id));
 
 		return redirect(302, "/account");
 	},

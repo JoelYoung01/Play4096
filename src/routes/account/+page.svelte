@@ -8,7 +8,7 @@
 <main class="mx-auto mt-10 w-full max-w-md p-8" style:color={page.data.theme?.primary}>
 	<h1 class="text-3xl font-bold">Account</h1>
 	<p class="mb-4 text-sm text-gray-500">
-		Hello, {page.data.user.displayName || page.data.user.username}!
+		Hello, {page.data.userProfile.displayName || page.data.user.username}!
 	</p>
 	<div class="flex flex-col gap-2">
 		<Btn class="flex w-60 gap-2" href="/account/edit-details">

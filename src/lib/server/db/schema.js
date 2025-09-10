@@ -10,16 +10,17 @@ export const userProfile = sqliteTable("user_profile", {
 	id: text("id").primaryKey(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.id),
+		.references(() => user.id, { onDelete: "cascade" }),
 	displayName: text("display_name"),
 	avatarUrl: text("avatar_url"),
+	bestScore: integer("best_score"),
 });
 
 export const session = sqliteTable("session", {
 	id: text("id").primaryKey(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.id),
+		.references(() => user.id, { onDelete: "cascade" }),
 	expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 });
 
@@ -27,7 +28,7 @@ export const game = sqliteTable("game", {
 	id: text("id").primaryKey(),
 	playerId: text("player_id")
 		.notNull()
-		.references(() => user.id),
+		.references(() => user.id, { onDelete: "cascade" }),
 	createdOn: integer("created_on", { mode: "timestamp" }).notNull(),
 	completedOn: integer("completed_on", { mode: "timestamp" }),
 	score: integer("score"),

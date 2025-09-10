@@ -54,7 +54,7 @@
 				style:color={page.data.theme?.textDark}
 			>
 				<div class="text-center font-bold uppercase sm:text-lg">SCORE</div>
-				<div class="mt-1 text-lg font-bold sm:text-xl">{gameState.currentGame?.score ?? "-"}</div>
+				<div class="mt-1 text-lg font-bold sm:text-xl">{game?.score ?? "-"}</div>
 			</div>
 			<div
 				class="flex-1/2 rounded-md py-2 text-center"

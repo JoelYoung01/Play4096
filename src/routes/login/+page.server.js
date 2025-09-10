@@ -42,10 +42,23 @@ export const actions = {
 		}
 
 		// Check if user exists
-		const results = await db.select().from(table.user).where(eq(table.user.username, username));
-		const existingUser = results.at(0);
+		const existingUser = db
+			.select()
+			.from(table.user)
+			.where(eq(table.user.username, username))
+			.get();
 		if (!existingUser) {
 			return fail(400, { message: "Incorrect username or password" });
+		}
+
+		// Ensure user profile exists, create if it doesn't
+		const userProfile = db
+			.select()
+			.from(table.userProfile)
+			.where(eq(table.userProfile.userId, existingUser.id))
+			.get();
+		if (!userProfile) {
+			await db.insert(table.userProfile).values({ id: existingUser.id, userId: existingUser.id });
 		}
 
 		// Check password against hash
@@ -113,6 +126,9 @@ export const actions = {
 			console.error(error);
 			return fail(500, { message: "An error has occurred" });
 		}
+
+		// Create user profile
+		await db.insert(table.userProfile).values({ id: userId, userId });
 
 		// Redirect to original page or home
 		const redirectTo = formData.get("redirectTo")?.toString() ?? "/";
