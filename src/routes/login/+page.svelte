@@ -1,10 +1,40 @@
 <script>
 	import { page } from "$app/state";
+	import { enhance } from "$app/forms";
+
+	let { form } = $props();
 </script>
 
-<main class="mx-auto mt-10 p-8" style:color={page.data.theme?.primary}>
-	<h1 class="text-3xl font-bold">Login / Create Account</h1>
-	<p class="text-sm text-gray-500">
-		This page is coming soon. Check back later to login or create an account.
-	</p>
+<main class="mx-auto mt-10 w-full max-w-md p-8" style:color={page.data.theme?.primary}>
+	<h1 class="mb-3 text-3xl font-bold">Login / Create Account</h1>
+	<form method="post" action="?/login" use:enhance>
+		<label class="mb-2 block">
+			Username
+			<input
+				name="username"
+				class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+			/>
+		</label>
+
+		<label class="mb-4 block">
+			Password
+			<input
+				type="password"
+				name="password"
+				autocomplete="current-password"
+				class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+			/>
+		</label>
+
+		<button class="rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700">
+			Login
+		</button>
+		<button
+			formaction="?/register"
+			class="rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+		>
+			Register
+		</button>
+	</form>
+	<p style="color: red">{form?.message ?? ""}</p>
 </main>

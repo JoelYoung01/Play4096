@@ -8,18 +8,21 @@ import * as table from "$lib/server/db/schema";
 import { validateUsername, validatePassword, generateUserId } from "$lib/authUtils";
 
 export const load = async (event) => {
+	// Redirect if user is already logged in
 	if (event.locals.user) {
-		return redirect(302, "/demo/lucia");
+		return redirect(302, "/account");
 	}
 	return {};
 };
 
 export const actions = {
 	login: async (event) => {
+		// Pull form data
 		const formData = await event.request.formData();
 		const usernameFormInput = formData.get("username");
 		const passwordFormInput = formData.get("password");
 
+		// Validate credentials
 		const { username, errors: usernameErrors } = validateUsername(usernameFormInput);
 		if (usernameErrors.length > 0) {
 			return fail(400, {
@@ -32,13 +35,14 @@ export const actions = {
 			return fail(400, { message: `Invalid password: ${passwordErrors.join(", ")}` });
 		}
 
+		// Check if user exists
 		const results = await db.select().from(table.user).where(eq(table.user.username, username));
-
 		const existingUser = results.at(0);
 		if (!existingUser) {
 			return fail(400, { message: "Incorrect username or password" });
 		}
 
+		// Check password against hash
 		const validPassword = await verify(existingUser.passwordHash, password, {
 			memoryCost: 19456,
 			timeCost: 2,
@@ -49,18 +53,23 @@ export const actions = {
 			return fail(400, { message: "Incorrect username or password" });
 		}
 
+		// Create session and set cookie
 		const sessionToken = auth.generateSessionToken();
 		const session = await auth.createSession(sessionToken, existingUser.id);
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 
-		return redirect(302, "/demo/lucia");
+		// Redirect to original page or home
+		const redirectTo = formData.get("redirectTo")?.toString() ?? "/";
+		return redirect(302, redirectTo);
 	},
 
 	register: async (event) => {
+		// Pull form data
 		const formData = await event.request.formData();
 		const usernameFormInput = formData.get("username");
 		const passwordFormInput = formData.get("password");
 
+		// Validate credentials
 		const { username, errors: usernameErrors } = validateUsername(usernameFormInput);
 		if (usernameErrors.length > 0) {
 			return fail(400, { message: "Invalid username: " + usernameErrors.join(", "), username });
@@ -70,6 +79,7 @@ export const actions = {
 			return fail(400, { message: "Invalid password: " + passwordErrors.join(", ") });
 		}
 
+		// Generate user ID and hash password
 		const userId = generateUserId();
 		const passwordHash = await hash(password, {
 			// recommended minimum parameters
@@ -79,6 +89,7 @@ export const actions = {
 			parallelism: 1,
 		});
 
+		// Create user and session
 		try {
 			await db.insert(table.user).values({ id: userId, username, passwordHash });
 
@@ -89,6 +100,9 @@ export const actions = {
 			console.error(error);
 			return fail(500, { message: "An error has occurred" });
 		}
-		return redirect(302, "/demo/lucia");
+
+		// Redirect to original page or home
+		const redirectTo = formData.get("redirectTo")?.toString() ?? "/";
+		return redirect(302, redirectTo);
 	},
 };
