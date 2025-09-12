@@ -15,6 +15,7 @@ RUN pnpm install -r --offline --prod --frozen-lockfile
 COPY drizzle.config.js ./drizzle.config.js
 COPY ./drizzle ./drizzle
 COPY ./build ./build
+COPY ./src ./src
 
 
 EXPOSE 3000
