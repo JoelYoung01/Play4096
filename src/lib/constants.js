@@ -21,3 +21,8 @@ export const DIRECTIONS = {
 	UP: 30,
 	DOWN: 40,
 };
+
+export const USER_LEVELS = {
+	FREE: 10,
+	PRO: 20,
+};

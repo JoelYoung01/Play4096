@@ -5,6 +5,7 @@ export const load = async () => {
 	const user = requireLogin();
 	return { user };
 };
+
 function requireLogin() {
 	const { locals, url } = getRequestEvent();
 

@@ -1,8 +1,11 @@
+import { USER_LEVELS } from "../../constants";
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
 	id: text("id").primaryKey(),
 	username: text("username").notNull().unique(),
+	admin: integer("admin", { mode: "boolean" }).notNull().default(false),
+	level: integer("level").notNull().default(USER_LEVELS.FREE),
 	passwordHash: text("password_hash").notNull(),
 });
 

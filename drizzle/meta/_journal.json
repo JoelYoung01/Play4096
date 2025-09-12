@@ -8,6 +8,13 @@
       "when": 1757484823210,
       "tag": "0000_initial",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1757688983831,
+      "tag": "0001_Add user fields",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,21 @@
 	import { enhance } from "$app/forms";
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
+	import { clearBestScore, clearGame } from "$lib/localStorage.svelte";
 	import { LogOutIcon, PencilIcon, LockIcon, TrashIcon } from "@lucide/svelte";
+
+	function onLogout() {
+		/**
+		 * @param {{ update: () => void }} update
+		 */
+		return ({ update }) => {
+			// Reset game state
+			clearGame();
+			clearBestScore();
+
+			update();
+		};
+	}
 </script>
 
 <main class="mx-auto mt-10 w-full max-w-md p-8" style:color={page.data.theme?.primary}>
@@ -17,7 +31,7 @@
 			</div>
 			<div class="flex-5/6 text-start">Edit Profile</div>
 		</Btn>
-		<form method="post" action="?/logout" use:enhance>
+		<form method="post" action="?/logout" use:enhance={onLogout}>
 			<Btn class="flex w-60 gap-2">
 				<div class="flex flex-1/6 items-center justify-end">
 					<LogOutIcon size={18} />

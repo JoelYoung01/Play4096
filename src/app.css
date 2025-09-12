@@ -15,6 +15,11 @@
 
 button {
 	cursor: pointer;
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
 }
 
 .bg-board-bg {
