@@ -22,7 +22,7 @@ export const actions = {
 		if (!event.locals.user) {
 			return fail(401, { message: "Not logged in." });
 		}
-		deleteUser(event.locals.user.id);
+		await deleteUser(event.locals.user.id);
 
 		return redirect(302, "/login");
 	},

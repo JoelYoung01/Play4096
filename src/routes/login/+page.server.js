@@ -78,7 +78,7 @@ export const actions = {
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 
 		// Redirect to original page or home
-		const redirectTo = formData.get("redirectTo")?.toString() ?? "/";
+		const redirectTo = formData.get("redirectTo")?.toString() || "/";
 		return redirect(302, redirectTo);
 	},
 

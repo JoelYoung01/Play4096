@@ -38,12 +38,20 @@ export function getUser(userId) {
  * Delete a user from the database
  * @param {string} userId
  */
-export function deleteUser(userId) {
+export async function deleteUser(userId) {
 	if (!userId) {
+		console.debug("Unable to delete user; user ID is not set");
 		return;
 	}
 
-	db.delete(table.user).where(eq(table.user.id, userId));
+	// Verify user exists
+	const user = db.select().from(table.user).where(eq(table.user.id, userId)).get();
+	if (!user) {
+		console.debug(`Unable to delete user; user ${userId} does not exist`);
+		return;
+	}
+
+	await db.delete(table.user).where(eq(table.user.id, userId));
 }
 
 /**

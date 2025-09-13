@@ -46,7 +46,7 @@
 		{/if}
 	</h1>
 	<p class="mb-4 text-sm text-gray-500">
-		Hello, {page.data.userProfile.displayName || page.data.user.username}!
+		Hello, {page.data.user.displayName || page.data.user.username}!
 	</p>
 	<div class="flex flex-col gap-2">
 		<Btn class="flex w-60 gap-2" href="/account/edit-details">
