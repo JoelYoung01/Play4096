@@ -1,0 +1,110 @@
+import { redirect } from "@sveltejs/kit";
+
+/**
+ * Handle RR
+ * @param {string} url
+ */
+export function handleRR(url) {
+	const susPaths = [
+		// WordPress attacks
+		"/wp-admin/setup-config.php",
+		"/wordpress/wp-admin/setup-config.php",
+		"/wp-includes/wlwmanifest.xml",
+		"/xmlrpc.php",
+		"/blog/wp-includes/wlwmanifest.xml",
+		"/web/wp-includes/wlwmanifest.xml",
+		"/wordpress/wp-includes/wlwmanifest.xml",
+		"/website/wp-includes/wlwmanifest.xml",
+		"/wp/wp-includes/wlwmanifest.xml",
+		"/news/wp-includes/wlwmanifest.xml",
+		"/2018/wp-includes/wlwmanifest.xml",
+		"/2019/wp-includes/wlwmanifest.xml",
+		"/shop/wp-includes/wlwmanifest.xml",
+		"/wp1/wp-includes/wlwmanifest.xml",
+		"/test/wp-includes/wlwmanifest.xml",
+		"/media/wp-includes/wlwmanifest.xml",
+		"/wp2/wp-includes/wlwmanifest.xml",
+		"/site/wp-includes/wlwmanifest.xml",
+		"/cms/wp-includes/wlwmanifest.xml",
+		"/sito/wp-includes/wlwmanifest.xml",
+
+		// Environment file attacks
+		"/.env",
+		"/.git/config",
+		"/.remote",
+		"/.local",
+		"/.production",
+		"//vendor/.env",
+		"//lib/.env",
+		"//lab/.env",
+		"//cronlab/.env",
+		"//cron/.env",
+		"//core/.env",
+		"//core/app/.env",
+		"//core/Datavase/.env",
+		"//database/.env",
+		"//config/.env",
+		"//assets/.env",
+		"//app/.env",
+		"//apps/.env",
+		"//uploads/.env",
+		"//sitemaps/.env",
+		"//saas/.env",
+		"//api/.env",
+		"//psnlink/.env",
+		"//exapi/.env",
+		"//site/.env",
+		"//admin/.env",
+		"//web/.env",
+		"//public/.env",
+		"//en/.env",
+		"//tools/.env",
+		"//v1/.env",
+		"//v2/.env",
+		"//administrator/.env",
+		"//laravel/.env",
+
+		// Malware/APK distribution attempts
+		"/page/2b6eb74c-076c-447c-9ca3-16c0cf03b51f_Tinkoff",
+		"/page/44f7ff8e-1d6c-463a-b024-1a35441f64d3_OzonTracker.apk",
+		"/page/e68e673c-e906-42e1-b1f0-580c386c2071_OzonTracker.apk",
+		"/page/0480ffed-8de8-43c1-a04b-a29a78336982_OzonTracker.apk",
+		"/page/79ae577f-fe95-47bd-b5a5-9d976e50979c_OzonTracker.apk",
+		"/page/ce003307-178c-44fe-8dc5-7e2086a3a217_MegaMarketTracker.apk",
+		"/page/e1073a87-a7a9-4704-8876-cc0a29bcbd8e_YandexUslugiTracker",
+		"/page/84f2bac5-a3df-4a75-af69-5034654f3a86_YandexUslugiTracker",
+		"/page/d925621a-41ae-4c28-bd4d-73a96a02528d_YandexUslugiTracker",
+		"/page/40858618-bc16-4ecd-8429-412823c5b985_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
+		"/page/449705a5-57af-426c-b108-5b4ddf356e1c_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
+		"/b301fa0c-46f6-4e32-b55f-4600de8c36e0_OzonTracker",
+		"/page/715a3d38-f19f-408f-9ebe-e7100d29f3f2_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
+		"/page/82953f62-e5d9-40d4-bc91-47377dadc791_OzonTracker",
+		"/page/b301fa0c-46f6-4e32-b55f-4600de8c36e0_OzonTracker",
+		"/page/f6ce660d-3b07-4866-85d0-24ba5685fc69_Ozon.apk",
+		"/page/54817c37-dbe9-4f9f-94e3-c929ecea7263_OzonTracker.apk",
+		"/page/70a28e13-ab71-4344-b4f1-851a241a130d_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
+		"/page/46659ce6-b4e5-490c-96f7-f263472853da_OzonTracker",
+		"/page/a4846216-81dc-4408-8ca2-fd0bec6a731e_YandexU",
+		"/page/8598cbf0-49e7-46fe-8d38-6df28dfce19b_WildberriesPersonal.apk",
+		"/page/9fbe57b3-3db8-4b24-ad88-650a23cce1f3_YandexD",
+		"/page/66e7ab76-30b0-4ba0-8ead-f6131ae2949a_Ozonjob.apk",
+		"/page/974c893c-ce22-4741-99b8-0949f6d1378e_OzonTracker",
+		"/page/5bb3cb18-0cfa-440d-99e3-202612c14c8c_OzonTracker",
+		"/page/0cb04b48-1989-4fe4-a4e3-35e53b724293_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
+		"/page/b66e41e1-4b28-4f30-aba6-e2d796e3699d_OzonTracker.apk",
+		"/page/d719ff5a-f850-4c41-8044-2ebe47e90fb8_OzonTracker",
+		"/page/5daf001a-ba83-4e04-ad6a-6b487d4e8a69_OzonTracker.apk",
+		"/page/32faf770-3459-4c7a-8751-b5a754aa5e06_OzonTracker.apk",
+		"/page/f9d00695-3398-4ff2-8f4a-afe507be0e75_OzonTracker.apk",
+		"/page/e7e763e4-a2e1-4df9-8abc-d853764faac6_%D0%9C%D0%B5%D0%B3%D0%B0%D0%BC%D0%B0%D1%80%D0%BA%D0%B5%D1%82",
+		"/page/d5374ea7-b912-4680-a924-5738d8238ca2_OzonSupports.apk",
+		"/page/b54456d2-a836-499c-9b67-a70a439179fb_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
+		"/page/a01e3561-c82f-49b3-bc40-58575e2e31de_OzonSupports.apk",
+	];
+
+	if (susPaths.includes(url)) {
+		const redirectUrl = "http://youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1";
+		console.debug("Sus Request Detected.", url);
+		redirect(302, redirectUrl);
+	}
+}

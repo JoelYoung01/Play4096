@@ -1,10 +1,7 @@
 import * as auth from "$lib/server/auth";
+import { handleRR } from "$lib/server/rr";
 
-/**
- * Handle Authentication
- * @param {{ event: import("@sveltejs/kit").RequestEvent, resolve: (event: import("@sveltejs/kit").RequestEvent) => Promise<Response> }} param0
- * @returns
- */
+/** @type {import('@sveltejs/kit').Handle} */
 const handleAuth = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
 
@@ -27,4 +24,10 @@ const handleAuth = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle = handleAuth;
+/** @type {import('@sveltejs/kit').Handle} */
+export async function handle({ event, resolve }) {
+	// Do some funny stuff
+	handleRR(event.url.pathname);
+
+	return await handleAuth({ event, resolve });
+}
