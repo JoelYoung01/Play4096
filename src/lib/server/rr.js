@@ -80,6 +80,7 @@ export function handleRR(url) {
 		"//laravel/.env",
 
 		// Malware/APK distribution attempts
+		"/page/2b6eb74c-076c-447c-9ca3-16c0cf03b53f_Tinkoff",
 		"/page/2b6eb74c-076c-447c-9ca3-16c0cf03b51f_Tinkoff",
 		"/page/44f7ff8e-1d6c-463a-b024-1a35441f64d3_OzonTracker.apk",
 		"/page/e68e673c-e906-42e1-b1f0-580c386c2071_OzonTracker.apk",
@@ -119,7 +120,7 @@ export function handleRR(url) {
 
 	if (susPaths.includes(url)) {
 		const redirectUrl = "http://youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1";
-		console.debug("Sus Request Detected.", url);
+		console.debug(`Sus Request Detected: ${url}`);
 		redirect(302, redirectUrl);
 	}
 }
