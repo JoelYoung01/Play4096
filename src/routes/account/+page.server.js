@@ -1,21 +1,6 @@
 import { fail, redirect } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
-import { eq } from "drizzle-orm";
-import assert from "node:assert";
-
-export function load({ locals }) {
-	const userProfile = db
-		.select()
-		.from(table.userProfile)
-		.where(eq(table.userProfile.userId, locals.user.id))
-		.get();
-
-	assert(userProfile, "User profile not found");
-
-	return { userProfile };
-}
+import { deleteUser } from "$lib/server/user";
 
 export const actions = {
 	logout: async (event) => {
@@ -34,7 +19,10 @@ export const actions = {
 		await auth.invalidateSession(event.locals.session.id);
 		auth.deleteSessionTokenCookie(event);
 
-		await db.delete(table.user).where(eq(table.user.id, event.locals.user.id));
+		if (!event.locals.user) {
+			return fail(401, { message: "Not logged in." });
+		}
+		deleteUser(event.locals.user.id);
 
 		return redirect(302, "/login");
 	},

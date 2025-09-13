@@ -35,6 +35,18 @@ export function getUser(userId) {
 }
 
 /**
+ * Delete a user from the database
+ * @param {string} userId
+ */
+export function deleteUser(userId) {
+	if (!userId) {
+		return;
+	}
+
+	db.delete(table.user).where(eq(table.user.id, userId));
+}
+
+/**
  * Require the user to be logged in.
  *
  * Returns the user if they are logged in, otherwise redirects to the login page.
