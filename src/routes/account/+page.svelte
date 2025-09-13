@@ -6,13 +6,21 @@
 	import { LogOutIcon, PencilIcon, LockIcon, TrashIcon, CrownIcon } from "@lucide/svelte";
 	import { USER_LEVELS } from "$lib/constants";
 	import ProBadge from "$lib/components/ProBadge.svelte";
+	import { gameState } from "../game/state.svelte";
+
+	function clearUserData() {
+		clearGame();
+		clearBestScore();
+
+		gameState.bestScore = 0;
+		gameState.currentGame = null;
+	}
 
 	/** @type {import('./$types').SubmitFunction} */
 	function onLogout() {
 		return ({ update }) => {
 			// Reset game state
-			clearGame();
-			clearBestScore();
+			clearUserData();
 
 			update();
 		};
@@ -28,11 +36,10 @@
 			return cancel();
 		}
 
-		return ({ update }) => {
-			// Reset game state
-			clearGame();
-			clearBestScore();
+		// Reset game state
+		clearUserData();
 
+		return ({ update }) => {
 			update();
 		};
 	}
