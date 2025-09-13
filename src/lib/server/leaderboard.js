@@ -15,7 +15,7 @@ export async function getAllTimeLeaderboard() {
 		.innerJoin(table.userProfile, eq(table.user.id, table.userProfile.userId))
 		.where(eq(table.user.level, USER_LEVELS.PRO))
 		.orderBy(desc(table.userProfile.bestScore))
-		.limit(2);
+		.limit(10);
 
 	return leaderboard;
 }

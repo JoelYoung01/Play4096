@@ -5,6 +5,7 @@ import { getRequestEvent } from "$app/server";
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
+import { USER_LEVELS } from "$lib/constants";
 
 /**
  * Get the user profile for a given user ID
@@ -50,4 +51,12 @@ export function requireLogin() {
 	assert(user, `Unable to find user with Id ${locals.user.id}`);
 
 	return user;
+}
+
+/**
+ * Downgrade a user to the FREE level
+ * @param {string} userId
+ */
+export async function downgradeUser(userId) {
+	await db.update(table.user).set({ level: USER_LEVELS.FREE }).where(eq(table.user.id, userId));
 }

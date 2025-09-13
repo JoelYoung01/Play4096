@@ -3,6 +3,8 @@ import assert from "node:assert";
 import { env } from "$env/dynamic/private";
 import { getBaseUrl } from "$lib/server/config.js";
 import { USER_LEVELS } from "$lib/constants";
+import { downgradeUser } from "$lib/server/user";
+
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
 import * as table from "$lib/server/db/schema";
@@ -57,6 +59,46 @@ export async function createStripeSession(userId) {
 	await db.insert(table.stripeSession).values(stripeSession);
 
 	return session;
+}
+
+/**
+ * Cancel a checkout session. This is used to cancel the checkout session if the payment is not successful.
+ * @param {string} sessionId
+ * @param {boolean} shouldDowngradeUser
+ */
+export async function cancelCheckout(sessionId, shouldDowngradeUser = false) {
+	console.debug("Cancelling Checkout Session " + sessionId);
+	const stripeClient = new stripe(env.STRIPE_PRIVATE_KEY);
+	const checkoutSession = await stripeClient.checkout.sessions.retrieve(sessionId);
+
+	if (checkoutSession.status === "complete") {
+		console.debug(`Unable to cancel Checkout Session ${sessionId}; it is already complete`);
+		return;
+	}
+
+	const dbStripeSession = db
+		.select()
+		.from(table.stripeSession)
+		.where(eq(table.stripeSession.sessionId, sessionId))
+		.get();
+
+	if (!dbStripeSession) {
+		console.debug(`Unable to cancel Checkout Session ${sessionId}; not found in database`);
+		return;
+	}
+
+	if (dbStripeSession.status === "complete") {
+		console.debug(
+			`Unable to cancel Checkout Session ${sessionId}; it is already marked as complete (paid) in the db`
+		);
+		return;
+	}
+
+	if (shouldDowngradeUser) {
+		await downgradeUser(dbStripeSession.userId);
+	}
+
+	await db.delete(table.stripeSession).where(eq(table.stripeSession.sessionId, sessionId));
 }
 
 /**

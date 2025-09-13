@@ -1,7 +1,7 @@
 import stripe from "stripe";
 import assert from "node:assert";
 import { error, json } from "@sveltejs/kit";
-import { fulfillCheckout } from "$lib/server/stripe";
+import { cancelCheckout, fulfillCheckout } from "$lib/server/stripe";
 import { env } from "$env/dynamic/private";
 
 /** @type {import("./$types").RequestHandler} */
@@ -23,12 +23,24 @@ export const POST = async ({ request }) => {
 		});
 	}
 
+	// If checkout session is completed or async payment succeeded, fulfill the checkout
 	if (
 		event.type === "checkout.session.completed" ||
 		event.type === "checkout.session.async_payment_succeeded"
 	) {
 		fulfillCheckout(event.data.object.id);
-	} else {
+	}
+
+	// If the checkout session is cancelled or expired, cancel the checkout
+	else if (
+		event.type === "checkout.session.async_payment_failed" ||
+		event.type === "checkout.session.expired"
+	) {
+		cancelCheckout(event.data.object.id, true);
+	}
+
+	// Log unhandled event types
+	else {
 		console.debug("Stripe Webhook received but not handled: " + event.type);
 	}
 
