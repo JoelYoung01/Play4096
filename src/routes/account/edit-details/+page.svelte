@@ -6,10 +6,10 @@
 
 	let loading = $state(false);
 
+	/** @type {import('./$types').SubmitFunction} */
 	function onSubmit() {
 		loading = true;
 
-		/** @param {{ update: () => void }} param0 */
 		return ({ update }) => {
 			loading = false;
 			update();

@@ -5,10 +5,8 @@
 	import { clearBestScore, clearGame } from "$lib/localStorage.svelte";
 	import { LogOutIcon, PencilIcon, LockIcon, TrashIcon } from "@lucide/svelte";
 
+	/** @type {import('./$types').SubmitFunction} */
 	function onLogout() {
-		/**
-		 * @param {{ update: () => void }} update
-		 */
 		return ({ update }) => {
 			// Reset game state
 			clearGame();
