@@ -15,6 +15,13 @@
       "when": 1757688983831,
       "tag": "0001_Add user fields",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1757780788805,
+      "tag": "0002_stripe_tables",
+      "breakpoints": true
     }
   ]
 }
