@@ -1,6 +1,7 @@
 export const defaultTheme = {
 	name: "Default",
 	primary: "#e88f4f",
+	secondary: "#C2D4B0",
 	background: "#fbf8ef",
 	boardBackground: "#bbada0",
 	emptyTile: "#cdc1b4",

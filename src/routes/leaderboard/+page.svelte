@@ -12,7 +12,7 @@
 
 <table class="w-full border-collapse overflow-hidden rounded-lg">
 	<thead>
-		<tr class="bg-green-500 text-white">
+		<tr class="bg-[var(--color-secondary)] text-gray-700">
 			<th class="px-4 py-3 text-left text-sm font-semibold tracking-wide uppercase">Rank</th>
 			<th class="px-4 py-3 text-left text-sm font-semibold tracking-wide uppercase">Username</th>
 			<th class="px-4 py-3 text-end text-sm font-semibold tracking-wide uppercase">Score</th>

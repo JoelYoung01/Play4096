@@ -64,7 +64,7 @@
 		</Btn>
 		{#if page.data.user.level !== USER_LEVELS.PRO}
 			<a
-				class="flex w-60 gap-2 rounded-md bg-green-500 px-4 py-3 font-bold text-white transition-colors hover:bg-green-400"
+				class="flex w-60 gap-2 rounded-md bg-[var(--color-secondary)] px-4 py-3 font-bold text-gray-800 transition-colors hover:bg-[var(--color-secondary-dark)]"
 				href="/stripe"
 			>
 				<div class="flex flex-1/6 items-center justify-end">
