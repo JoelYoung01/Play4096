@@ -1,5 +1,22 @@
+import { USER_LEVELS } from "$lib/constants";
 import { createStripeSession } from "$lib/server/stripe.js";
+import { getUser } from "$lib/server/user";
 import { fail, redirect } from "@sveltejs/kit";
+
+/** @type {import('./$types').PageServerLoad} */
+export function load({ locals }) {
+	const user = getUser(locals.user?.id);
+
+	if (!user) {
+		return redirect(302, "/login?redirectTo=/stripe");
+	}
+
+	if (user.level === USER_LEVELS.PRO) {
+		return redirect(302, "/account");
+	}
+
+	return {};
+}
 
 /** @type {import('./$types').Actions} */
 export const actions = {

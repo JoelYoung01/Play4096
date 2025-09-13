@@ -1,3 +1,8 @@
+export interface LocalsUser {
+  id: string;
+  username: string;
+}
+
 export interface GameEvent {
   start?: { x: number, y: number };
   end?: { x: number, y: number };

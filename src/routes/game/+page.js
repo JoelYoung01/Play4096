@@ -15,12 +15,13 @@ export async function load({ data, fetch }) {
 		}
 
 		// Load best score
+		const dbScore = data.user?.bestScore ?? 0;
 		const storageScore = loadBestScore();
 		gameState.bestScore = Math.max(gameState.bestScore, storageScore);
-		gameState.bestScore = Math.max(gameState.bestScore, data.bestScore);
+		gameState.bestScore = Math.max(gameState.bestScore, dbScore);
 
 		// If the best score is higher than what came from the server, update the server
-		if (gameState.bestScore > data.bestScore) {
+		if (gameState.bestScore > dbScore) {
 			const form = new FormData();
 			form.append("score", `${gameState.bestScore}`);
 			await fetch("/game?/saveScore", {

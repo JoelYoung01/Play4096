@@ -2,18 +2,36 @@
 	import { enhance } from "$app/forms";
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
-	import { CheckIcon, LoaderCircleIcon } from "@lucide/svelte";
+	import { CheckIcon, CrownIcon, LoaderCircleIcon } from "@lucide/svelte";
 
 	let isProcessing = $state(false);
 	let error = $state("");
 
 	const features = [
-		"Leaderboard score tracking",
-		// "Unlimited game replays",
-		// "Exclusive themes and customization",
-		// "Cross-platform games",
-		// "Challenges",
-		"All planned features",
+		{
+			name: "Leaderboard score tracking",
+			implemented: true,
+		},
+		{
+			name: "Game History & Replay",
+			implemented: false,
+		},
+		{
+			name: "Board Power Ups & Checkpoints",
+			implemented: false,
+		},
+		{
+			name: "Exclusive themes and customization",
+			implemented: false,
+		},
+		{
+			name: "Cross-platform games",
+			implemented: false,
+		},
+		{
+			name: "Challenges",
+			implemented: false,
+		},
 	];
 
 	/** @type {import('./$types').SubmitFunction} */
@@ -41,23 +59,28 @@
 >
 	<div class="w-full max-w-md rounded-lg bg-white p-8 text-center">
 		<div class="mb-8">
-			<h1 class="mb-2 text-3xl font-bold text-gray-900">Upgrade to Pro</h1>
+			<h1 class="items-bottom mb-2 flex justify-center gap-2 text-3xl font-bold text-gray-900">
+				<CrownIcon size={32} />
+				Upgrade to Pro
+			</h1>
 			<p class="text-gray-600">Unlock advanced features and enhance your 4096 experience</p>
 		</div>
 
 		<div class="mb-8">
-			<div class="mb-6 rounded-lg border border-orange-200 bg-orange-100 p-6">
+			<div class="mb-1 rounded-lg border border-orange-200 bg-orange-100 p-6">
 				<div class="mb-2 text-4xl font-bold text-orange-600">$5</div>
 				<div class="text-sm text-orange-700">One-time payment</div>
 			</div>
 
+			<p class="mb-4 text-sm text-gray-400">Features in gray are planned for future releases.</p>
+
 			<div class="space-y-4 text-left">
-				{#each features as feature, key (key)}
-					<div class="flex items-center">
+				{#each features as feature (feature.name)}
+					<div class="flex items-center" class:opacity-50={!feature.implemented}>
 						<div class="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
 							<CheckIcon size={16} />
 						</div>
-						<span class="text-gray-700">{feature}</span>
+						<span class="text-gray-700">{feature.name}</span>
 					</div>
 				{/each}
 			</div>
@@ -72,7 +95,7 @@
 		<form method="POST" action="/stripe?/upgrade" use:enhance={onSubmit}>
 			<Btn
 				type="submit"
-				class="w-full rounded-lg bg-orange-500 px-6 py-3 font-bold text-white transition-colors duration-200 hover:bg-orange-600 disabled:cursor-default disabled:opacity-50"
+				class="flex w-full justify-center gap-2 rounded-lg bg-orange-500 px-6 py-3 font-bold text-white transition-colors duration-200 hover:bg-orange-600 disabled:cursor-default disabled:opacity-50"
 				disabled={isProcessing}
 			>
 				{#if isProcessing}

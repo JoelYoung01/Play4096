@@ -1,7 +1,12 @@
 <script>
 	import { page } from "$app/state";
-	import Btn from "$lib/components/Btn.svelte";
 	import { loadGame } from "$lib/localStorage.svelte";
+
+	import Btn from "$lib/components/Btn.svelte";
+	import { USER_LEVELS } from "$lib/constants.js";
+	import { CrownIcon } from "@lucide/svelte";
+
+	let { data } = $props();
 
 	const game = $state(loadGame());
 </script>
@@ -17,7 +22,11 @@
 				4096
 			</h1>
 			<p class="text-2xl font-light text-[var(--text-color)] sm:text-lg md:text-xl">
-				The Ultimate Tile-Matching Puzzle Game
+				{#if data.user}
+					Welcome back, {data.user.displayName || data.user.username}!
+				{:else}
+					The Ultimate Tile-Matching Puzzle Game
+				{/if}
 			</p>
 		</div>
 	</div>
@@ -30,7 +39,17 @@
 				Start New Game
 			{/if}
 		</Btn>
-		<Btn href="/login" class="text-center">Login / Create Account</Btn>
+		{#if data.user}
+			<Btn href="/account" class="text-center">Your Account</Btn>
+		{:else}
+			<Btn href="/login" class="text-center">Login / Create Account</Btn>
+		{/if}
+		{#if data.user?.level !== USER_LEVELS.PRO}
+			<Btn href="/stripe" class="flex justify-center gap-2">
+				<CrownIcon size={24} />
+				Upgrade to Pro
+			</Btn>
+		{/if}
 		<Btn href="/leaderboard" class="text-center">View Leaderboard</Btn>
 	</div>
 

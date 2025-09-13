@@ -1,19 +1,15 @@
-import { getUserProfile } from "$lib/server/user";
 import { saveScore } from "$lib/server/game";
+import { getUser } from "$lib/server/user.js";
 import { fail } from "@sveltejs/kit";
 
+/** @type {import("./$types").PageServerLoad} */
 export function load({ locals }) {
-	let bestScore = 0;
+	const user = getUser(locals.user?.id);
 
-	// Load current user's best score
-	if (locals.user) {
-		const userProfile = getUserProfile(locals.user.id);
-		bestScore = userProfile?.bestScore ?? 0;
-	}
+	// TODO: Load current game from db if user is logged in and pro
 
 	return {
-		user: locals.user,
-		bestScore,
+		user,
 
 		/** @type {import("$lib/types").GameState?} */
 		currentGame: null,

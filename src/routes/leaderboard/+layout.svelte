@@ -1,5 +1,6 @@
 <script>
 	import { page } from "$app/state";
+	import { USER_LEVELS } from "$lib/constants";
 
 	const availableLeaderboards = [
 		{
@@ -35,7 +36,8 @@
 </script>
 
 <main class="mx-auto mt-10 w-full max-w-lg p-8">
-	<h1 class="mb-2 text-3xl font-bold" style:color={page.data.theme?.primary}>Leaderboard</h1>
+	<h1 class=" text-3xl font-bold" style:color={page.data.theme?.primary}>Leaderboard</h1>
+	<p class="mb-4 text-sm text-gray-500">Time frame leaderboards are coming soon!</p>
 	<div class="mb-3 flex items-center gap-2">
 		{#each availableLeaderboards as leaderboard, key (key)}
 			<form method="get" action={leaderboard.href} class="flex-1">
@@ -53,8 +55,10 @@
 
 	{@render children?.()}
 
-	<p class="mt-4 text-center text-sm text-gray-500">
-		Want to see your name on the leaderboard?<br />
-		Upgrade to pro to show off your skills!
-	</p>
+	{#if page.data.user?.level !== USER_LEVELS.PRO}
+		<p class="mt-4 text-center text-sm text-gray-500">
+			Want to see your name on the leaderboard?<br />
+			<a href="/stripe" class="text-green-500">Upgrade to pro</a> to show off your skills!
+		</p>
+	{/if}
 </main>
