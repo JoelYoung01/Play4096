@@ -1,3 +1,5 @@
+export const APP_SLUG = "play-4096";
+
 export const TWO_TO_FOUR_RATIO = 0.5;
 export const DEFAULT_BOARD_SIZE = 4;
 export const DEFAULT_STARTING_TILES = 2;

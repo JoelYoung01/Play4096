@@ -42,6 +42,9 @@ export function handleRR(url) {
 		"//test/wp-includes/wlwmanifest.xml",
 		"//site/wp-includes/wlwmanifest.xml",
 		"//cms/wp-includes/wlwmanifest.xml",
+		"//sito/wp-includes/wlwmanifest.xml",
+		"//wp2/wp-includes/wlwmanifest.xml",
+		"//news/wp-includes/wlwmanifest.xml",
 
 		// Environment file attacks
 		"/.env",
@@ -93,6 +96,7 @@ export function handleRR(url) {
 		"/page/40858618-bc16-4ecd-8429-412823c5b985_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
 		"/page/449705a5-57af-426c-b108-5b4ddf356e1c_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
 		"/b301fa0c-46f6-4e32-b55f-4600de8c36e0_OzonTracker",
+		"/page/9882ae05-b7d4-432f-9cad-8095978e2d7b_OzonTracker",
 		"/page/715a3d38-f19f-408f-9ebe-e7100d29f3f2_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
 		"/page/82953f62-e5d9-40d4-bc91-47377dadc791_OzonTracker",
 		"/page/b301fa0c-46f6-4e32-b55f-4600de8c36e0_OzonTracker",
@@ -116,11 +120,10 @@ export function handleRR(url) {
 		"/page/d5374ea7-b912-4680-a924-5738d8238ca2_OzonSupports.apk",
 		"/page/b54456d2-a836-499c-9b67-a70a439179fb_%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D0%A2%D1%80%D0%B5%D0%BA%D0%B5%D1%80.apk",
 		"/page/a01e3561-c82f-49b3-bc40-58575e2e31de_OzonSupports.apk",
+		"/page/2b6eb74c-076c-447c-9ca3-16c0cf03b53f_Tinkoff",
 	];
 
 	if (susPaths.includes(url)) {
-		const redirectUrl = "http://youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1";
-		console.debug(`Sus Request Detected: ${url}`);
-		redirect(302, redirectUrl);
+		redirect(302, `/sus?redirectFrom=${url}`);
 	}
 }
