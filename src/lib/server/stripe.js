@@ -4,6 +4,7 @@ import { env } from "$env/dynamic/private";
 import { getBaseUrl } from "$lib/server/config.js";
 import { USER_LEVELS } from "$lib/constants";
 import { downgradeUser } from "$lib/server/user";
+import { getLogger } from "./requestContext.js";
 
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
@@ -67,12 +68,13 @@ export async function createStripeSession(userId) {
  * @param {boolean} shouldDowngradeUser
  */
 export async function cancelCheckout(sessionId, shouldDowngradeUser = false) {
-	console.debug("Cancelling Checkout Session " + sessionId);
+	const log = getLogger().child({ sessionId });
+	log.debug("Cancelling Checkout Session");
 	const stripeClient = new stripe(env.STRIPE_PRIVATE_KEY);
 	const checkoutSession = await stripeClient.checkout.sessions.retrieve(sessionId);
 
 	if (checkoutSession.status === "complete") {
-		console.debug(`Unable to cancel Checkout Session ${sessionId}; it is already complete`);
+		log.debug(`Unable to cancel Checkout Session; it is already complete`);
 		return;
 	}
 
@@ -83,13 +85,13 @@ export async function cancelCheckout(sessionId, shouldDowngradeUser = false) {
 		.get();
 
 	if (!dbStripeSession) {
-		console.debug(`Unable to cancel Checkout Session ${sessionId}; not found in database`);
+		log.debug(`Unable to cancel Checkout Session; not found in database`);
 		return;
 	}
 
 	if (dbStripeSession.status === "complete") {
-		console.debug(
-			`Unable to cancel Checkout Session ${sessionId}; it is already marked as complete (paid) in the db`
+		log.debug(
+			`Unable to cancel Checkout Session; it is already marked as complete (paid) in the db`
 		);
 		return;
 	}
@@ -106,7 +108,8 @@ export async function cancelCheckout(sessionId, shouldDowngradeUser = false) {
  * @param {string} sessionId
  */
 export async function fulfillCheckout(sessionId) {
-	console.debug("Fulfilling Checkout Session " + sessionId);
+	const log = getLogger().child({ sessionId });
+	log.debug("Fulfilling Checkout Session");
 
 	try {
 		const stripeClient = new stripe(env.STRIPE_PRIVATE_KEY);
@@ -118,23 +121,23 @@ export async function fulfillCheckout(sessionId) {
 
 		assert(
 			!!checkoutSession.metadata?.userId,
-			"Checkout Session " + sessionId + " does not have a user ID"
+			`Checkout Session ${sessionId} does not have a user ID`
 		);
 
 		const [result] = await db
 			.select()
 			.from(table.stripeSession)
 			.where(eq(table.stripeSession.sessionId, sessionId));
-		assert(!!result, "Checkout Session " + sessionId + " not found");
+		assert(!!result, `Checkout Session ${sessionId} not found`);
 
 		// If the checkout session from the db is already paid, do nothing
 		if (result.status === "complete") {
-			console.debug("Checkout Session " + sessionId + " is already complete (paid)");
+			log.debug("Checkout Session is already complete (paid)");
 		}
 
 		// If the checkout session is unpaid, do nothing
 		else if (checkoutSession.payment_status === "unpaid") {
-			console.debug("Checkout Session " + sessionId + " is unpaid");
+			log.debug("Checkout Session is unpaid");
 		}
 
 		// If the checkout session has a user ID, update the user level to PRO
@@ -150,10 +153,10 @@ export async function fulfillCheckout(sessionId) {
 					sessionJson: JSON.stringify(checkoutSession),
 				})
 				.where(eq(table.stripeSession.id, result.id));
-			console.log("User " + userId + " upgraded to PRO");
+			log.info({ userId }, "User upgraded to PRO");
 		}
 	} catch (error) {
-		console.error("Error fulfilling checkout session " + sessionId, error);
+		log.error({ error }, "Error fulfilling checkout session");
 		throw error;
 	}
 }

@@ -6,6 +6,7 @@ import { db } from "$lib/server/db";
 import * as auth from "$lib/server/auth";
 import * as table from "$lib/server/db/schema";
 import { validateUsername, validatePassword, generateUserId } from "$lib/authUtils";
+import { getLogger } from "$lib/server/requestContext";
 
 export const load = async (event) => {
 	// Redirect if user is already logged in
@@ -123,7 +124,8 @@ export const actions = {
 			const session = await auth.createSession(sessionToken, userId);
 			auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 		} catch (error) {
-			console.error(error);
+			const log = getLogger();
+			log.error({ error }, "Error creating user");
 			return fail(500, { message: "An error has occurred" });
 		}
 

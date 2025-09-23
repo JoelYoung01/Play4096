@@ -3,10 +3,12 @@ import assert from "node:assert";
 import { error, json } from "@sveltejs/kit";
 import { cancelCheckout, fulfillCheckout } from "$lib/server/stripe";
 import { env } from "$env/dynamic/private";
+import { getLogger } from "$lib/server/requestContext";
 
 /** @type {import("./$types").RequestHandler} */
 export const POST = async ({ request }) => {
-	console.debug("Stripe Webhook received");
+	const log = getLogger();
+	log.debug("Stripe Webhook received");
 	const payload = await request.text();
 	const sig = request.headers.get("stripe-signature");
 
@@ -41,7 +43,7 @@ export const POST = async ({ request }) => {
 
 	// Log unhandled event types
 	else {
-		console.debug("Stripe Webhook received but not handled: " + event.type);
+		log.warn(`Stripe Webhook received but not handled: ${event.type}`);
 	}
 
 	return json({ message: "Webhook received", received: true });

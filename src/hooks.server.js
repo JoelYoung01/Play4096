@@ -2,21 +2,12 @@ import { sequence } from "@sveltejs/kit/hooks";
 import { isRedirect, isHttpError, isActionFailure } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth";
 import { handleRR } from "$lib/server/rr";
-
-import { randomUUID } from "node:crypto";
-import { requestContext } from "$lib/server/requestContext.js";
-import { logger } from "$lib/server/logger.js";
+import { getLogger, withRequestContext } from "$lib/server/requestContext.js";
 
 /** @type {import('@sveltejs/kit').Handle} */
 export const handleLogging = async ({ event, resolve }) => {
-	const requestId = event.request.headers.get("x-request-id") ?? randomUUID();
-	const log = logger.child({
-		requestId,
-		path: event.url.pathname,
-		method: event.request.method,
-	});
-
-	return requestContext.run({ requestId, logger: log }, async () => {
+	return withRequestContext(event.request, async () => {
+		const log = getLogger();
 		const start = performance.now();
 		try {
 			const response = await resolve(event);
@@ -40,6 +31,7 @@ export const handleLogging = async ({ event, resolve }) => {
 				log.error({ err, durationMs }, "action error");
 				throw err;
 			}
+
 			log.error({ err, durationMs }, "unhandled error");
 			throw err;
 		}

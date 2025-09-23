@@ -1,5 +1,6 @@
 import { USER_LEVELS } from "$lib/constants";
 import { createStripeSession } from "$lib/server/stripe.js";
+import { getLogger } from "$lib/server/requestContext";
 import { getUser } from "$lib/server/user";
 import { fail, redirect } from "@sveltejs/kit";
 
@@ -33,7 +34,8 @@ export const actions = {
 				throw new Error("Failed to create checkout session");
 			}
 		} catch (error) {
-			console.error("Stripe session creation error:", error);
+			const log = getLogger();
+			log.error({ error }, "Stripe session creation error");
 			return fail(500, { error: "Failed to create checkout session" });
 		}
 

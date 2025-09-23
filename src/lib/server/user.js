@@ -6,6 +6,7 @@ import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
 import { USER_LEVELS } from "$lib/constants";
+import { getLogger } from "./requestContext";
 
 /**
  * Get the user profile for a given user ID
@@ -39,15 +40,16 @@ export function getUser(userId) {
  * @param {string} userId
  */
 export async function deleteUser(userId) {
+	const log = getLogger().child({ userId });
 	if (!userId) {
-		console.debug("Unable to delete user; user ID is not set");
+		log.debug("Unable to delete user; user ID is not set");
 		return;
 	}
 
 	// Verify user exists
 	const user = db.select().from(table.user).where(eq(table.user.id, userId)).get();
 	if (!user) {
-		console.debug(`Unable to delete user; user ${userId} does not exist`);
+		log.debug(`Unable to delete user; does not exist`);
 		return;
 	}
 
