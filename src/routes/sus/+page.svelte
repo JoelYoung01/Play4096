@@ -25,5 +25,5 @@
 
 <h1>You are sus. Look at this ad.</h1>
 <div class="ad">
-	<h2>Ad</h2>
+	<h2>This is an ad.</h2>
 </div>
