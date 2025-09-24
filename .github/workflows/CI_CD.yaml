@@ -15,6 +15,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
   DeployApp:
+    needs: BuildApp
     uses: JoelYoung01/Templates/.github/workflows/DeployWebhook.yaml@main
     with:
       app_name: Play4096
