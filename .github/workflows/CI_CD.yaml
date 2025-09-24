@@ -13,3 +13,11 @@ jobs:
     secrets:
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  DeployApp:
+    uses: JoelYoung01/Templates/.github/workflows/DeployWebhook.yaml@main
+    with:
+      app_name: Play4096
+    secrets:
+      WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+      WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
