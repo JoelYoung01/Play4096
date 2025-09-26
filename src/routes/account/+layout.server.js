@@ -1,6 +1,6 @@
-import { requireLogin } from "$lib/server/user";
+import { requireLoginProfile } from "$lib/server/user";
 
 export const load = async () => {
-	const user = requireLogin();
+	const user = requireLoginProfile();
 	return { user };
 };

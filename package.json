@@ -14,11 +14,12 @@
 		"format": "prettier --write .",
 		"lint": "eslint . --fix",
 		"init-db": "node src/lib/init-db.js",
-		"db:push": "drizzle-kit push",
-		"db:generate": "drizzle-kit generate",
-		"db:migrate": "drizzle-kit migrate",
+		"db:push": "drizzle-kit push --config drizzle.config.js",
+		"db:generate": "drizzle-kit generate --config drizzle.config.js",
+		"db:migrate": "drizzle-kit migrate --config drizzle.config.js",
 		"db:studio": "drizzle-kit studio --config drizzle.config.js",
-		"db:studio-deployed": "drizzle-kit studio --config drizzle.config.js --host 0.0.0.0 --port 3001"
+		"db:studio-deployed": "drizzle-kit studio --config drizzle.config.js --host 0.0.0.0 --port 3001",
+		"db:seed": "node src/scripts/seed.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
@@ -61,6 +62,7 @@
 		"better-sqlite3": "^11.8.0",
 		"drizzle-kit": "^0.30.2",
 		"drizzle-orm": "^0.40.0",
+		"nodemailer": "^7.0.6",
 		"pino": "^9.11.0",
 		"sqlite3": "^5.1.7",
 		"stripe": "^18.5.0"

@@ -1,16 +1,12 @@
 import { USER_LEVELS } from "$lib/constants";
 import { createStripeSession } from "$lib/server/stripe.js";
 import { getLogger } from "$lib/server/requestContext";
-import { getUser } from "$lib/server/user";
+import { requireLogin } from "$lib/server/user";
 import { fail, redirect } from "@sveltejs/kit";
 
 /** @type {import('./$types').PageServerLoad} */
-export function load({ locals }) {
-	const user = getUser(locals.user?.id);
-
-	if (!user) {
-		return redirect(302, "/login?redirectTo=/stripe");
-	}
+export function load() {
+	const user = requireLogin();
 
 	if (user.level === USER_LEVELS.PRO) {
 		return redirect(302, "/account");

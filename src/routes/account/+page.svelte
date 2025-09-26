@@ -3,7 +3,7 @@
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
 	import { clearBestScore, clearGame } from "$lib/localStorage.svelte";
-	import { LogOutIcon, PencilIcon, LockIcon, TrashIcon, CrownIcon } from "@lucide/svelte";
+	import { LogOutIcon, PencilIcon, TrashIcon, CrownIcon, MailIcon } from "@lucide/svelte";
 	import { USER_LEVELS } from "$lib/constants";
 	import ProBadge from "$lib/components/ProBadge.svelte";
 	import { gameState } from "../game/state.svelte";
@@ -55,6 +55,20 @@
 	<p class="mb-4 text-sm text-gray-500">
 		Hello, {page.data.user.displayName || page.data.user.username}!
 	</p>
+
+	<dl class="mb-4 text-gray-500">
+		<dt class="font-bold text-gray-700">Display Name</dt>
+		<dd class="mb-2">{page.data.user.displayName || page.data.user.username}</dd>
+		<dt class="font-bold text-gray-700">Email</dt>
+		<dd class="mb-2">
+			{page.data.user.email}
+			{#if page.data.user.emailVerified}
+				<span class="text-green-500">(Verified)</span>
+			{:else}
+				<span class="text-red-500">(Unverified)</span>
+			{/if}
+		</dd>
+	</dl>
 	<div class="flex flex-col gap-2">
 		<Btn class="flex w-60 gap-2" href="/account/edit-details">
 			<div class="flex flex-1/6 items-center justify-end">
@@ -81,12 +95,14 @@
 				<div class="flex-5/6 text-start">Sign out</div>
 			</Btn>
 		</form>
-		<Btn class="flex w-60 gap-2" href="/account/change-password">
-			<div class="flex flex-1/6 items-center justify-end">
-				<LockIcon size={18} />
-			</div>
-			<div class="flex-5/6 text-start">Change Password</div>
-		</Btn>
+		{#if page.data.user.email && !page.data.user.emailVerified}
+			<Btn class="flex w-60 gap-2" href="/verify-email">
+				<div class="flex flex-1/6 items-center justify-end">
+					<MailIcon size={18} />
+				</div>
+				<div class="flex-5/6 text-start">Verify Email</div>
+			</Btn>
+		{/if}
 		<form method="post" action="?/deleteAccount" use:enhance={onDeleteAccount}>
 			<button
 				class="flex w-60 gap-2 rounded-md bg-transparent px-4 py-3 font-bold text-red-500 outline-2 -outline-offset-2 outline-red-500 transition-colors hover:bg-red-500 hover:text-white"

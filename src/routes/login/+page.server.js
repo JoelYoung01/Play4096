@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import * as auth from "$lib/server/auth";
 import * as table from "$lib/server/db/schema";
-import { validateUsername, validatePassword, generateUserId } from "$lib/authUtils";
+import { validateUsername, validatePassword, generateUserId } from "$lib/server/auth";
 import { getLogger } from "$lib/server/requestContext";
 
 export const load = async (event) => {

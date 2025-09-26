@@ -12,7 +12,7 @@ import { getLogger } from "./requestContext";
  * Get the user profile for a given user ID
  * @param {string|undefined} userId
  */
-export function getUser(userId) {
+export function getUserProfile(userId) {
 	if (!userId) {
 		return null;
 	}
@@ -21,6 +21,8 @@ export function getUser(userId) {
 		.select({
 			id: table.user.id,
 			username: table.user.username,
+			email: table.user.email,
+			emailVerified: table.user.emailVerified,
 			admin: table.user.admin,
 			level: table.user.level,
 			displayName: table.userProfile.displayName,
@@ -32,6 +34,24 @@ export function getUser(userId) {
 		.where(eq(table.user.id, userId))
 		.get();
 
+	return user ?? null;
+}
+
+/**
+ * Get a user from their ID
+ * @param {string} userId
+ */
+export function getUser(userId) {
+	const user = db.select().from(table.user).where(eq(table.user.id, userId)).get();
+	return user ?? null;
+}
+
+/**
+ * Get a user from their email
+ * @param {string} email
+ */
+export function getUserByEmail(email) {
+	const user = db.select().from(table.user).where(eq(table.user.email, email)).get();
 	return user ?? null;
 }
 
@@ -59,13 +79,17 @@ export async function deleteUser(userId) {
 /**
  * Require the user to be logged in.
  *
- * Returns the user if they are logged in, otherwise redirects to the login page.
+ * @param {string} [redirectTo] The URL to redirect to if the user is not logged in.
+ * @returns The user if they are logged in, otherwise redirects to the login page.
  */
-export function requireLogin() {
+export function requireLogin(redirectTo) {
 	const { locals, url } = getRequestEvent();
 
 	if (!locals.user) {
-		return redirect(302, `/login?redirectTo=${url.pathname}`);
+		if (!redirectTo) {
+			redirectTo = url.pathname;
+		}
+		return redirect(302, `/login?redirectTo=${redirectTo}`);
 	}
 
 	let user = getUser(locals.user.id);
@@ -73,6 +97,29 @@ export function requireLogin() {
 	assert(user, `Unable to find user with Id ${locals.user.id}`);
 
 	return user;
+}
+
+/**
+ * Require the user to be logged in.
+ *
+ * @param {string} [redirectTo] The URL to redirect to if the user is not logged in.
+ * @returns The user profile
+ */
+export function requireLoginProfile(redirectTo) {
+	const { locals, url } = getRequestEvent();
+
+	if (!locals.user) {
+		if (!redirectTo) {
+			redirectTo = url.pathname;
+		}
+		return redirect(302, `/login?redirectTo=${redirectTo}`);
+	}
+
+	const userProfile = getUserProfile(locals.user.id);
+
+	assert(userProfile, `Unable to find user profile with Id ${locals.user.id}`);
+
+	return userProfile;
 }
 
 /**

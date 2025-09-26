@@ -11,6 +11,18 @@ export const LOCAL_STORAGE_CURRENT_GAME = "play-4096.currentGame";
 export const LOCAL_STORAGE_BEST_SCORE = "play-4096.bestScore";
 export const DEFAULT_WIN_TILE = 2048;
 
+export const USER_STATUS = {
+	NEW: 10,
+	ACTIVE: 20,
+	INACTIVE: 30,
+	DELETED: 40,
+};
+
+export const USER_LEVELS = {
+	FREE: 10,
+	PRO: 20,
+};
+
 export const EVENT_TYPES = {
 	MOVE: 10,
 	SPAWN: 20,
@@ -22,9 +34,4 @@ export const DIRECTIONS = {
 	RIGHT: 20,
 	UP: 30,
 	DOWN: 40,
-};
-
-export const USER_LEVELS = {
-	FREE: 10,
-	PRO: 20,
 };
