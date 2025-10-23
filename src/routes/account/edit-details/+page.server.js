@@ -2,25 +2,19 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { fail } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
-import { getUser, getUserProfile } from "$lib/server/user";
+import { requireLogin, requireLoginProfile } from "$lib/server/user";
 
-export function load({ locals }) {
-	if (!locals.user) {
-		return fail(401, { message: "Not logged in" });
-	}
+export function load() {
+	const userProfile = requireLoginProfile();
 
-	const userProfile = getUserProfile(locals.user.id);
-
-	if (!userProfile) {
-		return fail(401, { message: `Unable to find user profile with Id ${locals.user.id}` });
-	}
-
-	const formData = {
-		displayName: userProfile.displayName ?? "",
-		email: userProfile.email ?? "",
+	const response = {
+		formData: {
+			displayName: userProfile.displayName ?? "",
+			email: userProfile.email ?? "",
+		},
 	};
 
-	return { formData };
+	return response;
 }
 
 export const actions = {
@@ -28,16 +22,8 @@ export const actions = {
 };
 
 /** @param {import("@sveltejs/kit").RequestEvent} event */
-async function editDetailsAction({ request, locals }) {
-	if (!locals.user) {
-		return fail(401, { message: "Not logged in" });
-	}
-
-	const user = getUser(locals.user.id);
-
-	if (!user) {
-		return fail(401, { message: `Unable to find user with Id ${locals.user.id}` });
-	}
+async function editDetailsAction({ request }) {
+	const user = requireLogin();
 
 	const formData = await request.formData();
 	const displayName = formData.get("displayName")?.toString() ?? "";
@@ -51,13 +37,17 @@ async function editDetailsAction({ request, locals }) {
 
 	if (email !== user.email) {
 		payload.emailVerified = false;
+
+		if (email) {
+			const existingEmail = db.select().from(table.user).where(eq(table.user.email, email)).get();
+			if (existingEmail) {
+				return fail(400, { message: "Email already in use" });
+			}
+		}
 	}
 
-	await db.update(table.user).set(payload).where(eq(table.user.id, locals.user.id));
-	await db
-		.update(table.userProfile)
-		.set(payload)
-		.where(eq(table.userProfile.userId, locals.user.id));
+	await db.update(table.user).set(payload).where(eq(table.user.id, user.id));
+	await db.update(table.userProfile).set(payload).where(eq(table.userProfile.userId, user.id));
 
 	return {
 		email,

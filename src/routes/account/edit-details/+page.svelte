@@ -3,6 +3,7 @@
 	import { goto } from "$app/navigation";
 	import Btn from "$lib/components/Btn.svelte";
 	import Alert from "$lib/components/Alert.svelte";
+	import { slide } from "svelte/transition";
 
 	const SUCCESS_DURATION = 2000;
 
@@ -49,7 +50,7 @@
 			/>
 		</label>
 
-		<label class="mb-2 block">
+		<label class="block">
 			Email
 			{#if data.user.emailVerified}
 				<span class="text-green-500">(Verified)</span>
@@ -64,7 +65,11 @@
 			/>
 		</label>
 
-		<div class="flex justify-end gap-2">
+		{#if form?.message}
+			<p transition:slide class="text-red-500">{form.message}</p>
+		{/if}
+
+		<div class="mt-2 flex justify-end gap-2">
 			<Btn class="px-4 py-2" href="/account">Cancel</Btn>
 			<Btn class="px-4 py-2" disabled={loading}>{loading ? "Saving..." : "Save"}</Btn>
 		</div>
