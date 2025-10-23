@@ -62,5 +62,6 @@ async function editDetailsAction({ request, locals }) {
 	return {
 		email,
 		displayName,
+		success: true,
 	};
 }

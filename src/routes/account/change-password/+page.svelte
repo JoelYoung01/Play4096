@@ -2,7 +2,7 @@
 	import { enhance } from "$app/forms";
 	import Btn from "$lib/components/Btn.svelte";
 	import { goto } from "$app/navigation";
-	import { CheckIcon } from "@lucide/svelte";
+	import Alert from "$lib/components/Alert.svelte";
 
 	let { form } = $props();
 
@@ -29,15 +29,9 @@
 
 <main class="mx-auto mt-10 w-full max-w-md p-8">
 	{#if success}
-		<div class="mb-3 overflow-hidden rounded-md border border-green-400 bg-green-100">
-			<div class="flex items-center gap-2 p-4">
-				<CheckIcon size={24} />
-				Password updated successfully
-			</div>
-			<div class="h-1 w-full bg-green-200">
-				<div class="progress-bar h-full bg-green-600"></div>
-			</div>
-		</div>
+		<Alert type="success" duration={3000}>
+			<div>Password updated successfully</div>
+		</Alert>
 	{/if}
 	<h2 class="mb-3 text-2xl font-bold">Change Password</h2>
 	<form class="mb-4 block" method="post" action="?/updatePassword" use:enhance={onSubmit}>
@@ -70,19 +64,3 @@
 		</div>
 	</form>
 </main>
-
-<style>
-	.progress-bar {
-		width: 0;
-		animation: expand 2s linear forwards;
-	}
-
-	@keyframes expand {
-		from {
-			width: 0%;
-		}
-		to {
-			width: 100%;
-		}
-	}
-</style>

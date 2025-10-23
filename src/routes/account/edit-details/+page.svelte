@@ -1,11 +1,14 @@
 <script>
 	import { enhance } from "$app/forms";
+	import { goto } from "$app/navigation";
 	import Btn from "$lib/components/Btn.svelte";
+	import Alert from "$lib/components/Alert.svelte";
 
 	let { data, form } = $props();
 
 	let loading = $state(false);
 	let formData = $state({ ...data.formData });
+	let showSuccess = $state(false);
 
 	/** @type {import('./$types').SubmitFunction} */
 	function onSubmit() {
@@ -14,15 +17,24 @@
 		return async ({ update }) => {
 			await update();
 			formData = { ...formData, ...form };
-			loading = false;
+
+			if (form?.success) {
+				showSuccess = true;
+				await new Promise((resolve) => setTimeout(resolve, 2000));
+				goto("/account");
+			} else {
+				loading = false;
+			}
 		};
 	}
 </script>
 
 <main class="mx-auto mt-10 w-full max-w-md p-8">
+	<Alert type="success" duration={2000} bind:show={showSuccess}>
+		<div>Details updated successfully</div>
+	</Alert>
 	<div class=" mb-3 flex items-end justify-between gap-2">
 		<h1 class="text-3xl font-bold">Edit Details</h1>
-		<Btn class="px-4 py-2" href="/account">Done</Btn>
 	</div>
 	<form class="mb-4 block" method="post" action="?/editDetails" use:enhance={onSubmit}>
 		<label class="mb-2 block">
@@ -51,7 +63,8 @@
 		</label>
 
 		<div class="flex justify-end gap-2">
-			<Btn class="px-4 py-2" disabled={loading}>Sav{loading ? "ing..." : "e"}</Btn>
+			<Btn class="px-4 py-2" href="/account">Cancel</Btn>
+			<Btn class="px-4 py-2" disabled={loading}>{loading ? "Saving..." : "Save"}</Btn>
 		</div>
 	</form>
 </main>
