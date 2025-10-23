@@ -62,8 +62,9 @@ export async function validatePasswordResetSessionToken(token) {
  * Set a password reset session as email verified
  * @param {string} sessionId
  */
-export function setPasswordResetSessionAsEmailVerified(sessionId) {
-	db.update(table.passwordResetSession)
+export async function setPasswordResetSessionAsEmailVerified(sessionId) {
+	await db
+		.update(table.passwordResetSession)
 		.set({ emailVerified: true })
 		.where(eq(table.passwordResetSession.id, sessionId));
 }

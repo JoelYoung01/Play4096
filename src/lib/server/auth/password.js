@@ -29,8 +29,9 @@ export async function verifyPasswordHash(hash, password) {
  * @param {string} password
  */
 export async function verifyPasswordStrength(password) {
+	const problems = [];
 	if (password.length < 8 || password.length > 255) {
-		return false;
+		problems.push("Password must be between 8 and 255 characters");
 	}
 	const hash = encodeHexLowerCase(sha1(new TextEncoder().encode(password)));
 	const hashPrefix = hash.slice(0, 5);
@@ -40,8 +41,9 @@ export async function verifyPasswordStrength(password) {
 	for (const item of items) {
 		const hashSuffix = item.slice(0, 35).toLowerCase();
 		if (hash === hashPrefix + hashSuffix) {
-			return false;
+			problems.push("Password is too common");
 		}
 	}
-	return true;
+
+	return problems;
 }

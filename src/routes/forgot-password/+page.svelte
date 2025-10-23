@@ -2,8 +2,8 @@
 	import { enhance } from "$app/forms";
 	import Btn from "$lib/components/Btn.svelte";
 
-	/** @type {import('./$types').ActionData} */
-	export let form;
+	/** @type {import('./$types').PageProps} */
+	let { form } = $props();
 </script>
 
 <main class="mx-auto mt-10 w-full max-w-md p-8">

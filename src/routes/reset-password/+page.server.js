@@ -17,9 +17,11 @@ import {
 export async function load(event) {
 	const { session } = await validatePasswordResetSessionRequest(event);
 	if (session === null) {
+		console.debug("No session found");
 		return redirect(302, "/forgot-password");
 	}
 	if (!session.emailVerified) {
+		console.debug("Email not verified");
 		return redirect(302, "/reset-password/verify-email");
 	}
 	return {};
@@ -52,10 +54,10 @@ async function action(event) {
 		});
 	}
 
-	const strongPassword = await verifyPasswordStrength(password);
-	if (!strongPassword) {
+	const problems = await verifyPasswordStrength(password);
+	if (problems.length > 0) {
 		return fail(400, {
-			message: "Weak password",
+			message: problems.join(", "),
 		});
 	}
 	await invalidateUserPasswordResetSessions(passwordResetSession.userId);

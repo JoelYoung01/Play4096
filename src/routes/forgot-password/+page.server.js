@@ -22,49 +22,50 @@ export const actions = {
 
 /** @param {import("@sveltejs/kit").RequestEvent} event */
 async function action(event) {
+	const response = {
+		message: "",
+		email: "",
+	};
+
 	// TODO: Assumes X-Forwarded-For is always included.
 	const clientIP = event.request.headers.get("X-Forwarded-For");
 	if (clientIP !== null && !ipBucket.check(clientIP, 1)) {
-		return fail(429, {
-			message: "Too many requests",
-			email: "",
-		});
+		response.message = "Too many requests";
+		return fail(429, response);
 	}
 
 	const formData = await event.request.formData();
 	const email = formData.get("email");
 	if (typeof email !== "string") {
-		return fail(400, {
-			message: "Invalid or missing fields",
-			email: "",
-		});
+		response.message = "Invalid or missing fields";
+		return fail(400, response);
 	}
+
+	response.email = email;
 	if (!verifyEmailInput(email)) {
-		return fail(400, {
-			message: "Invalid email",
-			email,
-		});
+		response.message = "Invalid email";
+		return fail(400, response);
 	}
+
 	const user = getUserByEmail(email);
 	if (user === null || user.email === null) {
-		return fail(400, {
-			message: "Account does not exist",
-			email,
-		});
+		response.message = "An account with this email address does not exist";
+		return fail(400, response);
+	}
+	if (!user.emailVerified) {
+		response.message = "Your email address is not verified. Please contact support.";
+		return fail(400, response);
 	}
 	if (clientIP !== null && !ipBucket.consume(clientIP, 1)) {
-		return fail(400, {
-			message: "Too many requests",
-			email,
-		});
+		response.message = "Too many requests";
+		return fail(400, response);
 	}
 	if (!userBucket.consume(user.id, 1)) {
-		return fail(400, {
-			message: "Too many requests",
-			email,
-		});
+		response.message = "Too many requests";
+		return fail(400, response);
 	}
-	invalidateUserPasswordResetSessions(user.id);
+
+	await invalidateUserPasswordResetSessions(user.id);
 	const sessionToken = generateSessionToken();
 	const session = await createPasswordResetSession(sessionToken, user.id, user.email);
 	await sendPasswordResetEmail(session.email, session.code);

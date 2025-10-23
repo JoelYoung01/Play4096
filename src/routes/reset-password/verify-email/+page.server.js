@@ -1,20 +1,27 @@
-import { verifyEmailInput } from "$lib/server/auth/email";
-import { getUserByEmail } from "$lib/server/user";
 import {
-	createPasswordResetSession,
-	invalidateUserPasswordResetSessions,
-	sendPasswordResetEmail,
-	setPasswordResetSessionTokenCookie,
+	validatePasswordResetSessionRequest,
+	setPasswordResetSessionAsEmailVerified,
 } from "$lib/server/auth/resetPassword";
-import { RefillingTokenBucket } from "$lib/server/auth/rateLimit";
-import { generateSessionToken } from "$lib/server/auth/session";
+import { ExpiringTokenBucket } from "$lib/server/auth/rateLimit";
+import { setUserAsEmailVerifiedIfEmailMatches } from "$lib/server/auth/user";
 import { fail, redirect } from "@sveltejs/kit";
 
-/** @type {RefillingTokenBucket<string>} */
-const ipBucket = new RefillingTokenBucket(3, 60);
+/** @type {import("$lib/server/auth/rateLimit").ExpiringTokenBucket<string>} */
+const bucket = new ExpiringTokenBucket(5, 60 * 30);
 
-/** @type {RefillingTokenBucket<string>} */
-const userBucket = new RefillingTokenBucket(3, 60);
+/** @type {import("./$types").PageServerLoad} */
+export async function load(event) {
+	const { session } = await validatePasswordResetSessionRequest(event);
+	if (session === null) {
+		return redirect(302, "/forgot-password");
+	}
+	if (session.emailVerified) {
+		return redirect(302, "/reset-password");
+	}
+	return {
+		email: session.email,
+	};
+}
 
 /** @type {import("@sveltejs/kit").Actions} */
 export const actions = {
@@ -23,53 +30,50 @@ export const actions = {
 
 /** @param {import("@sveltejs/kit").RequestEvent} event */
 async function action(event) {
-	// TODO: Assumes X-Forwarded-For is always included.
-	const clientIP = event.request.headers.get("X-Forwarded-For");
-	if (clientIP !== null && !ipBucket.check(clientIP, 1)) {
-		return fail(429, {
-			message: "Too many requests",
-			email: "",
-		});
+	const response = {
+		message: "",
+	};
+	const { session } = await validatePasswordResetSessionRequest(event);
+	if (session === null) {
+		response.message = "Not authenticated";
+		return fail(401, response);
+	}
+	if (session.emailVerified) {
+		response.message = "Forbidden";
+		return fail(403, response);
+	}
+	if (!bucket.check(session.userId, 1)) {
+		response.message = "Too many requests";
+		return fail(429, response);
 	}
 
 	const formData = await event.request.formData();
-	const email = formData.get("email");
-	if (typeof email !== "string") {
-		return fail(400, {
-			message: "Invalid or missing fields",
-			email: "",
-		});
+	const code = formData.get("code");
+	if (typeof code !== "string") {
+		response.message = "Invalid or missing fields";
+		return fail(400, response);
 	}
-	if (!verifyEmailInput(email)) {
-		return fail(400, {
-			message: "Invalid email",
-			email,
-		});
+	if (code === "") {
+		response.message = "Please enter your code";
+		return fail(400, response);
 	}
-	const user = getUserByEmail(email);
-	if (!user || !user.email) {
-		return fail(400, {
-			message: "Account does not exist",
-			email,
-		});
+	if (!bucket.consume(session.userId, 1)) {
+		response.message = "Too many requests";
+		return fail(429, response);
 	}
-	if (clientIP !== null && !ipBucket.consume(clientIP, 1)) {
-		return fail(400, {
-			message: "Too many requests",
-			email,
-		});
-	}
-	if (!userBucket.consume(user.id, 1)) {
-		return fail(400, {
-			message: "Too many requests",
-			email,
-		});
+	if (code !== session.code) {
+		response.message = "Incorrect code";
+		return fail(400, response);
 	}
 
-	await invalidateUserPasswordResetSessions(user.id);
-	const sessionToken = generateSessionToken();
-	const session = await createPasswordResetSession(sessionToken, user.id, user.email);
-	await sendPasswordResetEmail(session.email, session.code);
-	setPasswordResetSessionTokenCookie(event, sessionToken, session.expiresAt);
-	return redirect(302, "/reset-password/verify-email");
+	bucket.reset(session.userId);
+	await setPasswordResetSessionAsEmailVerified(session.id);
+	const emailMatches = setUserAsEmailVerifiedIfEmailMatches(session.userId, session.email);
+	if (!emailMatches) {
+		response.message =
+			"Please restart the process; your email address does not match the email address in your account";
+		return fail(400, response);
+	}
+
+	return redirect(302, "/reset-password");
 }
