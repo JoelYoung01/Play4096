@@ -1,4 +1,4 @@
-import { error, fail, redirect } from "@sveltejs/kit";
+import { error, fail } from "@sveltejs/kit";
 import {
 	createEmailVerificationRequest,
 	deleteEmailVerificationRequestCookie,
@@ -16,20 +16,20 @@ import { getUser, requireLogin } from "$lib/server/user";
 /** @param {import("@sveltejs/kit").RequestEvent} event */
 export async function load(event) {
 	const user = requireLogin();
+	const response = {
+		expired: false,
+		alreadyVerified: false,
+		email: user.email,
+	};
 
 	if (user.emailVerified) {
-		return redirect(302, "/");
+		response.alreadyVerified = true;
 	}
 	if (!user.email) {
 		return error(400, {
 			message: "User email not found",
 		});
 	}
-
-	const response = {
-		expired: false,
-		email: user.email,
-	};
 
 	let verificationRequest = getUserEmailVerificationRequestFromRequest(event);
 	if (verificationRequest === null || Date.now() >= verificationRequest.expiresAt.getTime()) {

@@ -37,8 +37,12 @@
 		cursor: var(--btn-cursor);
 		transition: var(--btn-transition);
 
-		&:hover {
+		&:hover:not(:disabled) {
 			background: var(--btn-color-dark, var(--btn-color));
+		}
+
+		&:disabled {
+			cursor: default;
 		}
 	}
 </style>

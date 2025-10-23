@@ -10,6 +10,8 @@
 	let resendingEmail = $state(false);
 	let showSuccess = $state(false);
 
+	let disableVerify = $derived(data.expired || data.alreadyVerified || verifyingEmail);
+
 	const SUCCESS_DURATION = 2000;
 
 	/** @type {import('./$types').SubmitFunction} */
@@ -46,7 +48,9 @@
 	</Alert>
 
 	<h1 class="mb-3 text-3xl font-bold">Verify your email address</h1>
-	{#if data.expired}
+	{#if data.alreadyVerified && !verifyingEmail}
+		<p class="mb-4">Your email address has already been verified.</p>
+	{:else if data.expired}
 		<p class="mb-4">The verification code has expired. Please request a new code.</p>
 	{:else}
 		<p class="mb-4">We sent an 8-digit code to {data.email}.</p>
@@ -61,13 +65,13 @@
 				class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			/>
 		</label>
-		<Btn class="px-4 py-2" disabled={data.expired || verifyingEmail}
+		<Btn class="px-4 py-2" disabled={disableVerify}
 			>{verifyingEmail ? "Verifying..." : "Verify"}</Btn
 		>
 		<p class="text-red-500">{form?.verify?.message ?? ""}</p>
 	</form>
 	<form class="mb-4 block" method="post" use:enhance={onResendEmail} action="?/resend">
-		<Btn class="px-4 py-2" disabled={resendingEmail}>Resend code</Btn>
+		<Btn class="px-4 py-2" disabled={resendingEmail || data.alreadyVerified}>Resend code</Btn>
 		<p class="text-{form?.resend?.type === 'info' ? 'gray' : 'red'}-500">
 			{form?.resend?.message ?? ""}
 		</p>
