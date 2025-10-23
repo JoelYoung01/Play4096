@@ -1,4 +1,5 @@
 export const APP_SLUG = "play-4096";
+export const SUPPORT_EMAIL = "support@play-4096.com";
 
 export const TWO_TO_FOUR_RATIO = 0.9;
 export const DEFAULT_BOARD_SIZE = 4;

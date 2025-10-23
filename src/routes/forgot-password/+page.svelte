@@ -1,14 +1,22 @@
 <script>
 	import { enhance } from "$app/forms";
 	import Btn from "$lib/components/Btn.svelte";
+	import { SUPPORT_EMAIL } from "$lib/constants";
 
 	/** @type {import('./$types').PageProps} */
 	let { form } = $props();
 </script>
 
 <main class="mx-auto mt-10 w-full max-w-md p-8">
-	<h1 class="mb-3 text-3xl font-bold">Forgot your password?</h1>
-	<form class="mb-5 block" method="post" use:enhance>
+	<h1 class="text-3xl font-bold">Forgot your password?</h1>
+	<div class="mb-1 flex items-center gap-2">
+		Contact Support:
+		<a
+			class="text-blue-500 hover:underline"
+			href={`mailto:${SUPPORT_EMAIL}?subject=Forgot Password Assistance`}>{SUPPORT_EMAIL}</a
+		>
+	</div>
+	<form class="mb-2 block" method="post" use:enhance>
 		<label class="mb-2 block">
 			Email
 			<input
@@ -22,5 +30,5 @@
 		<Btn class="px-4 py-2">Send</Btn>
 		<p class="text-red-500">{form?.message ?? ""}</p>
 	</form>
-	<Btn class="px-4 py-2" href="/login">Sign in</Btn>
+	<Btn class="px-4 py-2" href="/login">Back to Login</Btn>
 </main>

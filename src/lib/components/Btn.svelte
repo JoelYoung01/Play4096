@@ -1,7 +1,7 @@
 <script>
 	let { href = undefined, class: className = undefined, children = undefined, ...props } = $props();
 
-	let classes = $derived(`btn ${className}`);
+	let classes = $derived(`btn ${className} inline-flex items-center`);
 </script>
 
 {#if href}
