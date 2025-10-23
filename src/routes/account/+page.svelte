@@ -7,6 +7,11 @@
 	import { USER_LEVELS } from "$lib/constants";
 	import ProBadge from "$lib/components/ProBadge.svelte";
 	import { gameState } from "../game/state.svelte";
+	import { goto } from "$app/navigation";
+
+	let { form } = $props();
+
+	let loadingVerifyEmail = $state(false);
 
 	function clearUserData() {
 		clearGame();
@@ -17,12 +22,27 @@
 	}
 
 	/** @type {import('./$types').SubmitFunction} */
+	function onResendVerificationEmail() {
+		loadingVerifyEmail = true;
+
+		return async ({ update }) => {
+			await update();
+
+			if (form?.sendEmail?.success) {
+				goto("/verify-email");
+			} else {
+				loadingVerifyEmail = false;
+			}
+		};
+	}
+
+	/** @type {import('./$types').SubmitFunction} */
 	function onLogout() {
-		return ({ update }) => {
+		return async ({ update }) => {
 			// Reset game state
 			clearUserData();
 
-			update();
+			await update();
 		};
 	}
 
@@ -39,8 +59,8 @@
 		// Reset game state
 		clearUserData();
 
-		return ({ update }) => {
-			update();
+		return async ({ update }) => {
+			await update();
 		};
 	}
 </script>
@@ -96,12 +116,21 @@
 			</Btn>
 		</form>
 		{#if page.data.user.email && !page.data.user.emailVerified}
-			<Btn class="flex w-60 gap-2" href="/verify-email">
-				<div class="flex flex-1/6 items-center justify-end">
-					<MailIcon size={18} />
-				</div>
-				<div class="flex-5/6 text-start">Verify Email</div>
-			</Btn>
+			<form
+				method="post"
+				action="?/resendVerificationEmail"
+				use:enhance={onResendVerificationEmail}
+			>
+				<Btn class="flex w-60 gap-2" disabled={loadingVerifyEmail}>
+					<div class="flex flex-1/6 items-center justify-end">
+						<MailIcon size={18} />
+					</div>
+					<div class="flex-5/6 text-start">Verify Email</div>
+				</Btn>
+				<p class="text-red-500">
+					{form?.sendEmail?.message ?? ""}
+				</p>
+			</form>
 		{/if}
 		<Btn class="flex w-60 gap-2" href="/account/change-password">
 			<div class="flex flex-1/6 items-center justify-end">

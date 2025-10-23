@@ -3,18 +3,31 @@ import { isRedirect, isHttpError, isActionFailure } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth";
 import { handleRR } from "$lib/server/rr";
 import { getLogger, withRequestContext } from "$lib/server/requestContext.js";
+import { basicLogger } from "$lib/server/logger.js";
+import { env } from "$env/dynamic/private";
 
 /** @type {import('@sveltejs/kit').Handle} */
 export const handleLogging = async ({ event, resolve }) => {
 	return withRequestContext(event.request, async () => {
+		// Skip logging for data.json requests
+		if (event.request.url.includes("__data.json")) {
+			return await resolve(event);
+		}
+
 		const log = getLogger();
 		const start = performance.now();
 		try {
 			const response = await resolve(event);
-			log.info(
-				{ status: response.status, durationMs: Math.round(performance.now() - start) },
-				"request"
-			);
+			const { pathname } = new URL(event.request.url);
+			const durationMs = Math.round(performance.now() - start);
+			const msg = `[request] ${event.request.method}:${response.status} ${pathname} ${durationMs}ms`;
+
+			if (env.LOG_FULL_REQUEST === "true") {
+				log.info({ status: response.status, durationMs }, msg);
+			} else {
+				basicLogger.info(msg);
+			}
+
 			return response;
 		} catch (err) {
 			const durationMs = Math.round(performance.now() - start);

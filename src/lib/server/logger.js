@@ -35,3 +35,21 @@ export const logger = pino({
 	},
 	...(transport ? { transport } : {}),
 });
+
+export const basicLogger = pino({
+	level: env.LOG_LEVEL ?? (env.ENVIRONMENT === "production" ? "info" : "debug"),
+	timestamp: pino.stdTimeFunctions.isoTime,
+	base: {},
+	redact: {
+		paths: [
+			"req.headers.authorization",
+			"req.headers.cookie",
+			"password",
+			"token",
+			"*.card",
+			"*.cvv",
+		],
+		censor: "[REDACTED]",
+	},
+	...(transport ? { transport } : {}),
+});

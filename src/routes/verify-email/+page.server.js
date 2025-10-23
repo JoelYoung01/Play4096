@@ -17,24 +17,28 @@ import { getUser, requireLogin } from "$lib/server/user";
 export async function load(event) {
 	const user = requireLogin();
 
+	if (user.emailVerified) {
+		return redirect(302, "/");
+	}
+	if (!user.email) {
+		return error(400, {
+			message: "User email not found",
+		});
+	}
+
+	const response = {
+		expired: false,
+		email: user.email,
+	};
+
 	let verificationRequest = getUserEmailVerificationRequestFromRequest(event);
 	if (verificationRequest === null || Date.now() >= verificationRequest.expiresAt.getTime()) {
-		if (user.emailVerified) {
-			return redirect(302, "/");
-		}
-		if (!user.email) {
-			return error(400, {
-				message: "User email not found",
-			});
-		}
-		// Note: We don't need rate limiting since it takes time before requests expire
-		verificationRequest = await createEmailVerificationRequest(user.id, user.email);
-		await sendVerificationEmail(verificationRequest.email, verificationRequest.code);
-		setEmailVerificationRequestCookie(event, verificationRequest);
+		response.expired = true;
+	} else {
+		response.email = verificationRequest.email;
 	}
-	return {
-		email: verificationRequest.email,
-	};
+
+	return response;
 }
 
 /** @type {import("$lib/server/auth/rateLimit").ExpiringTokenBucket<string>} */
@@ -48,59 +52,45 @@ export const actions = {
 
 /** @param {import("@sveltejs/kit").RequestEvent} event */
 async function verifyCode(event) {
+	const response = {
+		verify: {
+			message: "",
+			success: false,
+		},
+	};
+
 	if (event.locals.session === null || event.locals.user === null) {
-		return fail(401, {
-			verify: {
-				message: "Not authenticated",
-			},
-		});
+		response.verify.message = "Not authenticated";
+		return fail(401, response);
 	}
 	const user = getUser(event.locals.user.id);
 	if (!user) {
-		return fail(401, {
-			verify: {
-				message: "Not authenticated",
-			},
-		});
+		response.verify.message = "Not authenticated";
+		return fail(401, response);
 	}
 	if (!bucket.check(user.id, 1)) {
-		return fail(429, {
-			verify: {
-				message: "Too many requests",
-			},
-		});
+		response.verify.message = "Too many requests";
+		return fail(429, response);
 	}
 
 	let verificationRequest = getUserEmailVerificationRequestFromRequest(event);
 	if (verificationRequest === null) {
-		return fail(401, {
-			verify: {
-				message: "Not authenticated",
-			},
-		});
+		response.verify.message = "Not authenticated";
+		return fail(401, response);
 	}
 	const formData = await event.request.formData();
 	const code = formData.get("code");
 	if (typeof code !== "string") {
-		return fail(400, {
-			verify: {
-				message: "Invalid or missing fields",
-			},
-		});
+		response.verify.message = "Invalid or missing fields";
+		return fail(400, response);
 	}
 	if (code === "") {
-		return fail(400, {
-			verify: {
-				message: "Enter your code",
-			},
-		});
+		response.verify.message = "Enter your code";
+		return fail(400, response);
 	}
 	if (!bucket.consume(event.locals.user.id, 1)) {
-		return fail(400, {
-			verify: {
-				message: "Too many requests",
-			},
-		});
+		response.verify.message = "Too many requests";
+		return fail(400, response);
 	}
 	if (Date.now() >= verificationRequest.expiresAt.getTime()) {
 		verificationRequest = await createEmailVerificationRequest(
@@ -108,73 +98,61 @@ async function verifyCode(event) {
 			verificationRequest.email
 		);
 		await sendVerificationEmail(verificationRequest.email, verificationRequest.code);
-		return {
-			verify: {
-				message: "The verification code was expired. We sent another code to your inbox.",
-			},
-		};
+		response.verify.message =
+			"The verification code was expired. We sent another code to your inbox.";
+		return response;
 	}
 	if (verificationRequest.code !== code) {
-		return fail(400, {
-			verify: {
-				message: "Incorrect code.",
-			},
-		});
+		response.verify.message = "Incorrect code.";
+		return fail(400, response);
 	}
 	await deleteUserEmailVerificationRequest(event.locals.user.id);
 	await invalidateUserPasswordResetSessions(event.locals.user.id);
 	await updateUserEmailAndSetEmailAsVerified(event.locals.user.id, verificationRequest.email);
 	deleteEmailVerificationRequestCookie(event);
-	return redirect(302, "/");
+
+	response.verify.success = true;
+	return response;
 }
 
 /** @param {import("@sveltejs/kit").RequestEvent} event */
 async function resendEmail(event) {
+	const response = {
+		resend: {
+			type: "",
+			message: "",
+		},
+	};
+
 	if (event.locals.session === null || event.locals.user === null) {
-		return fail(401, {
-			resend: {
-				message: "Not authenticated",
-			},
-		});
+		response.resend.message = "Not authenticated";
+		return fail(401, response);
 	}
 	if (!sendVerificationEmailBucket.check(event.locals.user.id, 1)) {
-		return fail(429, {
-			resend: {
-				message: "Too many requests",
-			},
-		});
+		response.resend.message = "Too many requests";
+		return fail(429, response);
 	}
 
 	let verificationRequest = getUserEmailVerificationRequestFromRequest(event);
 	if (verificationRequest === null) {
 		const user = getUser(event.locals.user.id);
 		if (!user?.email) {
-			return fail(400, {
-				message: "User email not found",
-			});
+			response.resend.message = "User email not found";
+			return fail(400, response);
 		}
 		if (user.emailVerified) {
-			return fail(403, {
-				resend: {
-					message: "Forbidden",
-				},
-			});
+			response.resend.message = "Forbidden";
+			return fail(403, response);
 		}
 		if (!sendVerificationEmailBucket.consume(event.locals.user.id, 1)) {
-			return fail(429, {
-				resend: {
-					message: "Too many requests",
-				},
-			});
+			response.resend.message = "Too many requests";
+			return fail(429, response);
 		}
 		verificationRequest = await createEmailVerificationRequest(event.locals.user.id, user.email);
 	} else {
 		if (!sendVerificationEmailBucket.consume(event.locals.user.id, 1)) {
-			return fail(429, {
-				resend: {
-					message: "Too many requests",
-				},
-			});
+			response.resend.message = "Too many requests";
+			return fail(429, response);
 		}
 		verificationRequest = await createEmailVerificationRequest(
 			event.locals.user.id,
@@ -183,9 +161,7 @@ async function resendEmail(event) {
 	}
 	await sendVerificationEmail(verificationRequest.email, verificationRequest.code);
 	setEmailVerificationRequestCookie(event, verificationRequest);
-	return {
-		resend: {
-			message: "A new code was sent to your inbox.",
-		},
-	};
+	response.resend.type = "info";
+	response.resend.message = "A new code was sent to your inbox.";
+	return response;
 }
