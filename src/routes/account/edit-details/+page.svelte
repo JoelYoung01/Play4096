@@ -4,6 +4,8 @@
 	import Btn from "$lib/components/Btn.svelte";
 	import Alert from "$lib/components/Alert.svelte";
 
+	const SUCCESS_DURATION = 2000;
+
 	let { data, form } = $props();
 
 	let loading = $state(false);
@@ -20,7 +22,7 @@
 
 			if (form?.success) {
 				showSuccess = true;
-				await new Promise((resolve) => setTimeout(resolve, 2000));
+				await new Promise((resolve) => setTimeout(resolve, SUCCESS_DURATION));
 				goto("/account");
 			} else {
 				loading = false;
@@ -30,7 +32,7 @@
 </script>
 
 <main class="mx-auto mt-10 w-full max-w-md p-8">
-	<Alert type="success" duration={2000} bind:show={showSuccess}>
+	<Alert type="success" duration={SUCCESS_DURATION} bind:show={showSuccess}>
 		<div>Details updated successfully</div>
 	</Alert>
 	<div class=" mb-3 flex items-end justify-between gap-2">
