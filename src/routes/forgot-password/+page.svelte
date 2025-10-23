@@ -2,6 +2,7 @@
 	import { enhance } from "$app/forms";
 	import Btn from "$lib/components/Btn.svelte";
 	import { SUPPORT_EMAIL } from "$lib/constants";
+	import { slide } from "svelte/transition";
 
 	/** @type {import('./$types').PageProps} */
 	let { form } = $props();
@@ -17,7 +18,7 @@
 		>
 	</div>
 	<form class="mb-2 block" method="post" use:enhance>
-		<label class="mb-2 block">
+		<label class="block">
 			Email
 			<input
 				type="email"
@@ -27,8 +28,10 @@
 				class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			/>
 		</label>
-		<Btn class="px-4 py-2">Send</Btn>
-		<p class="text-red-500">{form?.message ?? ""}</p>
+		{#if form?.message}
+			<p transition:slide class="text-red-500">{form.message}</p>
+		{/if}
+		<Btn class="mt-2 px-4 py-2">Send</Btn>
 	</form>
 	<Btn class="px-4 py-2" href="/login">Back to Login</Btn>
 </main>
