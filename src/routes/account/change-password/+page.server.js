@@ -1,19 +1,7 @@
 import { fail } from "@sveltejs/kit";
-import { getUser, getUserProfile } from "$lib/server/user";
+import { getUser } from "$lib/server/user";
 import { verifyPasswordHash } from "$lib/server/auth/password";
 import { updateUserPassword } from "$lib/server/auth/user.js";
-
-export function load({ locals }) {
-	if (!locals.user) {
-		return fail(401, { message: "Not logged in" });
-	}
-
-	const userProfile = getUserProfile(locals.user.id);
-
-	if (!userProfile) {
-		return fail(401, { message: `Unable to find user profile with Id ${locals.user.id}` });
-	}
-}
 
 export const actions = {
 	updatePassword: updatePasswordAction,

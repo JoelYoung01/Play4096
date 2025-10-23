@@ -2,10 +2,11 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { fail } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
-import { requireLogin, requireLoginProfile } from "$lib/server/user";
+import { requireLogin } from "$lib/server/user";
 
-export function load() {
-	const userProfile = requireLoginProfile();
+/** @type {import("./$types").PageServerLoad} */
+export async function load({ parent }) {
+	const { userProfile } = await parent();
 
 	const response = {
 		formData: {

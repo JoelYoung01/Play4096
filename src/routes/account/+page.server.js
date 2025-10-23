@@ -1,7 +1,23 @@
 import { fail, redirect } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth";
 import { deleteUser, getUser } from "$lib/server/user";
+import assert from "node:assert";
+import { USER_LEVELS } from "$lib/constants";
 
+/** @type {import("./$types").PageServerLoad} */
+export async function load({ parent }) {
+	const { userProfile } = await parent();
+
+	const proNoEmail =
+		userProfile.level === USER_LEVELS.PRO && (!userProfile.email || !userProfile.emailVerified);
+
+	return {
+		userProfile,
+		proNoEmail,
+	};
+}
+
+/** @type {import("./$types").Actions} */
 export const actions = {
 	logout: async (event) => {
 		if (!event.locals.session) {
@@ -44,9 +60,10 @@ export const actions = {
 		}
 
 		let verificationRequest = auth.getUserEmailVerificationRequestFromRequest(event);
+		const user = getUser(event.locals.user.id);
+		assert(user, `Unable to find user with Id ${event.locals.user.id}`);
 		if (verificationRequest === null) {
-			const user = getUser(event.locals.user.id);
-			if (!user?.email) {
+			if (!user.email) {
 				response.sendEmail.message = "User email not found";
 				return fail(400, response);
 			}
@@ -67,11 +84,16 @@ export const actions = {
 				response.sendEmail.message = "Too many requests";
 				return fail(429, response);
 			}
+			if (!user.email) {
+				response.sendEmail.message = "User email not found";
+				return fail(400, response);
+			}
 			verificationRequest = await auth.createEmailVerificationRequest(
 				event.locals.user.id,
-				verificationRequest.email
+				user.email
 			);
 		}
+
 		await auth.sendVerificationEmail(verificationRequest.email, verificationRequest.code);
 		auth.setEmailVerificationRequestCookie(event, verificationRequest);
 		response.sendEmail.success = true;

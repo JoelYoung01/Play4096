@@ -37,6 +37,9 @@ export async function deleteUserEmailVerificationRequest(userId) {
 
 /**
  * Create a new email verification request
+ *
+ * Deletes all existing email verification requests for the user before creating a new one.
+ *
  * @param {string} userId
  * @param {string} email
  */
