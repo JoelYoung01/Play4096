@@ -3,7 +3,7 @@
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
 	import { clearBestScore, clearGame } from "$lib/localStorage.svelte";
-	import { LogOutIcon, PencilIcon, TrashIcon, CrownIcon, MailIcon } from "@lucide/svelte";
+	import { LogOutIcon, PencilIcon, TrashIcon, CrownIcon, MailIcon, LockIcon } from "@lucide/svelte";
 	import { USER_LEVELS } from "$lib/constants";
 	import ProBadge from "$lib/components/ProBadge.svelte";
 	import { gameState } from "../game/state.svelte";
@@ -103,6 +103,12 @@
 				<div class="flex-5/6 text-start">Verify Email</div>
 			</Btn>
 		{/if}
+		<Btn class="flex w-60 gap-2" href="/account/change-password">
+			<div class="flex flex-1/6 items-center justify-end">
+				<LockIcon size={18} />
+			</div>
+			<div class="flex-5/6 text-start">Change Password</div>
+		</Btn>
 		<form method="post" action="?/deleteAccount" use:enhance={onDeleteAccount}>
 			<button
 				class="flex w-60 gap-2 rounded-md bg-transparent px-4 py-3 font-bold text-red-500 outline-2 -outline-offset-2 outline-red-500 transition-colors hover:bg-red-500 hover:text-white"

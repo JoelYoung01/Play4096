@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-
 @import "./lib/assets/fonts/Nunito/Nunito.css";
 
 :root {
@@ -24,4 +23,13 @@ button {
 
 .bg-board-bg {
 	background-color: var(--board-bg);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+	background-color: #f3f3f3;
+	color: #b5b5b5;
+	opacity: 1;
+	cursor: default;
 }
