@@ -1,10 +1,11 @@
 import { getAllTimeLeaderboard, getAllTimeUserRank } from "$lib/server/leaderboard";
-import { getUser } from "$lib/server/user";
+import { requireLoginProfile } from "$lib/server/user";
 
 /** @type {import("./$types").PageServerLoad} */
-export async function load({ locals }) {
+export async function load() {
+	const user = requireLoginProfile();
+
 	const leaderboard = await getAllTimeLeaderboard();
-	const user = getUser(locals.user?.id);
 	let userRank = null;
 
 	if (user) {

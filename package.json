@@ -14,11 +14,12 @@
 		"format": "prettier --write .",
 		"lint": "eslint . --fix",
 		"init-db": "node src/lib/init-db.js",
-		"db:push": "drizzle-kit push",
-		"db:generate": "drizzle-kit generate",
-		"db:migrate": "drizzle-kit migrate",
+		"db:push": "drizzle-kit push --config drizzle.config.js",
+		"db:generate": "drizzle-kit generate --config drizzle.config.js",
+		"db:migrate": "drizzle-kit migrate --config drizzle.config.js",
 		"db:studio": "drizzle-kit studio --config drizzle.config.js",
-		"db:studio-deployed": "drizzle-kit studio --config drizzle.config.js --host 0.0.0.0 --port 3001"
+		"db:studio-deployed": "drizzle-kit studio --config drizzle.config.js --host 0.0.0.0 --port 3001",
+		"db:seed": "node src/scripts/seed.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
@@ -61,9 +62,10 @@
 		"better-sqlite3": "^11.8.0",
 		"drizzle-kit": "^0.30.2",
 		"drizzle-orm": "^0.40.0",
+		"nodemailer": "^7.0.6",
 		"pino": "^9.11.0",
 		"sqlite3": "^5.1.7",
 		"stripe": "^18.5.0"
 	},
-	"packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a"
+	"packageManager": "pnpm@10.19.0+sha512.c9fc7236e92adf5c8af42fd5bf1612df99c2ceb62f27047032f4720b33f8eacdde311865e91c411f2774f618d82f320808ecb51718bfa82c060c4ba7c76a32b8"
 }

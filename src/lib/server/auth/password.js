@@ -1,0 +1,49 @@
+import { hash, verify } from "@node-rs/argon2";
+import { sha1 } from "@oslojs/crypto/sha1";
+import { encodeHexLowerCase } from "@oslojs/encoding";
+
+/**
+ * Hash a password
+ * @param {string} password
+ */
+export async function hashPassword(password) {
+	return await hash(password, {
+		memoryCost: 19456,
+		timeCost: 2,
+		outputLen: 32,
+		parallelism: 1,
+	});
+}
+
+/**
+ * Verify a password hash
+ * @param {string} hash
+ * @param {string} password
+ */
+export async function verifyPasswordHash(hash, password) {
+	return await verify(hash, password);
+}
+
+/**
+ * Verify a password strength
+ * @param {string} password
+ */
+export async function verifyPasswordStrength(password) {
+	const problems = [];
+	if (password.length < 8 || password.length > 255) {
+		problems.push("Password must be between 8 and 255 characters");
+	}
+	const hash = encodeHexLowerCase(sha1(new TextEncoder().encode(password)));
+	const hashPrefix = hash.slice(0, 5);
+	const response = await fetch(`https://api.pwnedpasswords.com/range/${hashPrefix}`);
+	const data = await response.text();
+	const items = data.split("\n");
+	for (const item of items) {
+		const hashSuffix = item.slice(0, 35).toLowerCase();
+		if (hash === hashPrefix + hashSuffix) {
+			problems.push("Password is too common");
+		}
+	}
+
+	return problems;
+}

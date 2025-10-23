@@ -1,7 +1,23 @@
 import { fail, redirect } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth";
-import { deleteUser } from "$lib/server/user";
+import { deleteUser, getUser } from "$lib/server/user";
+import assert from "node:assert";
+import { USER_LEVELS } from "$lib/constants";
 
+/** @type {import("./$types").PageServerLoad} */
+export async function load({ parent }) {
+	const { userProfile } = await parent();
+
+	const proNoEmail =
+		userProfile.level === USER_LEVELS.PRO && (!userProfile.email || !userProfile.emailVerified);
+
+	return {
+		userProfile,
+		proNoEmail,
+	};
+}
+
+/** @type {import("./$types").Actions} */
 export const actions = {
 	logout: async (event) => {
 		if (!event.locals.session) {
@@ -25,5 +41,62 @@ export const actions = {
 		await deleteUser(event.locals.user.id);
 
 		return redirect(302, "/login");
+	},
+	resendVerificationEmail: async (event) => {
+		const response = {
+			sendEmail: {
+				success: false,
+				message: "",
+			},
+		};
+
+		if (event.locals.session === null || event.locals.user === null) {
+			response.sendEmail.message = "Not authenticated";
+			return fail(401, response);
+		}
+		if (!auth.sendVerificationEmailBucket.check(event.locals.user.id, 1)) {
+			response.sendEmail.message = "Too many requests";
+			return fail(429, response);
+		}
+
+		let verificationRequest = auth.getUserEmailVerificationRequestFromRequest(event);
+		const user = getUser(event.locals.user.id);
+		assert(user, `Unable to find user with Id ${event.locals.user.id}`);
+		if (verificationRequest === null) {
+			if (!user.email) {
+				response.sendEmail.message = "User email not found";
+				return fail(400, response);
+			}
+			if (user.emailVerified) {
+				response.sendEmail.message = "Forbidden";
+				return fail(403, response);
+			}
+			if (!auth.sendVerificationEmailBucket.consume(event.locals.user.id, 1)) {
+				response.sendEmail.message = "Too many requests";
+				return fail(429, response);
+			}
+			verificationRequest = await auth.createEmailVerificationRequest(
+				event.locals.user.id,
+				user.email
+			);
+		} else {
+			if (!auth.sendVerificationEmailBucket.consume(event.locals.user.id, 1)) {
+				response.sendEmail.message = "Too many requests";
+				return fail(429, response);
+			}
+			if (!user.email) {
+				response.sendEmail.message = "User email not found";
+				return fail(400, response);
+			}
+			verificationRequest = await auth.createEmailVerificationRequest(
+				event.locals.user.id,
+				user.email
+			);
+		}
+
+		await auth.sendVerificationEmail(verificationRequest.email, verificationRequest.code);
+		auth.setEmailVerificationRequestCookie(event, verificationRequest);
+		response.sendEmail.success = true;
+		return response;
 	},
 };

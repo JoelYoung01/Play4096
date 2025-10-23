@@ -70,6 +70,11 @@ export async function invalidateSession(sessionId) {
 	await db.delete(table.session).where(eq(table.session.id, sessionId));
 }
 
+/** @param {string} userId */
+export async function invalidateUserSessions(userId) {
+	await db.delete(table.session).where(eq(table.session.userId, userId));
+}
+
 /**
  * @param {import("@sveltejs/kit").RequestEvent} event
  * @param {string} token

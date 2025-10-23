@@ -1,10 +1,10 @@
 import { saveScore } from "$lib/server/game";
-import { getUser } from "$lib/server/user.js";
+import { requireLoginProfile } from "$lib/server/user.js";
 import { fail } from "@sveltejs/kit";
 
 /** @type {import("./$types").PageServerLoad} */
-export function load({ locals }) {
-	const user = getUser(locals.user?.id);
+export function load() {
+	const user = requireLoginProfile();
 
 	// TODO: Load current game from db if user is logged in and pro
 

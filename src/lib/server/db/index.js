@@ -7,7 +7,7 @@ import { env } from "$env/dynamic/private";
 let dbInstance = null;
 
 /** @returns {import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof schema> & {$client: Database.Database;}} */
-function getDb() {
+export function getDb() {
 	if (!dbInstance) {
 		if (!env.DATABASE_URL) throw new Error("[DB] DATABASE_URL is not set");
 		const client = new Database(env.DATABASE_URL);
@@ -15,8 +15,6 @@ function getDb() {
 	}
 	return dbInstance;
 }
-
-export { getDb };
 
 /** @type {import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof schema> & {$client: Database.Database;}} */
 // @ts-expect-error deal with it

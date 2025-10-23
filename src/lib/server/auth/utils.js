@@ -1,3 +1,4 @@
+import { encodeBase32UpperCaseNoPadding } from "@oslojs/encoding";
 import { encodeBase32LowerCase } from "@oslojs/encoding";
 
 /**
@@ -46,4 +47,26 @@ export function validatePassword(password) {
 	if (password.length < 6 || password.length > 255)
 		errors.push(`Password must be between 6 and 255 characters`);
 	return { password, errors };
+}
+
+/**
+ * Generate a random OTP
+ * @returns {string}
+ */
+export function generateRandomOTP() {
+	const bytes = new Uint8Array(5);
+	crypto.getRandomValues(bytes);
+	const code = encodeBase32UpperCaseNoPadding(bytes);
+	return code;
+}
+
+/**
+ * Generate a random recovery code
+ * @returns {string}
+ */
+export function generateRandomRecoveryCode() {
+	const recoveryCodeBytes = new Uint8Array(10);
+	crypto.getRandomValues(recoveryCodeBytes);
+	const recoveryCode = encodeBase32UpperCaseNoPadding(recoveryCodeBytes);
+	return recoveryCode;
 }

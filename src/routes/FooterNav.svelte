@@ -1,6 +1,6 @@
 <script>
 	import { page } from "$app/state";
-	import { Grid2x2Icon, HouseIcon, TrophyIcon, Undo2Icon, UserIcon } from "@lucide/svelte";
+	import { Grid2x2Icon, HouseIcon, TrophyIcon, HistoryIcon, UserIcon } from "@lucide/svelte";
 
 	const navItems = [
 		{
@@ -16,7 +16,7 @@
 			href: "/leaderboard",
 		},
 		{
-			icon: Undo2Icon,
+			icon: HistoryIcon,
 			href: "/replay",
 		},
 		{
