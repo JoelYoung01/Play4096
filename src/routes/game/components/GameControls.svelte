@@ -65,7 +65,7 @@
 				<div class="mt-1 text-lg font-bold sm:text-xl">{gameState.bestScore ?? "-"}</div>
 			</div>
 		</div>
-		<Btn class="w-full text-center" onclick={newGame}>New Game</Btn>
+		<Btn class="w-full justify-center" onclick={newGame}>New Game</Btn>
 	</div>
 </div>
 

@@ -1,18 +1,21 @@
 import { saveScore } from "$lib/server/game";
-import { requireLoginProfile } from "$lib/server/user.js";
+import { getUserProfile } from "$lib/server/user.js";
 import { fail } from "@sveltejs/kit";
 
 /** @type {import("./$types").PageServerLoad} */
-export function load() {
-	const user = requireLoginProfile();
+export function load({ locals }) {
+	let user = null;
+	/** @type {import("$lib/types").GameState?} */
+	let currentGame = null;
 
-	// TODO: Load current game from db if user is logged in and pro
+	if (locals.user) {
+		user = getUserProfile(locals.user.id);
+		// TODO: Load current game from db if user is logged in and pro
+	}
 
 	return {
 		user,
-
-		/** @type {import("$lib/types").GameState?} */
-		currentGame: null,
+		currentGame,
 	};
 }
 

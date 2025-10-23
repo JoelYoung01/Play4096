@@ -32,7 +32,7 @@
 	</div>
 
 	<div class="mx-auto mb-16 flex max-w-md flex-col gap-4">
-		<Btn href="/game" class="text-center">
+		<Btn href="/game" class="justify-center">
 			{#if game}
 				Continue Game
 			{:else}
@@ -40,17 +40,17 @@
 			{/if}
 		</Btn>
 		{#if data.user}
-			<Btn href="/account" class="text-center">Your Account</Btn>
+			<Btn href="/account" class="justify-center">Your Account</Btn>
 		{:else}
-			<Btn href="/login" class="text-center">Login / Create Account</Btn>
+			<Btn href="/login" class="justify-center">Login / Create Account</Btn>
 		{/if}
 		{#if data.user?.level !== USER_LEVELS.PRO}
-			<Btn href="/stripe" class="flex justify-center gap-2">
+			<Btn href="/stripe" class="justify-center">
 				<CrownIcon size={24} />
 				Upgrade to Pro
 			</Btn>
 		{/if}
-		<Btn href="/leaderboard" class="text-center">View Leaderboard</Btn>
+		<Btn href="/leaderboard" class="justify-center">View Leaderboard</Btn>
 	</div>
 
 	<div class="mt-12 text-center">
