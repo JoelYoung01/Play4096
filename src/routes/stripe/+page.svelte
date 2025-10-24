@@ -19,7 +19,7 @@
 		error = "Please verify your email address before upgrading.";
 	}
 	if (data.alreadyUpgraded) {
-		error = "You are already upgraded.";
+		error = "You are already a Pro user.";
 	}
 
 	const features = [

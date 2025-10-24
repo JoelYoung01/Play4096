@@ -27,9 +27,14 @@
 			>
 				<td class="w-16 px-4 py-3 font-semibold text-gray-700"># {index + 1}</td>
 				<td class="px-4 py-3 font-medium text-gray-700"
-					>{leaderboardItem.displayName || leaderboardItem.username}</td
+					>{leaderboardItem.displayName || leaderboardItem.username}
+					{#if leaderboardItem.id === data.user?.id}
+						<span class="text-xs text-gray-500">You</span>
+					{/if}
+				</td>
+				<td class="px-4 py-3 text-end font-bold text-gray-700"
+					>{leaderboardItem.bestScore?.toLocaleString()}</td
 				>
-				<td class="px-4 py-3 text-end font-bold text-gray-700">{leaderboardItem.bestScore}</td>
 			</tr>
 		{/each}
 		{#if showUserRow}

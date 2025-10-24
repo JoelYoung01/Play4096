@@ -140,7 +140,7 @@ export class Game {
 		for (let i = 0; i < this.boardSize; i++) {
 			for (let j = 0; j < this.boardSize; j++) {
 				if (this.board[i][j] === DEFAULT_WIN_TILE) {
-					this.win = true;
+					this.won = true;
 					return true;
 				}
 			}

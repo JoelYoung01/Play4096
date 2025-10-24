@@ -52,7 +52,7 @@
 
 		<label class="block">
 			Email
-			{#if data.user.emailVerified}
+			{#if data.userProfile.emailVerified}
 				<span class="text-green-500">(Verified)</span>
 			{:else}
 				<span class="text-red-500">(Unverified)</span>

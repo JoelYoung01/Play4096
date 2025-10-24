@@ -36,6 +36,7 @@
 	function continueGame() {
 		if (!game) return;
 		game.canContinue = true;
+		showWin = false;
 	}
 </script>
 
@@ -54,7 +55,7 @@
 				style:color={page.data.theme?.textDark}
 			>
 				<div class="text-center font-bold uppercase sm:text-lg">SCORE</div>
-				<div class="mt-1 text-lg font-bold sm:text-xl">{game?.score ?? "-"}</div>
+				<div class="mt-1 text-lg font-bold sm:text-xl">{game?.score.toLocaleString() ?? "-"}</div>
 			</div>
 			<div
 				class="flex-1/2 rounded-md py-2 text-center"
@@ -62,7 +63,9 @@
 				style:color={page.data.theme?.textDark}
 			>
 				<div class="text-center font-bold uppercase sm:text-lg">BEST</div>
-				<div class="mt-1 text-lg font-bold sm:text-xl">{gameState.bestScore ?? "-"}</div>
+				<div class="mt-1 text-lg font-bold sm:text-xl">
+					{gameState.bestScore.toLocaleString() ?? "-"}
+				</div>
 			</div>
 		</div>
 		<Btn class="w-full justify-center" onclick={newGame}>New Game</Btn>
@@ -76,7 +79,7 @@
 	<div class="overlay game-over">
 		<div class="overlay-content">
 			<h2>Game Over!</h2>
-			<p>Final Score: {game.score}</p>
+			<p>Final Score: {game.score.toLocaleString()}</p>
 			<button class="overlay-btn" onclick={newGame}>Try Again</button>
 		</div>
 	</div>
@@ -86,7 +89,7 @@
 	<div class="overlay win">
 		<div class="overlay-content">
 			<h2>You Won!</h2>
-			<p>Score: {game.score}</p>
+			<p>Score: {game.score.toLocaleString()}</p>
 			<button class="overlay-btn" onclick={continueGame}>Keep Playing</button>
 			<button class="overlay-btn secondary" onclick={newGame}>New Game</button>
 		</div>

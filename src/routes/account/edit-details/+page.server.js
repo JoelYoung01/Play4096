@@ -8,14 +8,12 @@ import { requireLogin } from "$lib/server/user";
 export async function load({ parent }) {
 	const { userProfile } = await parent();
 
-	const response = {
+	return {
 		formData: {
 			displayName: userProfile.displayName ?? "",
 			email: userProfile.email ?? "",
 		},
 	};
-
-	return response;
 }
 
 export const actions = {
