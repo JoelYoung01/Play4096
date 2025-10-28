@@ -5,7 +5,6 @@ import { fail } from "@sveltejs/kit";
 /** @type {import("./$types").PageServerLoad} */
 export function load({ locals }) {
 	let user = null;
-	/** @type {import("$lib/types").GameState?} */
 	let currentGame = null;
 
 	if (locals.user) {
@@ -15,6 +14,7 @@ export function load({ locals }) {
 
 	return {
 		user,
+		/** @type {import("$lib/types").GameState?} */
 		currentGame,
 	};
 }

@@ -1,8 +1,15 @@
 <script>
 	import { page } from "$app/state";
 	import { Game } from "$lib/game.svelte.js";
-	import { gameState } from "../state.svelte.js";
+	import { gameState, general } from "../state.svelte.js";
+	import { USER_LEVELS } from "$lib/constants.js";
 	import Btn from "$lib/components/Btn.svelte";
+	import {
+		MoveHorizontalIcon,
+		MoveVerticalIcon,
+		RotateCcwIcon,
+		RotateCwIcon,
+	} from "@lucide/svelte";
 
 	let game = $derived(gameState.currentGame);
 
@@ -38,13 +45,40 @@
 		game.canContinue = true;
 		showWin = false;
 	}
+
+	function rotateBoard() {
+		if (!game) return;
+		game.rotateBoard(1);
+	}
+	function rotateReverse() {
+		if (!game) return;
+		game.rotateBoard(3);
+	}
+
+	function mirrorBoardHorizontally() {
+		if (!game) return;
+		game.mirrorBoardHorizontally();
+	}
+
+	function mirrorBoardVertically() {
+		if (!game) return;
+		game.mirrorBoardVertically();
+	}
 </script>
 
 <!-- Header -->
 <div class="mb-2 flex items-start gap-2">
 	<div class="flex-1">
 		<h1 class="text-4xl font-bold sm:text-6xl">4096</h1>
-		<p class="text-sm sm:text-base">Join the tiles, get to 4096!</p>
+		<p class="mb-4 text-sm sm:text-base">Join the tiles, get to 4096!</p>
+		{#if game && general.currentUser && general.currentUser.level >= USER_LEVELS.PRO}
+			<div class="flex gap-4">
+				<button class="rotate-btn" onclick={rotateBoard}><RotateCwIcon /></button>
+				<button class="rotate-btn" onclick={rotateReverse}><RotateCcwIcon /></button>
+				<button class="rotate-btn" onclick={mirrorBoardHorizontally}><MoveHorizontalIcon /></button>
+				<button class="rotate-btn" onclick={mirrorBoardVertically}><MoveVerticalIcon /></button>
+			</div>
+		{/if}
 	</div>
 
 	<div class="flex-[0_0_14rem]">

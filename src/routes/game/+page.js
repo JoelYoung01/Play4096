@@ -1,8 +1,13 @@
 import { browser } from "$app/environment";
 import { clearGame, loadBestScore, loadGame } from "$lib/localStorage.svelte";
-import { gameState } from "./state.svelte.js";
+import { general, gameState } from "./state.svelte.js";
 
 export async function load({ data, fetch }) {
+	// Load user profile
+	if (data.user) {
+		general.currentUser = data.user;
+	}
+
 	// Only pull from local storage on client
 	if (browser) {
 		// Load current game

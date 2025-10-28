@@ -5,3 +5,8 @@ export const gameState = $state({
 	/** @type {import("$lib/game.svelte.js").Game | null} */
 	currentGame: null,
 });
+
+export const general = $state({
+	/** @type {import("$lib/types").UserProfile | null} */
+	currentUser: null,
+});

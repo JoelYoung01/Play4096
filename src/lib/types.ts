@@ -3,6 +3,18 @@ export interface LocalsUser {
   username: string;
 }
 
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string | null;
+  emailVerified: boolean;
+  admin: boolean;
+  level: number;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bestScore: number | null;
+}
+
 export interface GameEvent {
   start?: { x: number, y: number };
   end?: { x: number, y: number };

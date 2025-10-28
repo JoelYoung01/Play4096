@@ -416,4 +416,57 @@ export class Game {
 
 		return moveQueue;
 	}
+
+	/**
+	 * Rotate the board by a given factor
+	 * @param {number} factor Factor to rotate the board clockwise by (0-3)
+	 */
+	rotateBoard(factor) {
+		if (factor <= 0) return;
+
+		const newBoard = Array(this.boardSize)
+			.fill(null)
+			.map(() => Array(this.boardSize).fill(0));
+
+		for (let i = 0; i < this.boardSize; i++) {
+			for (let j = 0; j < this.boardSize; j++) {
+				newBoard[j][this.boardSize - 1 - i] = this.board[i][j];
+			}
+		}
+		this.board = newBoard;
+
+		this.rotateBoard(factor - 1);
+	}
+
+	/**
+	 * Mirror the board horizontally
+	 */
+	mirrorBoardHorizontally() {
+		const newBoard = Array(this.boardSize)
+			.fill(null)
+			.map(() => Array(this.boardSize).fill(0));
+
+		for (let i = 0; i < this.boardSize; i++) {
+			for (let j = 0; j < this.boardSize; j++) {
+				newBoard[i][j] = this.board[i][this.boardSize - 1 - j];
+			}
+		}
+		this.board = newBoard;
+	}
+
+	/**
+	 * Mirror the board vertically
+	 */
+	mirrorBoardVertically() {
+		const newBoard = Array(this.boardSize)
+			.fill(null)
+			.map(() => Array(this.boardSize).fill(0));
+
+		for (let i = 0; i < this.boardSize; i++) {
+			for (let j = 0; j < this.boardSize; j++) {
+				newBoard[i][j] = this.board[this.boardSize - 1 - i][j];
+			}
+		}
+		this.board = newBoard;
+	}
 }
