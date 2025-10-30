@@ -24,6 +24,12 @@ button {
 .bg-board-bg {
 	background-color: var(--board-bg);
 }
+.bg-primary {
+	background-color: var(--primary-color);
+}
+.hover\:bg-primary-dark:hover {
+	background-color: var(--primary-color-dark);
+}
 
 input:disabled,
 textarea:disabled,

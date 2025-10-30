@@ -3,10 +3,10 @@
 	import { Game } from "$lib/game.svelte.js";
 	import { gameState, general } from "../state.svelte.js";
 	import { USER_LEVELS } from "$lib/constants.js";
-	import Btn from "$lib/components/Btn.svelte";
 	import {
 		MoveHorizontalIcon,
 		MoveVerticalIcon,
+		PlusIcon,
 		RotateCcwIcon,
 		RotateCwIcon,
 	} from "@lucide/svelte";
@@ -67,22 +67,14 @@
 </script>
 
 <!-- Header -->
-<div class="mb-2 flex items-start gap-2">
+<div class="mb-1 flex items-start gap-2">
 	<div class="flex-1">
 		<h1 class="text-4xl font-bold sm:text-6xl">4096</h1>
-		<p class="mb-4 text-sm sm:text-base">Join the tiles, get to 4096!</p>
-		{#if game && general.currentUser && general.currentUser.level >= USER_LEVELS.PRO}
-			<div class="flex gap-4">
-				<button class="rotate-btn" onclick={rotateBoard}><RotateCwIcon /></button>
-				<button class="rotate-btn" onclick={rotateReverse}><RotateCcwIcon /></button>
-				<button class="rotate-btn" onclick={mirrorBoardHorizontally}><MoveHorizontalIcon /></button>
-				<button class="rotate-btn" onclick={mirrorBoardVertically}><MoveVerticalIcon /></button>
-			</div>
-		{/if}
+		<p class="text-sm sm:text-base">Join the tiles, get to 4096!</p>
 	</div>
 
 	<div class="flex-[0_0_14rem]">
-		<div class="mb-2 flex gap-2">
+		<div class="flex gap-2">
 			<div
 				class="flex-1/2 rounded-md py-2 text-center"
 				style:background-color={page.data.theme?.boardBackground}
@@ -102,8 +94,28 @@
 				</div>
 			</div>
 		</div>
-		<Btn class="w-full justify-center" onclick={newGame}>New Game</Btn>
 	</div>
+</div>
+
+<div class="mb-2 flex items-center gap-1">
+	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={newGame}>
+		<PlusIcon size={18} />
+	</button>
+	<div class="flex-1"></div>
+	{#if game && general.currentUser && general.currentUser.level >= USER_LEVELS.PRO}
+		<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateBoard}>
+			<RotateCwIcon size={18} />
+		</button>
+		<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateReverse}>
+			<RotateCcwIcon size={18} />
+		</button>
+		<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={mirrorBoardHorizontally}>
+			<MoveHorizontalIcon size={18} />
+		</button>
+		<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={mirrorBoardVertically}>
+			<MoveVerticalIcon size={18} />
+		</button>
+	{/if}
 </div>
 
 <!-- Game Control Buttons -->
@@ -131,6 +143,12 @@
 {/if}
 
 <style lang="postcss">
+	@reference "../../../app.css";
+
+	.controls-btn {
+		@apply rounded-full p-2 text-white;
+	}
+
 	.overlay {
 		position: fixed;
 		top: 0;
