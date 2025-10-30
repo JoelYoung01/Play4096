@@ -1,14 +1,40 @@
 <script>
 	import { page } from "$app/state";
+	import Menu from "$lib/components/Menu.svelte";
 	import { Game } from "$lib/game.svelte.js";
 	import { gameState } from "../state.svelte.js";
 	import {
+		MenuIcon,
 		MoveHorizontalIcon,
 		MoveVerticalIcon,
 		PlusIcon,
 		RotateCcwIcon,
 		RotateCwIcon,
+		XIcon,
 	} from "@lucide/svelte";
+	import { cubicOut } from "svelte/easing";
+
+	/**
+	 * Custom transition that combines scale and rotation
+	 * @param {HTMLElement} node
+	 * @param {{ duration?: number; start?: number; delay?: number; rotateDegrees?: number }} params
+	 */
+	function scaleRotate(node, params = {}) {
+		const { duration = 200, start = 0.8, delay = 0, rotateDegrees = 45 } = params;
+		return {
+			delay,
+			duration,
+			easing: cubicOut,
+			/**
+			 * @param {number} t
+			 */
+			css: (t) => {
+				const scaleValue = start + (1 - start) * t;
+				const rotate = rotateDegrees * (1 - t);
+				return `transform: scale(${scaleValue}) rotate(${rotate}deg); opacity: ${t};`;
+			},
+		};
+	}
 
 	let game = $derived(gameState.currentGame);
 
@@ -17,6 +43,7 @@
 
 	let showGameOver = $state(false);
 	let showWin = $state(false);
+	let openMenu = $state(false);
 
 	$effect(() => {
 		if (!game) return;
@@ -67,28 +94,30 @@
 
 <!-- Header -->
 <div class="mb-1 flex items-start gap-2">
-	<div class="flex-1">
-		<h1 class="text-4xl font-bold sm:text-6xl">4096</h1>
-		<p class="text-sm sm:text-base">Join the tiles, get to 4096!</p>
+	<div class="flex-1/2">
+		<h1 class="text-6xl font-bold sm:text-6xl">4096</h1>
+		<p class="text-xs sm:text-base">Join the tiles, get to 4096!</p>
 	</div>
 
-	<div class="flex-[0_0_14rem]">
+	<div class="flex-1/2">
 		<div class="flex gap-2">
 			<div
-				class="flex-1/2 rounded-md py-2 text-center"
+				class="flex-1/2 overflow-hidden rounded-md py-2 text-center"
 				style:background-color={page.data.theme?.boardBackground}
 				style:color={page.data.theme?.textDark}
 			>
-				<div class="text-center font-bold uppercase sm:text-lg">SCORE</div>
-				<div class="mt-1 text-lg font-bold sm:text-xl">{game?.score.toLocaleString() ?? "-"}</div>
+				<div class="text-center text-sm font-bold uppercase sm:text-lg">SCORE</div>
+				<div class="mt-1 text-sm font-bold md:text-lg">
+					{game?.score.toLocaleString() ?? "-"}
+				</div>
 			</div>
 			<div
-				class="flex-1/2 rounded-md py-2 text-center"
+				class="flex-1/2 overflow-hidden rounded-md py-2 text-center"
 				style:background-color={page.data.theme?.boardBackground}
 				style:color={page.data.theme?.textDark}
 			>
-				<div class="text-center font-bold uppercase sm:text-lg">BEST</div>
-				<div class="mt-1 text-lg font-bold sm:text-xl">
+				<div class="text-center text-sm font-bold uppercase sm:text-lg">BEST</div>
+				<div class="mt-1 text-sm font-bold sm:text-xl">
 					{gameState.bestScore.toLocaleString() ?? "-"}
 				</div>
 			</div>
@@ -97,9 +126,40 @@
 </div>
 
 <div class="mb-2 flex items-center gap-1">
-	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={newGame}>
-		<PlusIcon size={18} />
-	</button>
+	<Menu bind:open={openMenu}>
+		{#snippet activator()}
+			<button class="controls-btn bg-primary hover:bg-primary-dark relative">
+				<div class="relative h-[18px] w-[18px]">
+					{#if openMenu}
+						<div
+							class="absolute inset-0"
+							in:scaleRotate={{ duration: 200, start: 0.8, delay: 100, rotateDegrees: -45 }}
+							out:scaleRotate={{ duration: 150, start: 0.8, rotateDegrees: -45 }}
+						>
+							<XIcon size={18} />
+						</div>
+					{:else}
+						<div
+							class="absolute inset-0"
+							in:scaleRotate={{ duration: 200, start: 0.8, delay: 100 }}
+							out:scaleRotate={{ duration: 150, start: 0.8 }}
+						>
+							<MenuIcon size={18} />
+						</div>
+					{/if}
+				</div>
+			</button>
+		{/snippet}
+		{#snippet content()}
+			<button
+				class=" bg-primary hover:bg-primary-dark flex items-center gap-2 rounded-md p-2 text-nowrap text-white"
+				onclick={newGame}
+			>
+				<PlusIcon size={18} />
+				New Game
+			</button>
+		{/snippet}
+	</Menu>
 	<div class="flex-1"></div>
 	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateBoard}>
 		<RotateCwIcon size={18} />
