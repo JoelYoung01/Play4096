@@ -107,7 +107,7 @@
 				style:color={page.data.theme?.textDark}
 			>
 				<div class="text-center text-sm font-bold uppercase sm:text-lg">SCORE</div>
-				<div class="mt-1 text-sm font-bold md:text-lg">
+				<div class="mt-1 text-sm font-bold sm:text-lg">
 					{game?.score.toLocaleString() ?? "-"}
 				</div>
 			</div>
