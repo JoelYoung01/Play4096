@@ -1,8 +1,7 @@
 <script>
 	import { page } from "$app/state";
 	import { Game } from "$lib/game.svelte.js";
-	import { gameState, general } from "../state.svelte.js";
-	import { USER_LEVELS } from "$lib/constants.js";
+	import { gameState } from "../state.svelte.js";
 	import {
 		MoveHorizontalIcon,
 		MoveVerticalIcon,
@@ -102,20 +101,18 @@
 		<PlusIcon size={18} />
 	</button>
 	<div class="flex-1"></div>
-	{#if game && general.currentUser && general.currentUser.level >= USER_LEVELS.PRO}
-		<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateBoard}>
-			<RotateCwIcon size={18} />
-		</button>
-		<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateReverse}>
-			<RotateCcwIcon size={18} />
-		</button>
-		<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={mirrorBoardHorizontally}>
-			<MoveHorizontalIcon size={18} />
-		</button>
-		<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={mirrorBoardVertically}>
-			<MoveVerticalIcon size={18} />
-		</button>
-	{/if}
+	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateBoard}>
+		<RotateCwIcon size={18} />
+	</button>
+	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateReverse}>
+		<RotateCcwIcon size={18} />
+	</button>
+	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={mirrorBoardHorizontally}>
+		<MoveHorizontalIcon size={18} />
+	</button>
+	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={mirrorBoardVertically}>
+		<MoveVerticalIcon size={18} />
+	</button>
 </div>
 
 <!-- Game Control Buttons -->
