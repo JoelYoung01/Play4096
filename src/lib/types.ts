@@ -42,12 +42,23 @@ export interface TileAnimation {
 }
 
 export interface GameOptions {
+  id?: string;
   boardSize?: number;
   startingTiles?: number;
   initialState?: GameState | null;
 }
 
 export interface GameState {
+  id?: string;
   board: number[][];
   score: number;
+}
+
+export interface GameSaveData {
+  id?: string;
+  playerId: string;
+  score: number;
+  board: number[][];
+  won: boolean;
+  complete: boolean;
 }

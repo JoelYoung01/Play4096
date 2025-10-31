@@ -21,6 +21,10 @@ button {
 	}
 }
 
+.bg-background {
+	background-color: var(--background-color);
+}
+
 .bg-board-bg {
 	background-color: var(--board-bg);
 }

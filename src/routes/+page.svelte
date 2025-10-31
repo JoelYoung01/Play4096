@@ -1,14 +1,11 @@
 <script>
 	import { page } from "$app/state";
-	import { loadGame } from "$lib/localStorage.svelte";
 
 	import Btn from "$lib/components/Btn.svelte";
 	import { USER_LEVELS } from "$lib/constants.js";
 	import { CrownIcon } from "@lucide/svelte";
 
 	let { data } = $props();
-
-	const game = $state(loadGame());
 </script>
 
 <main
@@ -33,7 +30,7 @@
 
 	<div class="mx-auto mb-16 flex max-w-md flex-col gap-4">
 		<Btn href="/game" class="justify-center">
-			{#if game}
+			{#if data.hasGame}
 				Continue Game
 			{:else}
 				Start New Game
@@ -67,8 +64,9 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				class="font-semibold text-[var(--primary-color)] no-underline hover:underline"
-				>Gabriele Cirulli</a
 			>
+				Gabriele Cirulli
+			</a>
 		</p>
 	</div>
 </main>

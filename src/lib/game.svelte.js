@@ -72,6 +72,19 @@ export function getTileColor(value, theme = defaultTheme) {
 }
 
 /**
+ * Compare two games
+ * @param {import("./types").GameState} game1
+ * @param {import("./types").GameState} game2
+ * @returns {boolean}
+ */
+export function isSameGame(game1, game2) {
+	if (game1.score !== game2.score) return false;
+	if (game1.board.length !== game2.board.length) return false;
+	if (game1.board.some((row, i) => row.some((cell, j) => cell !== game2.board[i][j]))) return false;
+	return true;
+}
+
+/**
  * Game Class
  *
  * Encapsulates the game state and logic
@@ -82,10 +95,12 @@ export class Game {
 	 * @param {import("./types").GameOptions} options
 	 */
 	constructor({
+		id = undefined,
 		boardSize = DEFAULT_BOARD_SIZE,
 		startingTiles = DEFAULT_STARTING_TILES,
 		initialState = null,
 	} = {}) {
+		this.id = id;
 		this.boardSize = boardSize;
 
 		/** @type {number[][]} */
@@ -468,5 +483,18 @@ export class Game {
 			}
 		}
 		this.board = newBoard;
+	}
+
+	/**
+	 * Get the game as a JSON object for saving to the db
+	 * @returns {Omit<import("./types").GameSaveData, "playerId">}
+	 */
+	json() {
+		return {
+			board: this.board,
+			score: this.score,
+			complete: this.gameOver,
+			won: this.won,
+		};
 	}
 }
