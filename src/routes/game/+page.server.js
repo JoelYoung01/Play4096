@@ -5,24 +5,25 @@ import { fail } from "@sveltejs/kit";
 /** @type {import("./$types").PageServerLoad} */
 export function load({ locals }) {
 	let user = null;
-	let currentGame = null;
+	let dbGame = null;
 
 	if (locals.user) {
 		user = getUserProfile(locals.user.id);
-		const dbGame = getCurrentGame(locals.user.id);
+		dbGame = getCurrentGame(locals.user.id);
 		if (dbGame) {
-			currentGame = {
+			dbGame = {
 				id: dbGame.id,
 				board: dbGame.board,
 				score: dbGame.score ?? 0,
+				lastUpdated: dbGame.updatedOn.getTime(),
 			};
 		}
 	}
 
 	return {
 		user,
-		/** @type {import("$lib/types").GameState?} */
-		currentGame,
+		/** @type {import("$lib/types").GameState & { lastUpdated: number } | null} */
+		dbGame,
 	};
 }
 

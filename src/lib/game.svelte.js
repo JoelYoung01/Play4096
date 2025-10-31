@@ -72,6 +72,19 @@ export function getTileColor(value, theme = defaultTheme) {
 }
 
 /**
+ * Compare two games
+ * @param {import("./types").GameState} game1
+ * @param {import("./types").GameState} game2
+ * @returns {boolean}
+ */
+export function isSameGame(game1, game2) {
+	if (game1.score !== game2.score) return false;
+	if (game1.board.length !== game2.board.length) return false;
+	if (game1.board.some((row, i) => row.some((cell, j) => cell !== game2.board[i][j]))) return false;
+	return true;
+}
+
+/**
  * Game Class
  *
  * Encapsulates the game state and logic

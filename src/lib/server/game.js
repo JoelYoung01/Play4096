@@ -1,6 +1,6 @@
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, not } from "drizzle-orm";
 import assert from "node:assert";
 
 /**
@@ -91,7 +91,7 @@ export function getCurrentGame(userId) {
 	const game = db
 		.select()
 		.from(table.game)
-		.where(eq(table.game.playerId, userId))
+		.where(and(eq(table.game.playerId, userId), not(eq(table.game.complete, true))))
 		.orderBy(desc(table.game.updatedOn))
 		.get();
 

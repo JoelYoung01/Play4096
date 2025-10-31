@@ -1,32 +1,30 @@
 import { browser } from "$app/environment";
-import { clearGame, loadBestScore, loadGame } from "$lib/localStorage.svelte";
+import { loadBestScore, loadGame } from "$lib/localStorage.svelte";
 import { general, gameState } from "./state.svelte.js";
 
+/** @type {import("./$types").PageLoad} */
 export async function load({ data, fetch }) {
+	let { user, dbGame } = data;
+	let bestScore = user?.bestScore ?? 0;
+	let localGame = null;
+
 	// Load user profile
-	if (data.user) {
-		general.currentUser = data.user;
+	if (user) {
+		general.currentUser = user;
 	}
 
 	// Only pull from local storage on client
 	if (browser) {
-		// Load current game
-		const game = loadGame();
-		if (data.currentGame && game) {
-			console.warn("Found a game in local storage, but loading the game from server instead");
-			clearGame();
-		} else if (game) {
-			data.currentGame = game;
-		}
+		// Load game from local storage
+		localGame = loadGame();
 
-		// Load best score
-		const dbScore = data.user?.bestScore ?? 0;
+		// Compare local vs db best score, take highest
 		const storageScore = loadBestScore();
 		gameState.bestScore = Math.max(gameState.bestScore, storageScore);
-		gameState.bestScore = Math.max(gameState.bestScore, dbScore);
+		gameState.bestScore = Math.max(gameState.bestScore, bestScore);
 
 		// If the best score is higher than what came from the server, update the server
-		if (gameState.bestScore > dbScore) {
+		if (gameState.bestScore > bestScore) {
 			const form = new FormData();
 			form.append("score", `${gameState.bestScore}`);
 			await fetch("/game?/saveScore", {
@@ -37,6 +35,9 @@ export async function load({ data, fetch }) {
 	}
 
 	return {
-		...data,
+		user,
+		dbGame,
+		localGame,
+		bestScore,
 	};
 }
