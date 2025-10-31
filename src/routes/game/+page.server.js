@@ -1,4 +1,4 @@
-import { saveScore } from "$lib/server/game";
+import { getCurrentGame, saveScore } from "$lib/server/game";
 import { getUserProfile } from "$lib/server/user.js";
 import { fail } from "@sveltejs/kit";
 
@@ -9,7 +9,14 @@ export function load({ locals }) {
 
 	if (locals.user) {
 		user = getUserProfile(locals.user.id);
-		// TODO: Load current game from db if user is logged in and pro
+		const dbGame = getCurrentGame(locals.user.id);
+		if (dbGame) {
+			currentGame = {
+				id: dbGame.id,
+				board: dbGame.board,
+				score: dbGame.score ?? 0,
+			};
+		}
 	}
 
 	return {
@@ -19,6 +26,7 @@ export function load({ locals }) {
 	};
 }
 
+/** @type {import("./$types").Actions} */
 export const actions = {
 	saveScore: async ({ request, locals }) => {
 		if (!locals.user) {

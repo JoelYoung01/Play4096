@@ -82,10 +82,12 @@ export class Game {
 	 * @param {import("./types").GameOptions} options
 	 */
 	constructor({
+		id = undefined,
 		boardSize = DEFAULT_BOARD_SIZE,
 		startingTiles = DEFAULT_STARTING_TILES,
 		initialState = null,
 	} = {}) {
+		this.id = id;
 		this.boardSize = boardSize;
 
 		/** @type {number[][]} */
@@ -468,5 +470,18 @@ export class Game {
 			}
 		}
 		this.board = newBoard;
+	}
+
+	/**
+	 * Get the game as a JSON object for saving to the db
+	 * @returns {Omit<import("./types").GameSaveData, "playerId">}
+	 */
+	json() {
+		return {
+			board: this.board,
+			score: this.score,
+			complete: this.gameOver,
+			won: this.won,
+		};
 	}
 }

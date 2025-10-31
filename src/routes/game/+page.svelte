@@ -4,16 +4,65 @@
 
 	import { Game } from "$lib/game.svelte.js";
 	import { DIRECTIONS } from "$lib/constants.js";
-	import { saveGame } from "$lib/localStorage.svelte.js";
+	import { saveGame as localSaveGame } from "$lib/localStorage.svelte.js";
 
 	import BasicBoard from "./components/BasicBoard.svelte";
 	import { browser } from "$app/environment";
 	import { gameState } from "./state.svelte";
 
 	const TOUCH_THRESHOLD = 5;
+	const SAVE_DEBOUNCE_MS = 3000;
 
 	/** @type {import("$lib/types").GameEvent[]} */
 	let pendingEvents = $state([]);
+
+	// Debounced save to API
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let saveTimeout = null;
+
+	/**
+	 * Save game to server API with debouncing
+	 * @param {import("$lib/game.svelte.js").Game} game
+	 */
+	async function saveGameToServer(game) {
+		if (!page.data.user) return; // Only save if user is logged in
+
+		const gameData = game.json();
+
+		try {
+			const response = await fetch("/api/game/save", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(gameData),
+			});
+			if (!response.ok) {
+				throw new Error(`Failed to save game to server: ${response.statusText}`);
+			}
+			const data = await response.json();
+			if (!data.success) {
+				throw new Error(`Failed to save game to server: ${data.error}`);
+			}
+
+			game.id = data.gameId;
+		} catch (error) {
+			console.error("Failed to save game to server:", error);
+		}
+	}
+
+	/**
+	 * Debounced version of saveGameToServer
+	 * @param {import("$lib/game.svelte.js").Game} game
+	 */
+	function debouncedSaveGameToServer(game) {
+		if (saveTimeout) {
+			clearTimeout(saveTimeout);
+		}
+		saveTimeout = setTimeout(() => {
+			saveGameToServer(game);
+		}, SAVE_DEBOUNCE_MS);
+	}
 
 	// Initialize the game when the page is loaded on client
 	if (browser) {
@@ -23,10 +72,13 @@
 	// Update best score and save board to localstorage
 	$effect(() => {
 		if (!gameState.currentGame) return;
-		saveGame(gameState.currentGame);
+		localSaveGame(gameState.currentGame);
 		if (gameState.currentGame.score > gameState.bestScore) {
 			gameState.bestScore = gameState.currentGame.score;
 		}
+
+		// Save to server with debouncing
+		debouncedSaveGameToServer(gameState.currentGame);
 	});
 
 	/**
@@ -158,6 +210,7 @@
 		padding: 20px;
 		user-select: none;
 		color: var(--text-color);
+
 		/* Prevent browser gestures and scrolling */
 		touch-action: manipulation;
 		overscroll-behavior: contain;
