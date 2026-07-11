@@ -16,29 +16,32 @@ export interface UserProfile {
 }
 
 export interface GameEvent {
+  type?: number;
   start?: { x: number, y: number };
   end?: { x: number, y: number };
-  merged?: number;
+  value?: number;
+  newTileValue?: number;
+  merged?: boolean;
   gameLost?: boolean;
   gameWon?: boolean;
   snapshot?: number[][];
 }
 
-export interface TileAnimation {
-  moving: boolean;
-  spawning: boolean;
-  merging: boolean;
-
+export interface VisualTile {
+  id: string;
+  value: number;
+  logicalPos: { x: number, y: number };
+  currentPos: { x: number, y: number };
+  targetPos: { x: number, y: number };
   alpha: number;
   scale: number;
-  value: number;
-  startPos: { x: number, y: number };
-  currentPos: { x: number, y: number };
-  endPos: { x: number, y: number };
-  merged: boolean;
-  duration: number;
-  startTimestamp: number;
-  progress: number;
+  spawning: boolean;
+  merging: boolean;
+  mergePop: boolean;
+  mergePopProgress: number;
+  mergeSurvivorId: string | null;
+  pendingMergeValue: number | null;
+  hidden: boolean;
 }
 
 export interface GameOptions {

@@ -6,7 +6,7 @@
 	import { DIRECTIONS } from "$lib/constants.js";
 	import { saveGame as localSaveGame } from "$lib/localStorage.svelte.js";
 
-	import BasicBoard from "./components/BasicBoard.svelte";
+	import AnimatedBoard from "./components/AnimatedBoard.svelte";
 	import { browser } from "$app/environment";
 	import { gameState } from "./state.svelte";
 	import Overlay from "$lib/components/Overlay.svelte";
@@ -132,16 +132,23 @@
 	});
 
 	/**
+	 * Pop the next pending animation event
+	 * @returns {import("$lib/types").GameEvent | undefined}
+	 */
+	function popEvent() {
+		return pendingEvents.shift();
+	}
+
+	/**
 	 * Handle move
 	 * @param {number} direction
-	 * @param direction
 	 */
 	function handleMove(direction) {
 		if (!gameState.currentGame) return;
 
 		const events = gameState.currentGame.moveTiles(direction);
-		if (events) {
-			pendingEvents = events;
+		if (events.length > 0) {
+			pendingEvents.push(...events);
 		}
 	}
 
@@ -279,7 +286,7 @@
 	ontouchend={handleTouchEnd}
 >
 	<!-- Game Board -->
-	<BasicBoard {pendingEvents} />
+	<AnimatedBoard {pendingEvents} {popEvent} />
 
 	<!-- Instructions -->
 	<div class="text-center text-sm" style:color={page.data.theme?.textLight}>
