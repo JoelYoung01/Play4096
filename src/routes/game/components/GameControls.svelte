@@ -38,6 +38,8 @@
 
 	let game = $derived(gameState.currentGame);
 
+	let { animationIdle = true } = $props();
+
 	const GAME_OVER_DELAY = 600;
 	const GAME_WIN_DELAY = 400;
 
@@ -48,15 +50,26 @@
 	$effect(() => {
 		if (!game) return;
 
-		if (game.gameOver) {
-			setTimeout(() => {
+		if (!game.gameOver) {
+			showGameOver = false;
+		} else if (animationIdle) {
+			const timeout = setTimeout(() => {
 				showGameOver = true;
 			}, GAME_OVER_DELAY);
+			return () => clearTimeout(timeout);
 		}
-		if (game.won && !game.canContinue) {
-			setTimeout(() => {
+	});
+
+	$effect(() => {
+		if (!game) return;
+
+		if (!game.won || game.canContinue) {
+			showWin = false;
+		} else if (animationIdle) {
+			const timeout = setTimeout(() => {
 				showWin = true;
 			}, GAME_WIN_DELAY);
+			return () => clearTimeout(timeout);
 		}
 	});
 
