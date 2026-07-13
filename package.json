@@ -53,7 +53,8 @@
 			"better-sqlite3",
 			"esbuild",
 			"sqlite3"
-		]
+		],
+		"strictDepBuilds": true
 	},
 	"dependencies": {
 		"@lucide/svelte": "^0.542.0",
