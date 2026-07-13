@@ -32,4 +32,4 @@ jobs:
     uses: ./.github/workflows/VerifyDeployment.yml
     with:
       expected_version: ${{ github.sha }}
-      health_check_url: ${{ vars.HEALTH_CHECK_URL != '' && vars.HEALTH_CHECK_URL || 'https://play4096.com/api/health' }}
+      health_check_url: ${{ vars.HEALTH_CHECK_URL != '' && vars.HEALTH_CHECK_URL || 'https://play-4096.com/api/health' }}

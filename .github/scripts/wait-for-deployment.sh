@@ -8,6 +8,7 @@ INTERVAL_SECONDS="${4:-10}"
 
 deadline=$((SECONDS + TIMEOUT_SECONDS))
 last_response=""
+last_http_code=""
 attempt=0
 
 echo "Waiting for deployment version ${EXPECTED_VERSION} at ${HEALTH_URL}"
@@ -16,7 +17,13 @@ echo "Timeout: ${TIMEOUT_SECONDS}s, polling every ${INTERVAL_SECONDS}s"
 while (( SECONDS < deadline )); do
 	attempt=$((attempt + 1))
 
-	if response=$(curl -sf --max-time 15 "$HEALTH_URL" 2>/dev/null); then
+	tmp_body=$(mktemp)
+	http_code=$(curl -sS -o "$tmp_body" -w "%{http_code}" --max-time 15 "$HEALTH_URL" || true)
+	response=$(cat "$tmp_body")
+	rm -f "$tmp_body"
+	last_http_code="$http_code"
+
+	if [[ "$http_code" == "200" ]]; then
 		last_response="$response"
 		status=$(echo "$response" | jq -r '.status // empty')
 		version=$(echo "$response" | jq -r '.version // empty')
@@ -27,15 +34,16 @@ while (( SECONDS < deadline )); do
 			exit 0
 		fi
 
-		echo "Attempt ${attempt}: status=${status:-unknown} version=${version:-unknown} (expected ${EXPECTED_VERSION})"
+		echo "Attempt ${attempt}: http=${http_code} status=${status:-unknown} version=${version:-unknown} (expected ${EXPECTED_VERSION})"
 	else
-		echo "Attempt ${attempt}: health check request failed, retrying..."
+		echo "Attempt ${attempt}: health check request failed (http=${http_code:-none}), retrying..."
 	fi
 
 	sleep "$INTERVAL_SECONDS"
 done
 
 echo "Deployment verification failed after ${TIMEOUT_SECONDS}s."
+echo "Last HTTP status: ${last_http_code:-none}"
 if [[ -n "$last_response" ]]; then
 	echo "Last response:"
 	echo "$last_response" | jq . 2>/dev/null || echo "$last_response"
