@@ -1,4 +1,4 @@
-import { SPAWN_START_SCALE } from "./constants.js";
+import { DEFAULT_TILE_ANIMATION_SPEED, SPAWN_START_SCALE } from "./constants.js";
 import { getTileAnimationDurations } from "./animationSpeed.js";
 
 let nextTileId = 0;
@@ -222,7 +222,7 @@ export class TileAnimator {
 	}
 
 	#ensureAnimationRunning() {
-		const durations = getTileAnimationDurations(this.#getSpeed?.() ?? 5);
+		const durations = getTileAnimationDurations(this.#getSpeed?.() ?? DEFAULT_TILE_ANIMATION_SPEED);
 
 		if (durations.instant) {
 			this.#completeInstantly();
@@ -269,7 +269,7 @@ export class TileAnimator {
 	}
 
 	#animate = (timestamp) => {
-		const durations = getTileAnimationDurations(this.#getSpeed?.() ?? 5);
+		const durations = getTileAnimationDurations(this.#getSpeed?.() ?? DEFAULT_TILE_ANIMATION_SPEED);
 
 		if (durations.instant) {
 			this.#stopAnimation();

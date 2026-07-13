@@ -17,7 +17,7 @@ export function clampTileAnimationSpeed(speed) {
 
 /**
  * Linked move + spawn durations from a single 0-10 speed setting.
- * 0 = instant, 5 = default, 10 = twice as fast as default.
+ * 0 = instant, 3 = default, 10 = faster than default.
  *
  * @param {number} speed
  * @returns {{ moveDurationMs: number, spawnDurationMs: number, mergeDurationMs: number, instant: boolean }}
