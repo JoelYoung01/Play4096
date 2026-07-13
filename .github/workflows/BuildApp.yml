@@ -49,6 +49,7 @@ jobs:
 
       - name: Build Svelte App
         env:
+          BUILD_VERSION: ${{ github.sha }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
