@@ -1,0 +1,40 @@
+name: Verify Deployment
+
+on:
+  workflow_call:
+    inputs:
+      expected_version:
+        description: "Git commit SHA expected to be running after deployment"
+        required: true
+        type: string
+      health_check_url:
+        description: "Full URL of the deployment health endpoint"
+        required: true
+        type: string
+      timeout_seconds:
+        description: "Maximum time to wait for the new version to become healthy"
+        required: false
+        type: number
+        default: 300
+      poll_interval_seconds:
+        description: "Seconds between health check attempts"
+        required: false
+        type: number
+        default: 10
+
+jobs:
+  verify:
+    name: Verify deployment health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for healthy deployment
+        run: |
+          chmod +x .github/scripts/wait-for-deployment.sh
+          .github/scripts/wait-for-deployment.sh \
+            "${{ inputs.expected_version }}" \
+            "${{ inputs.health_check_url }}" \
+            "${{ inputs.timeout_seconds }}" \
+            "${{ inputs.poll_interval_seconds }}"

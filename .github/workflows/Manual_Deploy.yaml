@@ -26,3 +26,10 @@ jobs:
     secrets:
       WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
       WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+
+  VerifyDeployment:
+    needs: DeployApp
+    uses: ./.github/workflows/VerifyDeployment.yml
+    with:
+      expected_version: ${{ github.sha }}
+      health_check_url: ${{ vars.HEALTH_CHECK_URL != '' && vars.HEALTH_CHECK_URL || 'https://play4096.com/api/health' }}
