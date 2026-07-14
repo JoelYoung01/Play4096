@@ -100,7 +100,7 @@ export class Game {
 		startingTiles = DEFAULT_STARTING_TILES,
 		initialState = null,
 	} = {}) {
-		this.id = id;
+		this.id = id ?? initialState?.id;
 		this.boardSize = boardSize;
 
 		/** @type {number[][]} */
@@ -491,6 +491,7 @@ export class Game {
 	 */
 	json() {
 		return {
+			id: this.id,
 			board: this.board,
 			score: this.score,
 			complete: this.gameOver,

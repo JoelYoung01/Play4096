@@ -14,36 +14,66 @@
 	const { data } = $props();
 
 	const TOUCH_THRESHOLD = 5;
-	const SAVE_DEBOUNCE_MS = 3000;
+	/** Max staleness for server saves while actively playing */
+	const SAVE_THROTTLE_MS = 1000;
 	let conflict = $state(false);
 
 	/** @type {import("$lib/types").GameEvent[]} */
 	let pendingEvents = $state([]);
 
-	// Debounced save to API
 	/** @type {ReturnType<typeof setTimeout> | null} */
 	let saveTimeout = null;
+	/** @type {import("$lib/game.svelte.js").Game | null} */
+	let pendingServerSave = null;
+	let lastServerSaveAt = 0;
 
 	/**
-	 * Try to load game from local or server storage
+	 * Create a Game, preserving server id when local is missing one
+	 * @param {import("$lib/types").GameState | null | undefined} state
+	 * @param {string | undefined} [fallbackId]
+	 */
+	function createGameFromState(state, fallbackId) {
+		return new Game({
+			id: state?.id ?? fallbackId,
+			initialState: state,
+		});
+	}
+
+	/**
+	 * Try to load game from local or server storage.
 	 *
-	 * Triggers conflict if necessary
+	 * When boards diverge, prefer the newer timestamp and only prompt
+	 * when timestamps are missing (true ambiguity).
 	 */
 	function tryLoadGame() {
 		if (!browser) return;
 
 		if (data.localGame && data.dbGame) {
-			if (!isSameGame(data.localGame, data.dbGame)) {
-				gameState.currentGame = null;
-				conflict = true;
-			} else {
-				// This is what usually will happen. Prefer db game data.
-				gameState.currentGame = new Game({ initialState: data.dbGame });
+			if (isSameGame(data.localGame, data.dbGame)) {
+				gameState.currentGame = createGameFromState(data.dbGame);
+				return;
 			}
+
+			const localUpdated = data.localGame.lastUpdated;
+			const dbUpdated = data.dbGame.lastUpdated;
+
+			if (typeof localUpdated === "number" && typeof dbUpdated === "number") {
+				if (localUpdated >= dbUpdated) {
+					// Local is ahead (common after a missed flush) — keep it and push.
+					gameState.currentGame = createGameFromState(data.localGame, data.dbGame.id);
+					queueMicrotask(() => flushSaveToServer());
+				} else {
+					gameState.currentGame = createGameFromState(data.dbGame);
+				}
+				return;
+			}
+
+			gameState.currentGame = null;
+			conflict = true;
 		} else if (data.localGame) {
-			gameState.currentGame = new Game({ initialState: data.localGame });
+			gameState.currentGame = createGameFromState(data.localGame);
 		} else if (data.dbGame) {
-			gameState.currentGame = new Game({ initialState: data.dbGame });
+			gameState.currentGame = createGameFromState(data.dbGame);
 		} else {
 			gameState.currentGame = new Game();
 		}
@@ -55,9 +85,10 @@
 	 */
 	function resolveConflict(source) {
 		if (source === "local") {
-			gameState.currentGame = new Game({ initialState: data.localGame });
+			gameState.currentGame = createGameFromState(data.localGame, data.dbGame?.id);
+			queueMicrotask(() => flushSaveToServer());
 		} else if (source === "server") {
-			gameState.currentGame = new Game({ initialState: data.dbGame });
+			gameState.currentGame = createGameFromState(data.dbGame);
 		}
 		conflict = false;
 	}
@@ -76,11 +107,12 @@
 	}
 
 	/**
-	 * Save game to server API with debouncing
+	 * Persist current game snapshot to the server
 	 * @param {import("$lib/game.svelte.js").Game} game
+	 * @param {{ keepalive?: boolean }} [options]
 	 */
-	async function saveGameToServer(game) {
-		if (!page.data.user) return; // Only save if user is logged in
+	async function saveGameToServer(game, { keepalive = false } = {}) {
+		if (!page.data.user) return;
 
 		const gameData = game.json();
 
@@ -91,32 +123,78 @@
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify(gameData),
+				keepalive,
 			});
 			if (!response.ok) {
 				throw new Error(`Failed to save game to server: ${response.statusText}`);
 			}
-			const data = await response.json();
-			if (!data.success) {
-				throw new Error(`Failed to save game to server: ${data.error}`);
+			const result = await response.json();
+			if (!result.success) {
+				throw new Error(`Failed to save game to server: ${result.error}`);
 			}
 
-			game.id = data.gameId;
+			if (result.id) {
+				game.id = result.id;
+				// Refresh local snapshot so id survives reloads before the next effect tick
+				localSaveGame(game);
+			}
 		} catch (error) {
 			console.error("Failed to save game to server:", error);
 		}
 	}
 
 	/**
-	 * Debounced version of saveGameToServer
-	 * @param {import("$lib/game.svelte.js").Game} game
+	 * Immediately flush any pending server save (used on hide/unload and conflict resolve)
+	 * @param {{ keepalive?: boolean }} [options]
 	 */
-	function debouncedSaveGameToServer(game) {
+	function flushSaveToServer({ keepalive = false } = {}) {
 		if (saveTimeout) {
 			clearTimeout(saveTimeout);
+			saveTimeout = null;
 		}
-		saveTimeout = setTimeout(() => {
-			saveGameToServer(game);
-		}, SAVE_DEBOUNCE_MS);
+
+		const game = pendingServerSave ?? gameState.currentGame;
+		if (!game || !page.data.user) return;
+
+		pendingServerSave = null;
+		lastServerSaveAt = Date.now();
+		return saveGameToServer(game, { keepalive });
+	}
+
+	/**
+	 * Throttled server save: at most once per SAVE_THROTTLE_MS while playing
+	 * @param {import("$lib/game.svelte.js").Game} game
+	 */
+	function scheduleSaveToServer(game) {
+		if (!page.data.user) return;
+
+		pendingServerSave = game;
+		const elapsed = Date.now() - lastServerSaveAt;
+
+		if (elapsed >= SAVE_THROTTLE_MS) {
+			flushSaveToServer();
+			return;
+		}
+
+		if (!saveTimeout) {
+			saveTimeout = setTimeout(() => {
+				saveTimeout = null;
+				flushSaveToServer();
+			}, SAVE_THROTTLE_MS - elapsed);
+		}
+	}
+
+	/**
+	 * Flush when the tab is backgrounded or unloaded so local doesn't outrun the server
+	 */
+	function handleLifecycleFlush() {
+		flushSaveToServer({ keepalive: true });
+	}
+
+	function handleVisibilityChange() {
+		if (document.visibilityState === "hidden") {
+			handleLifecycleFlush();
+		}
 	}
 
 	// Update best score and save board to localstorage
@@ -127,8 +205,7 @@
 			gameState.bestScore = gameState.currentGame.score;
 		}
 
-		// Save to server with debouncing
-		debouncedSaveGameToServer(gameState.currentGame);
+		scheduleSaveToServer(gameState.currentGame);
 	});
 
 	/**
@@ -235,9 +312,14 @@
 		tryLoadGame();
 
 		window.addEventListener("keydown", handleKeydown);
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		window.addEventListener("pagehide", handleLifecycleFlush);
 
 		return () => {
 			window.removeEventListener("keydown", handleKeydown);
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+			window.removeEventListener("pagehide", handleLifecycleFlush);
+			flushSaveToServer({ keepalive: true });
 		};
 	});
 </script>
