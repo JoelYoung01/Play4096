@@ -15,6 +15,10 @@ export function load({ locals }) {
 				id: dbGame.id,
 				board: dbGame.board,
 				score: dbGame.score ?? 0,
+				seed: dbGame.seed ?? undefined,
+				rngState: dbGame.rngState ?? undefined,
+				moveCount: dbGame.moveCount ?? 0,
+				undoCooldownRemaining: dbGame.undoCooldownRemaining ?? 0,
 				lastUpdated: dbGame.updatedOn.getTime(),
 			};
 		}

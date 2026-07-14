@@ -10,6 +10,7 @@
 		PlusIcon,
 		RotateCcwIcon,
 		RotateCwIcon,
+		Undo2Icon,
 		XIcon,
 	} from "@lucide/svelte";
 	import { cubicOut } from "svelte/easing";
@@ -38,7 +39,7 @@
 
 	let game = $derived(gameState.currentGame);
 
-	let { animationIdle = true } = $props();
+	let { animationIdle = true, onUndo = undefined } = $props();
 
 	const GAME_OVER_DELAY = 600;
 	const GAME_WIN_DELAY = 400;
@@ -103,6 +104,21 @@
 		if (!game) return;
 		game.mirrorBoardVertically();
 	}
+
+	function handleUndo() {
+		onUndo?.();
+	}
+
+	let undoDisabled = $derived(!game?.canUndo || !animationIdle);
+	let undoTitle = $derived(
+		!game
+			? "Undo"
+			: game.canUndo
+				? "Undo last move"
+				: game.undoCooldownRemaining > 0
+					? `Undo available in ${game.undoCooldownRemaining} move${game.undoCooldownRemaining === 1 ? "" : "s"}`
+					: "Nothing to undo"
+	);
 </script>
 
 <!-- Header -->
@@ -174,6 +190,18 @@
 		{/snippet}
 	</Menu>
 	<div class="flex-1"></div>
+	<button
+		class="controls-btn bg-primary hover:bg-primary-dark relative disabled:cursor-not-allowed disabled:opacity-40"
+		onclick={handleUndo}
+		disabled={undoDisabled}
+		title={undoTitle}
+		aria-label={undoTitle}
+	>
+		<Undo2Icon size={18} />
+		{#if game && game.undoCooldownRemaining > 0}
+			<span class="cooldown-badge">{game.undoCooldownRemaining}</span>
+		{/if}
+	</button>
 	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateBoard}>
 		<RotateCwIcon size={18} />
 	</button>
@@ -196,7 +224,11 @@
 		<div class="overlay-content">
 			<h2>Game Over!</h2>
 			<p>Final Score: {game.score.toLocaleString()}</p>
-			<button class="overlay-btn" onclick={newGame}>Try Again</button>
+			{#if game.canUndo}
+				<button class="overlay-btn" onclick={handleUndo}>Undo Last Move</button>
+			{/if}
+			<button class="overlay-btn" class:secondary={game.canUndo} onclick={newGame}>Try Again</button
+			>
 		</div>
 	</div>
 {/if}
@@ -217,6 +249,10 @@
 
 	.controls-btn {
 		@apply rounded-full p-2 text-white;
+	}
+
+	.cooldown-badge {
+		@apply absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-black/70 px-1 text-[10px] leading-none font-bold text-white;
 	}
 
 	.overlay {

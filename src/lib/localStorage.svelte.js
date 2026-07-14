@@ -3,13 +3,27 @@ import { LOCAL_STORAGE_BEST_SCORE, LOCAL_STORAGE_CURRENT_GAME } from "./constant
 
 /**
  * Save the game to local storage
- * @param {import("./types").GameState} game
+ * @param {import("./types").GameState & {
+ *   seed?: number;
+ *   rngState?: number;
+ *   moveCount?: number;
+ *   undoCooldownRemaining?: number;
+ * }} game
  */
-export function saveGame({ id, board, score }) {
+export function saveGame({ id, board, score, seed, rngState, moveCount, undoCooldownRemaining }) {
 	if (!browser) return;
 	localStorage.setItem(
 		LOCAL_STORAGE_CURRENT_GAME,
-		JSON.stringify({ id, board, score, lastUpdated: Date.now() })
+		JSON.stringify({
+			id,
+			board,
+			score,
+			seed,
+			rngState,
+			moveCount,
+			undoCooldownRemaining,
+			lastUpdated: Date.now(),
+		})
 	);
 }
 
