@@ -116,7 +116,7 @@
 </svelte:head>
 
 <main
-	class="game-container mx-auto mt-6 mb-[5rem] w-full max-w-lg px-4"
+	class="game-container mx-auto mt-6 mb-[8rem] w-full max-w-lg px-4"
 	style:color={page.data.theme?.primary}
 >
 	<div class="mb-3 flex items-center gap-2">
@@ -156,7 +156,7 @@
 			{speed}
 		/>
 
-		<div class="mt-2">
+		<div class="relative z-10 mt-2 pb-4">
 			<div class="mb-3 h-1.5 overflow-hidden rounded-full bg-gray-200">
 				<div
 					class="h-full rounded-full bg-[var(--color-primary)] transition-[width] duration-150"
