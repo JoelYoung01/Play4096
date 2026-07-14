@@ -11,7 +11,7 @@ export async function GET() {
 	try {
 		db.run(sql`SELECT 1`);
 		checks.database = "ok";
-	} catch (err) {
+	} catch {
 		checks.database = "error";
 		return json(
 			{
@@ -19,7 +19,7 @@ export async function GET() {
 				version: buildVersion,
 				checks,
 			},
-			{ status: 503 },
+			{ status: 503 }
 		);
 	}
 
