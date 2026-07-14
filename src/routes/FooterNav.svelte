@@ -1,13 +1,6 @@
 <script>
 	import { page } from "$app/state";
-	import {
-		Grid2x2Icon,
-		HouseIcon,
-		TrophyIcon,
-		HistoryIcon,
-		UserIcon,
-		SettingsIcon,
-	} from "@lucide/svelte";
+	import { Grid2x2Icon, HouseIcon, TrophyIcon, HistoryIcon, UserIcon } from "@lucide/svelte";
 
 	const navItems = [
 		{
@@ -25,10 +18,6 @@
 		{
 			icon: HistoryIcon,
 			href: "/replay",
-		},
-		{
-			icon: SettingsIcon,
-			href: "/settings",
 		},
 		{
 			icon: UserIcon,

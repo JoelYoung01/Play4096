@@ -9,12 +9,8 @@ export const DEFAULT_LUMINANCE_THRESHOLD = 0.7;
 export const TILE_SPAWN_DURATION = 100;
 export const TILE_MERGE_DURATION = 100;
 export const TILE_MOVE_DURATION_MS = 12;
-export const DEFAULT_TILE_ANIMATION_SPEED = 3;
-export const MIN_TILE_ANIMATION_SPEED = 0;
-export const MAX_TILE_ANIMATION_SPEED = 10;
 export const LOCAL_STORAGE_CURRENT_GAME = "play-4096.currentGame";
 export const LOCAL_STORAGE_BEST_SCORE = "play-4096.bestScore";
-export const LOCAL_STORAGE_USER_SETTINGS = "play-4096.userSettings";
 export const DEFAULT_WIN_TILE = 4096;
 
 export const USER_STATUS = {
