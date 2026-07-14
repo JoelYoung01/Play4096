@@ -4,7 +4,6 @@
 	import { getTileBackground, getTileColor } from "$lib/game.svelte.js";
 	import { defaultTheme } from "$lib/assets/themes.js";
 	import { TileAnimator } from "$lib/tileAnimator.js";
-	import { userSettings } from "$lib/userSettings.svelte.js";
 
 	import GameControls from "./GameControls.svelte";
 	import { gameState } from "../state.svelte.js";
@@ -31,7 +30,6 @@
 		onFrame: () => {
 			frame += 1;
 		},
-		getSpeed: () => userSettings.tileAnimationSpeed,
 	});
 
 	let animationIdle = $derived(!animating && pendingEvents.length === 0);

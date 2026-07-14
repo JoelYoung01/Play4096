@@ -6,7 +6,6 @@
 		TrophyIcon,
 		HistoryIcon,
 		UserIcon,
-		SettingsIcon,
 	} from "@lucide/svelte";
 
 	const navItems = [
@@ -25,10 +24,6 @@
 		{
 			icon: HistoryIcon,
 			href: "/replay",
-		},
-		{
-			icon: SettingsIcon,
-			href: "/settings",
 		},
 		{
 			icon: UserIcon,

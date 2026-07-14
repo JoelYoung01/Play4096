@@ -1,5 +1,9 @@
-import { DEFAULT_TILE_ANIMATION_SPEED, SPAWN_START_SCALE } from "./constants.js";
-import { getTileAnimationDurations } from "./animationSpeed.js";
+import {
+	SPAWN_START_SCALE,
+	TILE_MERGE_DURATION,
+	TILE_MOVE_DURATION_MS,
+	TILE_SPAWN_DURATION,
+} from "./constants.js";
 
 let nextTileId = 0;
 
@@ -35,9 +39,6 @@ export class TileAnimator {
 	/** @type {(() => void) | undefined} */
 	#onFrame;
 
-	/** @type {(() => number) | undefined} */
-	#getSpeed;
-
 	/** @type {Map<string, string>} */
 	#logicalMap = new Map();
 
@@ -46,11 +47,10 @@ export class TileAnimator {
 
 	#lastTimestamp = 0;
 
-	/** @param {{ onAnimatingChange?: (animating: boolean) => void, onFrame?: () => void, getSpeed?: () => number }} [options] */
+	/** @param {{ onAnimatingChange?: (animating: boolean) => void, onFrame?: () => void }} [options] */
 	constructor(options = {}) {
 		this.#onAnimatingChange = options.onAnimatingChange;
 		this.#onFrame = options.onFrame;
-		this.#getSpeed = options.getSpeed;
 	}
 
 	/**
@@ -222,42 +222,12 @@ export class TileAnimator {
 	}
 
 	#ensureAnimationRunning() {
-		const durations = getTileAnimationDurations(this.#getSpeed?.() ?? DEFAULT_TILE_ANIMATION_SPEED);
-
-		if (durations.instant) {
-			this.#completeInstantly();
-			return;
-		}
-
 		this.#setAnimating(true);
 
 		if (this.#animationFrame !== null) return;
 
 		this.#lastTimestamp = performance.now();
 		this.#animationFrame = requestAnimationFrame(this.#animate);
-	}
-
-	#completeInstantly() {
-		for (const tile of this.tiles) {
-			if (tile.hidden) continue;
-
-			if (tile.merging) {
-				tile.hidden = true;
-
-				if (tile.mergeSurvivorId) {
-					const survivor = this.tiles.find((entry) => entry.id === tile.mergeSurvivorId);
-					if (survivor && survivor.pendingMergeValue !== null) {
-						survivor.value = survivor.pendingMergeValue;
-						survivor.pendingMergeValue = null;
-					}
-				}
-			}
-		}
-
-		this.tiles = this.tiles.filter((tile) => !tile.hidden);
-		this.snapToTargets();
-		this.#setAnimating(false);
-		this.#onFrame?.();
 	}
 
 	#stopAnimation() {
@@ -269,14 +239,6 @@ export class TileAnimator {
 	}
 
 	#animate = (timestamp) => {
-		const durations = getTileAnimationDurations(this.#getSpeed?.() ?? DEFAULT_TILE_ANIMATION_SPEED);
-
-		if (durations.instant) {
-			this.#stopAnimation();
-			this.#completeInstantly();
-			return;
-		}
-
 		const dt = Math.min(timestamp - this.#lastTimestamp, 32);
 		this.#lastTimestamp = timestamp;
 
@@ -286,7 +248,7 @@ export class TileAnimator {
 			if (tile.hidden) continue;
 
 			if (tile.spawning) {
-				const nextAlpha = Math.min(1, tile.alpha + dt / durations.spawnDurationMs);
+				const nextAlpha = Math.min(1, tile.alpha + dt / TILE_SPAWN_DURATION);
 				tile.alpha = nextAlpha;
 				tile.scale = SPAWN_START_SCALE + (1 - SPAWN_START_SCALE) * nextAlpha;
 
@@ -299,7 +261,7 @@ export class TileAnimator {
 			}
 
 			if (tile.mergePop) {
-				tile.mergePopProgress += dt / durations.mergeDurationMs;
+				tile.mergePopProgress += dt / TILE_MERGE_DURATION;
 
 				if (tile.mergePopProgress >= 1) {
 					tile.mergePop = false;
@@ -319,7 +281,7 @@ export class TileAnimator {
 
 			if (distance > 0.001) {
 				allComplete = false;
-				const step = dt / durations.moveDurationMs;
+				const step = dt / TILE_MOVE_DURATION_MS;
 
 				if (step >= distance) {
 					tile.currentPos.x = tile.targetPos.x;

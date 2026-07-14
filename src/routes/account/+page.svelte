@@ -10,7 +10,6 @@
 		CrownIcon,
 		MailIcon,
 		LockIcon,
-		SettingsIcon,
 	} from "@lucide/svelte";
 	import { USER_LEVELS } from "$lib/constants";
 	import ProBadge from "$lib/components/ProBadge.svelte";
@@ -107,12 +106,6 @@
 	{/if}
 
 	<div class="flex flex-col gap-2">
-		<Btn class="flex w-60 gap-2" href="/settings">
-			<div class="flex flex-1/6 items-center justify-end">
-				<SettingsIcon size={18} />
-			</div>
-			<div class="flex-5/6 text-start">Game Settings</div>
-		</Btn>
 		<Btn class="flex w-60 gap-2" href="/account/edit-details">
 			<div class="flex flex-1/6 items-center justify-end">
 				<PencilIcon size={18} />
