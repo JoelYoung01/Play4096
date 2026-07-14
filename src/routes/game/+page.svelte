@@ -191,10 +191,7 @@
 		flushSaveToServer({ keepalive: true });
 	}
 
-	/**
-	 * @param {Event} _event
-	 */
-	function handleVisibilityChange(_event) {
+	function handleVisibilityChange() {
 		if (document.visibilityState === "hidden") {
 			handleLifecycleFlush();
 		}
