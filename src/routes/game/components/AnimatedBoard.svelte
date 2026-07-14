@@ -17,6 +17,8 @@
 	 *   pendingEvents?: import("$lib/types").GameEvent[],
 	 *   popEvent: () => import("$lib/types").GameEvent | undefined,
 	 *   onUndo?: () => void,
+	 *   onSetCheckpoint?: () => void | Promise<void>,
+	 *   onRestoreCheckpoint?: () => void | Promise<void>,
 	 *   game?: import("$lib/game.svelte.js").Game | null,
 	 *   showControls?: boolean,
 	 *   speed?: number,
@@ -27,6 +29,8 @@
 		pendingEvents = [],
 		popEvent,
 		onUndo = undefined,
+		onSetCheckpoint = undefined,
+		onRestoreCheckpoint = undefined,
 		game: gameProp = undefined,
 		showControls = true,
 		speed = 1,
@@ -181,6 +185,22 @@
 	}
 
 	/**
+	 * Clear pending animations then restore from checkpoint
+	 */
+	async function handleRestoreCheckpoint() {
+		pendingEvents.splice(0, pendingEvents.length);
+		await onRestoreCheckpoint?.();
+
+		const current = gameProp !== undefined ? gameProp : gameState.currentGame;
+		if (current) {
+			animator.syncFromBoard(current.board);
+			boardSignature = JSON.stringify(current.board);
+			syncedGame = current;
+			frame += 1;
+		}
+	}
+
+	/**
 	 * Force visual resync from the current game board (used by replay reset/scrub)
 	 */
 	export function syncBoard() {
@@ -194,7 +214,12 @@
 </script>
 
 {#if showControls}
-	<GameControls {animationIdle} onUndo={handleUndo} />
+	<GameControls
+		{animationIdle}
+		onUndo={handleUndo}
+		{onSetCheckpoint}
+		onRestoreCheckpoint={handleRestoreCheckpoint}
+	/>
 {/if}
 
 <div class="board-container" bind:this={boardContainer}>

@@ -1,3 +1,5 @@
+import { USER_LEVELS } from "$lib/constants.js";
+import { getActiveCheckpoint } from "$lib/server/checkpoint";
 import { getCurrentGame, saveScore } from "$lib/server/game";
 import { getUserProfile } from "$lib/server/user.js";
 import { fail } from "@sveltejs/kit";
@@ -6,13 +8,15 @@ import { fail } from "@sveltejs/kit";
 export function load({ locals }) {
 	let user = null;
 	let dbGame = null;
+	let hasCheckpoint = false;
 
 	if (locals.user) {
 		user = getUserProfile(locals.user.id);
 		dbGame = getCurrentGame(locals.user.id);
 		if (dbGame) {
+			const gameId = dbGame.id;
 			dbGame = {
-				id: dbGame.id,
+				id: gameId,
 				board: dbGame.board,
 				score: dbGame.score ?? 0,
 				seed: dbGame.seed ?? undefined,
@@ -22,6 +26,10 @@ export function load({ locals }) {
 				moves: dbGame.moves ?? null,
 				lastUpdated: dbGame.updatedOn.getTime(),
 			};
+
+			if (user?.level === USER_LEVELS.PRO) {
+				hasCheckpoint = !!getActiveCheckpoint(locals.user.id, gameId);
+			}
 		}
 	}
 
@@ -29,6 +37,7 @@ export function load({ locals }) {
 		user,
 		/** @type {import("$lib/types").GameState & { lastUpdated: number } | null} */
 		dbGame,
+		hasCheckpoint,
 	};
 }
 

@@ -197,6 +197,90 @@
 		}
 	}
 
+	/**
+	 * Ensure the current game has a persisted id before checkpoint ops
+	 * @returns {Promise<string | null>}
+	 */
+	async function ensurePersistedGameId() {
+		const game = gameState.currentGame;
+		if (!game || !page.data.user) return null;
+
+		await flushSaveToServer();
+		if (game.id) return game.id;
+
+		await saveGameToServer(game);
+		return game.id ?? null;
+	}
+
+	/**
+	 * Capture the current board as the active checkpoint for this run
+	 */
+	async function handleSetCheckpoint() {
+		const game = gameState.currentGame;
+		if (!game || !page.data.user) return;
+
+		const gameId = await ensurePersistedGameId();
+		if (!gameId) {
+			console.error("Unable to set checkpoint: game is not saved");
+			return;
+		}
+
+		const snapshot = game.json();
+		try {
+			const response = await fetch("/api/game/checkpoint", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					gameId,
+					board: snapshot.board,
+					score: snapshot.score,
+					seed: snapshot.seed,
+					rngState: snapshot.rngState,
+					moveCount: snapshot.moveCount,
+					undoCooldownRemaining: snapshot.undoCooldownRemaining,
+					won: snapshot.won,
+				}),
+			});
+			const result = await response.json();
+			if (!response.ok || !result.success) {
+				throw new Error(result.error || "Failed to set checkpoint");
+			}
+			gameState.hasCheckpoint = true;
+		} catch (error) {
+			console.error("Failed to set checkpoint:", error);
+		}
+	}
+
+	/**
+	 * Restore the latest active checkpoint into the current game
+	 */
+	async function handleRestoreCheckpoint() {
+		const game = gameState.currentGame;
+		if (!game?.id || !page.data.user) return;
+
+		try {
+			const response = await fetch("/api/game/checkpoint/restore", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ gameId: game.id }),
+			});
+			const result = await response.json();
+			if (!response.ok || !result.success || !result.game) {
+				throw new Error(result.error || "Failed to restore checkpoint");
+			}
+
+			gameState.currentGame = new Game({
+				id: result.game.id,
+				initialState: result.game,
+			});
+			gameState.hasCheckpoint = true;
+			localSaveGame(gameState.currentGame.json());
+			queueMicrotask(() => flushSaveToServer());
+		} catch (error) {
+			console.error("Failed to restore checkpoint:", error);
+		}
+	}
+
 	// Update best score and save board to localstorage
 	$effect(() => {
 		if (!gameState.currentGame) return;
@@ -309,6 +393,7 @@
 
 	// Setup listeners on mount
 	onMount(() => {
+		gameState.hasCheckpoint = !!data.hasCheckpoint;
 		tryLoadGame();
 
 		window.addEventListener("keydown", handleKeydown);
@@ -368,7 +453,12 @@
 	ontouchend={handleTouchEnd}
 >
 	<!-- Game Board -->
-	<AnimatedBoard {pendingEvents} {popEvent} />
+	<AnimatedBoard
+		{pendingEvents}
+		{popEvent}
+		onSetCheckpoint={handleSetCheckpoint}
+		onRestoreCheckpoint={handleRestoreCheckpoint}
+	/>
 
 	<!-- Instructions -->
 	<div class="text-center text-sm" style:color={page.data.theme?.textLight}>
