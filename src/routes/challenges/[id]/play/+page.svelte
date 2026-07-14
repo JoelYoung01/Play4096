@@ -23,7 +23,6 @@
 	let result = $state(/** @type {'won' | 'lost' | null} */ (null));
 	let remainingMs = $state(0);
 	let submitting = $state(false);
-	let now = $state(Date.now());
 
 	/** @type {HTMLFormElement | null} */
 	let completeForm = $state(null);
@@ -200,9 +199,8 @@
 		let timer = null;
 		if (isTime) {
 			timer = setInterval(() => {
-				now = Date.now();
 				const durationMs = challenge.params.durationSec * 1000;
-				remainingMs = Math.max(0, durationMs - (now - data.run.startedOn));
+				remainingMs = Math.max(0, durationMs - (Date.now() - data.run.startedOn));
 				checkOutcome();
 			}, 200);
 		}
