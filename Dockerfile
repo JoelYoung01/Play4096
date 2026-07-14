@@ -33,7 +33,10 @@ COPY drizzle.config.js ./drizzle.config.js
 COPY ./drizzle ./drizzle
 COPY ./build ./build
 COPY ./src ./src
+COPY ./scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
+
+RUN chmod +x ./scripts/docker-entrypoint.sh
 
 EXPOSE 3000
 EXPOSE 3001
-CMD [ "pnpm", "start" ]
+CMD ["./scripts/docker-entrypoint.sh"]

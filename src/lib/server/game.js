@@ -54,7 +54,14 @@ export async function saveGame(game) {
 		await db
 			.update(table.game)
 			.set({
-				...game,
+				board: game.board,
+				score: game.score,
+				won: game.won,
+				complete: game.complete,
+				seed: game.seed ?? null,
+				rngState: game.rngState ?? null,
+				moveCount: game.moveCount ?? 0,
+				undoCooldownRemaining: game.undoCooldownRemaining ?? 0,
 				completedOn,
 				updatedOn: new Date(),
 			})
@@ -66,12 +73,18 @@ export async function saveGame(game) {
 		const newGame = db
 			.insert(table.game)
 			.values({
-				...game,
 				id: crypto.randomUUID(),
-				createdOn: new Date(),
-				updatedOn: new Date(),
+				playerId: game.playerId,
+				board: game.board,
+				score: game.score,
 				won: game.won,
 				complete: game.complete,
+				seed: game.seed ?? null,
+				rngState: game.rngState ?? null,
+				moveCount: game.moveCount ?? 0,
+				undoCooldownRemaining: game.undoCooldownRemaining ?? 0,
+				createdOn: new Date(),
+				updatedOn: new Date(),
 			})
 			.returning({ id: table.game.id })
 			.get();
