@@ -47,10 +47,23 @@ export class TileAnimator {
 
 	#lastTimestamp = 0;
 
-	/** @param {{ onAnimatingChange?: (animating: boolean) => void, onFrame?: () => void }} [options] */
+	/** Playback speed multiplier (1 = normal). Higher values shorten animation durations. */
+	#speed = 1;
+
+	/** @param {{ onAnimatingChange?: (animating: boolean) => void, onFrame?: () => void, speed?: number }} [options] */
 	constructor(options = {}) {
 		this.#onAnimatingChange = options.onAnimatingChange;
 		this.#onFrame = options.onFrame;
+		if (options.speed != null) {
+			this.#speed = Math.max(0.25, options.speed);
+		}
+	}
+
+	/**
+	 * @param {number} speed
+	 */
+	setSpeed(speed) {
+		this.#speed = Math.max(0.25, speed);
 	}
 
 	/**
@@ -239,8 +252,9 @@ export class TileAnimator {
 	}
 
 	#animate = (timestamp) => {
-		const dt = Math.min(timestamp - this.#lastTimestamp, 32);
+		const rawDt = Math.min(timestamp - this.#lastTimestamp, 32);
 		this.#lastTimestamp = timestamp;
+		const dt = rawDt * this.#speed;
 
 		let allComplete = true;
 

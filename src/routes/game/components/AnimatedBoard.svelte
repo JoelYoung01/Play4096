@@ -12,9 +12,28 @@
 	const PADDING = 10;
 	const TILE_BORDER_RADIUS = 6;
 
-	let { pendingEvents = [], popEvent, onUndo = undefined } = $props();
+	/**
+	 * @type {{
+	 *   pendingEvents?: import("$lib/types").GameEvent[],
+	 *   popEvent: () => import("$lib/types").GameEvent | undefined,
+	 *   onUndo?: () => void,
+	 *   game?: import("$lib/game.svelte.js").Game | null,
+	 *   showControls?: boolean,
+	 *   speed?: number,
+	 *   animationIdle?: boolean,
+	 * }}
+	 */
+	let {
+		pendingEvents = [],
+		popEvent,
+		onUndo = undefined,
+		game: gameProp = undefined,
+		showControls = true,
+		speed = 1,
+		animationIdle = $bindable(true),
+	} = $props();
 
-	let game = $derived(gameState.currentGame);
+	let game = $derived(gameProp !== undefined ? gameProp : gameState.currentGame);
 	let theme = $derived(page.data.theme || defaultTheme);
 
 	/** @type {HTMLDivElement | null} */
@@ -30,9 +49,17 @@
 		onFrame: () => {
 			frame += 1;
 		},
+		speed,
 	});
 
-	let animationIdle = $derived(!animating && pendingEvents.length === 0);
+	$effect(() => {
+		animator.setSpeed(speed);
+	});
+
+	$effect(() => {
+		animationIdle = !animating && pendingEvents.length === 0;
+	});
+
 	let renderTiles = $derived.by(() => {
 		frame;
 		return animator.tiles;
@@ -152,9 +179,23 @@
 		frame += 1;
 		onUndo?.();
 	}
+
+	/**
+	 * Force visual resync from the current game board (used by replay reset/scrub)
+	 */
+	export function syncBoard() {
+		if (!game) return;
+		pendingEvents.splice(0, pendingEvents.length);
+		animator.syncFromBoard(game.board);
+		boardSignature = JSON.stringify(game.board);
+		syncedGame = game;
+		frame += 1;
+	}
 </script>
 
-<GameControls {animationIdle} onUndo={handleUndo} />
+{#if showControls}
+	<GameControls {animationIdle} onUndo={handleUndo} />
+{/if}
 
 <div class="board-container" bind:this={boardContainer}>
 	<div

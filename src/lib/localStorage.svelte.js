@@ -8,9 +8,19 @@ import { LOCAL_STORAGE_BEST_SCORE, LOCAL_STORAGE_CURRENT_GAME } from "./constant
  *   rngState?: number;
  *   moveCount?: number;
  *   undoCooldownRemaining?: number;
+ *   moves?: number[] | null;
  * }} game
  */
-export function saveGame({ id, board, score, seed, rngState, moveCount, undoCooldownRemaining }) {
+export function saveGame({
+	id,
+	board,
+	score,
+	seed,
+	rngState,
+	moveCount,
+	undoCooldownRemaining,
+	moves,
+}) {
 	if (!browser) return;
 	localStorage.setItem(
 		LOCAL_STORAGE_CURRENT_GAME,
@@ -22,6 +32,7 @@ export function saveGame({ id, board, score, seed, rngState, moveCount, undoCool
 			rngState,
 			moveCount,
 			undoCooldownRemaining,
+			moves: moves ?? null,
 			lastUpdated: Date.now(),
 		})
 	);
