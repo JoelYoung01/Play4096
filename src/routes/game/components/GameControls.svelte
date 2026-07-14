@@ -4,6 +4,7 @@
 	import { Game } from "$lib/game.svelte.js";
 	import { gameState } from "../state.svelte.js";
 	import {
+		LoaderCircleIcon,
 		MenuIcon,
 		MoveHorizontalIcon,
 		MoveVerticalIcon,
@@ -47,6 +48,8 @@
 	let showGameOver = $state(false);
 	let showWin = $state(false);
 	let openMenu = $state(false);
+	/** True while waiting for move animations to finish before applying undo */
+	let undoQueued = $state(false);
 
 	$effect(() => {
 		if (!game) return;
@@ -74,9 +77,25 @@
 		}
 	});
 
+	// Flush a queued undo once animations settle (or drop it if undo is no longer available)
+	$effect(() => {
+		if (!undoQueued) return;
+
+		if (!game?.canUndo) {
+			undoQueued = false;
+			return;
+		}
+
+		if (!animationIdle) return;
+
+		undoQueued = false;
+		onUndo?.();
+	});
+
 	function newGame() {
 		showGameOver = false;
 		showWin = false;
+		undoQueued = false;
 		gameState.currentGame = new Game();
 	}
 
@@ -106,18 +125,28 @@
 	}
 
 	function handleUndo() {
+		if (!game?.canUndo || undoQueued) return;
+
+		if (!animationIdle) {
+			undoQueued = true;
+			return;
+		}
+
 		onUndo?.();
 	}
 
-	let undoDisabled = $derived(!game?.canUndo || !animationIdle);
+	// Only disable for real undo unavailability (cooldown / no snapshot) — not mid-animation
+	let undoDisabled = $derived(!game?.canUndo);
 	let undoTitle = $derived(
 		!game
 			? "Undo"
-			: game.canUndo
-				? "Undo last move"
-				: game.undoCooldownRemaining > 0
-					? `Undo available in ${game.undoCooldownRemaining} move${game.undoCooldownRemaining === 1 ? "" : "s"}`
-					: "Nothing to undo"
+			: undoQueued
+				? "Undoing…"
+				: game.canUndo
+					? "Undo last move"
+					: game.undoCooldownRemaining > 0
+						? `Undo available in ${game.undoCooldownRemaining} move${game.undoCooldownRemaining === 1 ? "" : "s"}`
+						: "Nothing to undo"
 	);
 </script>
 
@@ -196,9 +225,14 @@
 		disabled={undoDisabled}
 		title={undoTitle}
 		aria-label={undoTitle}
+		aria-busy={undoQueued}
 	>
-		<Undo2Icon size={18} />
-		{#if game && game.undoCooldownRemaining > 0}
+		{#if undoQueued}
+			<LoaderCircleIcon class="animate-spin" size={18} />
+		{:else}
+			<Undo2Icon size={18} />
+		{/if}
+		{#if game && game.undoCooldownRemaining > 0 && !undoQueued}
 			<span class="cooldown-badge">{game.undoCooldownRemaining}</span>
 		{/if}
 	</button>
