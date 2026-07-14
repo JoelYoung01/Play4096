@@ -7,7 +7,9 @@ import {
 	DIRECTIONS,
 	EVENT_TYPES,
 	TWO_TO_FOUR_RATIO,
+	UNDO_COOLDOWN_MOVES,
 } from "./constants";
+import { createSeededRng, generateSeed } from "./rng.js";
 
 /**
  * Get the background color for a tile using current theme
@@ -99,6 +101,7 @@ export class Game {
 		boardSize = DEFAULT_BOARD_SIZE,
 		startingTiles = DEFAULT_STARTING_TILES,
 		initialState = null,
+		seed = undefined,
 	} = {}) {
 		this.id = id ?? initialState?.id;
 		this.boardSize = boardSize;
@@ -113,8 +116,40 @@ export class Game {
 		this.gameOver = $state(false);
 		this.won = $state(false);
 		this.canContinue = $state(false);
+		/** @type {number} */
+		this.moveCount = $state(0);
+		/** @type {number} Moves remaining before undo is available again */
+		this.undoCooldownRemaining = $state(0);
+		/** @type {boolean} Reactive flag — true when a one-step undo snapshot exists */
+		this.hasUndoSnapshot = $state(false);
+
+		const resolvedSeed = seed ?? initialState?.seed ?? generateSeed();
+		/** @type {number} */
+		this.seed = resolvedSeed;
+		this.rng = createSeededRng(resolvedSeed);
+		if (initialState?.rngState != null) {
+			this.rng.state = initialState.rngState;
+		}
+
+		/**
+		 * Snapshot of board/score/rng used for a single-step undo.
+		 * Not persisted across reloads.
+		 * @type {import("./types").GameUndoSnapshot | null}
+		 */
+		this.#previousState = null;
 
 		this.initialize(initialState, startingTiles);
+	}
+
+	/** @type {import("./types").GameUndoSnapshot | null} */
+	#previousState;
+
+	/**
+	 * Whether the player can undo the last move right now
+	 * @returns {boolean}
+	 */
+	get canUndo() {
+		return this.hasUndoSnapshot && this.undoCooldownRemaining === 0;
 	}
 
 	/**
@@ -128,9 +163,11 @@ export class Game {
 
 		// Load initial state if provided
 		if (initialState) {
-			this.board = initialState.board;
+			this.board = initialState.board.map((row) => [...row]);
 			this.score = initialState.score;
 			this.boardSize = this.board.length;
+			this.moveCount = initialState.moveCount ?? 0;
+			this.undoCooldownRemaining = initialState.undoCooldownRemaining ?? 0;
 			this.checkWin();
 			this.checkGameOver();
 
@@ -145,6 +182,29 @@ export class Game {
 				this.addNewTile();
 			}
 		}
+	}
+
+	/**
+	 * Undo the last successful move, if allowed.
+	 * After undoing, undo stays disabled until UNDO_COOLDOWN_MOVES new moves.
+	 * @returns {boolean} Whether an undo was applied
+	 */
+	undo() {
+		if (!this.canUndo || !this.#previousState) return false;
+
+		const snapshot = this.#previousState;
+		this.board = snapshot.board.map((row) => [...row]);
+		this.score = snapshot.score;
+		this.gameOver = snapshot.gameOver;
+		this.won = snapshot.won;
+		this.canContinue = snapshot.canContinue;
+		this.rng.state = snapshot.rngState;
+		this.moveCount = snapshot.moveCount;
+		this.#previousState = null;
+		this.hasUndoSnapshot = false;
+		this.undoCooldownRemaining = UNDO_COOLDOWN_MOVES;
+
+		return true;
 	}
 
 	/**
@@ -165,12 +225,12 @@ export class Game {
 	}
 
 	/**
-	 * Add a new tile (2 or 4) to a random empty position
+	 * Add a new tile (2 or 4) to a seeded-random empty position
 	 * @param {number | null} valueInput
 	 */
 	addNewTile(valueInput = null) {
 		const type = EVENT_TYPES.SPAWN;
-		const newTileValue = valueInput ?? (Math.random() < TWO_TO_FOUR_RATIO ? 2 : 4);
+		const newTileValue = valueInput ?? (this.rng.next() < TWO_TO_FOUR_RATIO ? 2 : 4);
 
 		// Find all empty cells
 		const emptyCells = [];
@@ -184,8 +244,8 @@ export class Game {
 
 		if (emptyCells.length === 0) return null;
 
-		// Pick a random empty cell and set it to the new tile value
-		const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+		// Pick a seeded-random empty cell and set it to the new tile value
+		const randomCell = emptyCells[this.rng.nextInt(emptyCells.length)];
 		this.board[randomCell.row][randomCell.col] = newTileValue;
 
 		// Generate the spawn event
@@ -302,6 +362,17 @@ export class Game {
 		 */
 		let moveQueue = [];
 
+		// Snapshot before any merges so score/board/rng stay undoable
+		const undoSnapshot = {
+			board: this.board.map((row) => [...row]),
+			score: this.score,
+			gameOver: this.gameOver,
+			won: this.won,
+			canContinue: this.canContinue,
+			rngState: this.rng.state,
+			moveCount: this.moveCount,
+		};
+
 		const newBoard = this.board.map((row) => [...row]);
 
 		if (direction === DIRECTIONS.LEFT) {
@@ -407,9 +478,16 @@ export class Game {
 
 		// If a move was made, do some stuff
 		if (moveQueue.length > 0) {
+			this.#previousState = undoSnapshot;
+			this.hasUndoSnapshot = true;
+
 			// Add a snapshot of the board to the move queue and update state
 			moveQueue.push({ snapshot: newBoard });
 			this.board = newBoard;
+			this.moveCount += 1;
+			if (this.undoCooldownRemaining > 0) {
+				this.undoCooldownRemaining -= 1;
+			}
 
 			// Update win state and add events
 			if (!this.won && this.checkWin()) {
@@ -496,6 +574,10 @@ export class Game {
 			score: this.score,
 			complete: this.gameOver,
 			won: this.won,
+			seed: this.seed,
+			rngState: this.rng.state,
+			moveCount: this.moveCount,
+			undoCooldownRemaining: this.undoCooldownRemaining,
 		};
 	}
 }

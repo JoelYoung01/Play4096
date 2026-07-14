@@ -136,7 +136,7 @@
 			if (result.id) {
 				game.id = result.id;
 				// Refresh local snapshot so id survives reloads before the next effect tick
-				localSaveGame(game);
+				localSaveGame(game.json());
 			}
 		} catch (error) {
 			console.error("Failed to save game to server:", error);
@@ -200,7 +200,7 @@
 	// Update best score and save board to localstorage
 	$effect(() => {
 		if (!gameState.currentGame) return;
-		localSaveGame(gameState.currentGame);
+		localSaveGame(gameState.currentGame.json());
 		if (gameState.currentGame.score > gameState.bestScore) {
 			gameState.bestScore = gameState.currentGame.score;
 		}

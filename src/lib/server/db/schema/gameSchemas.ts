@@ -15,4 +15,8 @@ export const game = sqliteTable("game", {
 	won: integer("won", { mode: "boolean" }).notNull(),
 	complete: integer("complete", { mode: "boolean" }).notNull(),
 	board: text("board", { mode: "json" }).$type<number[][]>().notNull(),
+	seed: integer("seed"),
+	rngState: integer("rng_state"),
+	moveCount: integer("move_count").notNull().default(0),
+	undoCooldownRemaining: integer("undo_cooldown_remaining").notNull().default(0),
 });

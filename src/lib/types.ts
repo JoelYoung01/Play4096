@@ -49,12 +49,27 @@ export interface GameOptions {
   boardSize?: number;
   startingTiles?: number;
   initialState?: GameState | null;
+  seed?: number;
+}
+
+export interface GameUndoSnapshot {
+  board: number[][];
+  score: number;
+  gameOver: boolean;
+  won: boolean;
+  canContinue: boolean;
+  rngState: number;
+  moveCount: number;
 }
 
 export interface GameState {
   id?: string;
   board: number[][];
   score: number;
+  seed?: number;
+  rngState?: number;
+  moveCount?: number;
+  undoCooldownRemaining?: number;
 }
 
 export interface GameSaveData {
@@ -64,4 +79,8 @@ export interface GameSaveData {
   board: number[][];
   won: boolean;
   complete: boolean;
+  seed?: number;
+  rngState?: number;
+  moveCount?: number;
+  undoCooldownRemaining?: number;
 }

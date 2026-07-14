@@ -12,7 +12,7 @@
 	const PADDING = 10;
 	const TILE_BORDER_RADIUS = 6;
 
-	let { pendingEvents = [], popEvent } = $props();
+	let { pendingEvents = [], popEvent, onUndo = undefined } = $props();
 
 	let game = $derived(gameState.currentGame);
 	let theme = $derived(page.data.theme || defaultTheme);
@@ -136,9 +136,25 @@
 	onDestroy(() => {
 		animator.destroy();
 	});
+
+	/**
+	 * Undo last move and reset the board visuals immediately
+	 */
+	function handleUndo() {
+		if (!game?.canUndo) return;
+
+		pendingEvents.splice(0, pendingEvents.length);
+		const undid = game.undo();
+		if (!undid) return;
+
+		animator.syncFromBoard(game.board);
+		boardSignature = JSON.stringify(game.board);
+		frame += 1;
+		onUndo?.();
+	}
 </script>
 
-<GameControls {animationIdle} />
+<GameControls {animationIdle} onUndo={handleUndo} />
 
 <div class="board-container" bind:this={boardContainer}>
 	<div
