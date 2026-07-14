@@ -3,14 +3,7 @@
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
 	import { clearBestScore, clearGame } from "$lib/localStorage.svelte";
-	import {
-		LogOutIcon,
-		PencilIcon,
-		TrashIcon,
-		CrownIcon,
-		MailIcon,
-		LockIcon,
-	} from "@lucide/svelte";
+	import { LogOutIcon, PencilIcon, TrashIcon, CrownIcon, MailIcon, LockIcon } from "@lucide/svelte";
 	import { USER_LEVELS } from "$lib/constants";
 	import ProBadge from "$lib/components/ProBadge.svelte";
 	import { gameState } from "../game/state.svelte";
