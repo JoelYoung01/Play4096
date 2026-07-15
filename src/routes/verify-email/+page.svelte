@@ -42,7 +42,7 @@
 	}
 </script>
 
-<main class="mx-auto mt-10 w-full max-w-md p-8">
+<main class="mx-auto mt-10 w-full max-w-md p-8 pb-28">
 	<Alert type="success" duration={SUCCESS_DURATION} bind:show={showSuccess}>
 		<div>Email verified successfully</div>
 	</Alert>

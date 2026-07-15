@@ -35,7 +35,7 @@
 	let { children } = $props();
 </script>
 
-<main class="mx-auto mt-10 w-full max-w-lg p-8">
+<main class="mx-auto mt-10 w-full max-w-lg p-8 pb-28">
 	<h1 class=" text-3xl font-bold text-[var(--color-primary)]">Leaderboard</h1>
 	<p class="mb-4 text-sm text-gray-500">Time frame leaderboards are coming soon!</p>
 	<div class="mb-3 flex items-center gap-2">

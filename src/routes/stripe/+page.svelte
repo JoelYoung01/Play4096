@@ -69,7 +69,7 @@
 	/>
 </svelte:head>
 
-<div class="h-full overflow-y-auto" style:background-color={page.data.theme?.background}>
+<div class="pb-28" style:background-color={page.data.theme?.background}>
 	<div class="flex items-center justify-center">
 		<div class="mb-[4rem] w-full max-w-md rounded-lg bg-white p-8 text-center">
 			<div class="mb-8">

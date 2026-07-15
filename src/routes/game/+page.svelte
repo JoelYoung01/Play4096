@@ -492,17 +492,11 @@
 <style lang="postcss">
 	.game-container {
 		max-width: 500px;
-		min-height: 100vh;
+		min-height: 100%;
 		font-weight: 500;
 		margin: 0 auto;
 		padding: 20px;
-		user-select: none;
+		padding-bottom: 5rem;
 		color: var(--text-color);
-
-		/* Prevent browser gestures and scrolling */
-		touch-action: manipulation;
-		overscroll-behavior: contain;
-		-webkit-overflow-scrolling: touch;
-		-webkit-overscroll-behavior: contain;
 	}
 </style>

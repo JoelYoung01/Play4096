@@ -49,10 +49,7 @@
 	/>
 </svelte:head>
 
-<main
-	class="mx-auto h-full w-full max-w-lg overflow-y-auto px-4 pt-8 pb-28"
-	style:color={page.data.theme?.text}
->
+<main class="mx-auto w-full max-w-lg px-4 pt-8 pb-28" style:color={page.data.theme?.text}>
 	<h1 class="text-3xl font-bold text-[var(--color-primary)]">Daily Challenges</h1>
 	<p class="mb-5 text-sm text-gray-500">
 		A fresh challenge every midnight Central Time ({data.timezone.replace("_", " ")}).

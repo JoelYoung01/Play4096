@@ -8,7 +8,7 @@
 	let { form } = $props();
 </script>
 
-<main class="mx-auto mt-10 w-full max-w-md p-8">
+<main class="mx-auto mt-10 w-full max-w-md p-8 pb-28">
 	<h1 class="text-3xl font-bold">Forgot your password?</h1>
 	<div class="mb-1 flex items-center gap-2">
 		Contact Support:
