@@ -9,7 +9,7 @@
 </script>
 
 <main
-	class="min-h-screen p-8 leading-relaxed"
+	class="min-h-screen p-8 pb-28 leading-relaxed"
 	style:background-color={page.data.theme?.background}
 	style:color={page.data.theme?.text}
 >

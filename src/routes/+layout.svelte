@@ -89,9 +89,8 @@
 
 <style lang="postcss">
 	.app-container {
-		overflow: hidden;
 		position: relative;
-		height: 100dvh;
+		min-height: 100dvh;
 		background-color: var(--color-background);
 	}
 </style>

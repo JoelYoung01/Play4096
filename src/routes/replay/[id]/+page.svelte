@@ -116,7 +116,7 @@
 </svelte:head>
 
 <main
-	class="mx-auto h-full w-full max-w-lg overflow-y-auto px-4 pt-6 pb-28"
+	class="mx-auto w-full max-w-lg px-4 pt-6 pb-28"
 	style:color={page.data.theme?.primary}
 >
 	<div class="mb-3 flex items-center gap-2">

@@ -6,7 +6,7 @@
 	let { form } = $props();
 </script>
 
-<main class="mx-auto mt-10 w-full max-w-md p-8" style:color={page.data.theme?.primary}>
+<main class="mx-auto mt-10 w-full max-w-md p-8 pb-28" style:color={page.data.theme?.primary}>
 	<h1 class="mb-3 text-3xl font-bold">Login / Create Account</h1>
 	<form method="post" action="?/login" use:enhance>
 		<label class="mb-2 block">

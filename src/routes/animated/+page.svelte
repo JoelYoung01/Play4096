@@ -194,17 +194,12 @@
 <style lang="postcss">
 	.game-container {
 		max-width: 500px;
-		min-height: 100vh;
+		min-height: 100%;
 		margin: 0 auto;
 		padding: 20px;
+		padding-bottom: 5rem;
 		font-family: "Arial", sans-serif;
-		user-select: none;
 		color: var(--text-color);
-		/* Prevent browser gestures and scrolling */
-		touch-action: manipulation;
-		-webkit-overflow-scrolling: touch;
-		overscroll-behavior: contain;
-		-webkit-overscroll-behavior: contain;
 	}
 
 	.game-title {

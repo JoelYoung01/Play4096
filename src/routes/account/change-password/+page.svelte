@@ -27,7 +27,7 @@
 	}
 </script>
 
-<main class="mx-auto mt-10 w-full max-w-md p-8">
+<main class="mx-auto mt-10 w-full max-w-md p-8 pb-28">
 	{#if success}
 		<Alert type="success" duration={3000}>
 			<div>Password updated successfully</div>

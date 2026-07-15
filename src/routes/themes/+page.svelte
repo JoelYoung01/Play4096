@@ -51,7 +51,7 @@
 </svelte:head>
 
 <main
-	class="mx-auto h-full w-full max-w-lg overflow-y-auto px-4 pt-10 pb-28"
+	class="mx-auto w-full max-w-lg px-4 pt-10 pb-28"
 	style:color={page.data.theme?.textLight ?? page.data.theme?.text}
 >
 	<h1 class="mb-1 text-3xl font-bold" style:color={page.data.theme?.primary}>Themes</h1>

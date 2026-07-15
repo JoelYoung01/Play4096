@@ -38,7 +38,7 @@
 </svelte:head>
 
 <main
-	class="mx-auto h-full w-full max-w-lg overflow-y-auto px-6 pt-10 pb-28"
+	class="mx-auto w-full max-w-lg px-6 pt-10 pb-28"
 	style:color={page.data.theme?.primary}
 >
 	<h1 class="text-3xl font-bold">Game History</h1>

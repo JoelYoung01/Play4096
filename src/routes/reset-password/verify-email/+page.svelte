@@ -24,7 +24,7 @@
 	}
 </script>
 
-<main class="mx-auto mt-10 w-full max-w-md p-8">
+<main class="mx-auto mt-10 w-full max-w-md p-8 pb-28">
 	<h1 class="text-3xl font-bold">Verify Email</h1>
 	<p class="mb-2 text-sm text-gray-500">We've sent a 8-digit code to {data.email}.</p>
 	<form method="post" use:enhance={onSubmit}>

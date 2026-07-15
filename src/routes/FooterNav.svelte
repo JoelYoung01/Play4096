@@ -44,7 +44,7 @@
 </script>
 
 <nav
-	class="absolute bottom-1 left-1/2 flex -translate-x-1/2 justify-between gap-2 rounded-full p-1 sm:bottom-10"
+	class="fixed bottom-1 left-1/2 z-50 flex -translate-x-1/2 justify-between gap-2 rounded-full p-1 sm:bottom-10"
 	style:background-color={page.data.theme?.boardBackground}
 	style:color={page.data.theme?.text}
 >

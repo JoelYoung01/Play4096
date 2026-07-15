@@ -343,9 +343,6 @@
 		margin: 0 auto;
 		padding: 20px;
 		padding-bottom: 5rem;
-		user-select: none;
-		touch-action: manipulation;
-		overscroll-behavior: contain;
 	}
 
 	.overlay {

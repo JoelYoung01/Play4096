@@ -11,6 +11,6 @@
 	});
 </script>
 
-<div class="play-surface h-full">
+<div class="play-surface">
 	{@render children?.()}
 </div>
