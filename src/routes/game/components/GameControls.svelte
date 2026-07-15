@@ -50,6 +50,7 @@
 	 * @typedef {Object} Props
 	 * @property {boolean} [animationIdle]
 	 * @property {(() => void) | undefined} [onUndo]
+	 * @property {(() => void | Promise<void>) | undefined} [onNewGame]
 	 * @property {(() => void | Promise<void>) | undefined} [onSetCheckpoint]
 	 * @property {(() => void | Promise<void>) | undefined} [onRestoreCheckpoint]
 	 */
@@ -58,6 +59,7 @@
 	let {
 		animationIdle = true,
 		onUndo = undefined,
+		onNewGame = undefined,
 		onSetCheckpoint = undefined,
 		onRestoreCheckpoint = undefined,
 	} = $props();
@@ -135,6 +137,10 @@
 		showWin = false;
 		undoQueued = false;
 		restoreQueued = false;
+		if (onNewGame) {
+			void onNewGame();
+			return;
+		}
 		gameState.hasCheckpoint = false;
 		gameState.currentGame = new Game();
 	}

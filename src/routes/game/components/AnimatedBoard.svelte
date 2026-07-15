@@ -19,6 +19,7 @@
 	 *   pendingEvents?: import("$lib/types").GameEvent[],
 	 *   popEvent: () => import("$lib/types").GameEvent | undefined,
 	 *   onUndo?: () => void,
+	 *   onNewGame?: () => void | Promise<void>,
 	 *   onSetCheckpoint?: () => void | Promise<void>,
 	 *   onRestoreCheckpoint?: () => void | Promise<void>,
 	 *   game?: import("$lib/game.svelte.js").Game | null,
@@ -31,6 +32,7 @@
 		pendingEvents = [],
 		popEvent,
 		onUndo = undefined,
+		onNewGame = undefined,
 		onSetCheckpoint = undefined,
 		onRestoreCheckpoint = undefined,
 		game: gameProp = undefined,
@@ -219,6 +221,7 @@
 	<GameControls
 		{animationIdle}
 		onUndo={handleUndo}
+		{onNewGame}
 		{onSetCheckpoint}
 		onRestoreCheckpoint={handleRestoreCheckpoint}
 	/>

@@ -607,7 +607,9 @@ export class Game {
 	}
 
 	/**
-	 * Get the game as a JSON object for saving to the db
+	 * Get the game as a JSON object for saving to the db.
+	 * Note: `complete` mirrors board-full game over only. A win with Keep Playing
+	 * stays incomplete until game over or the run is finalized (e.g. New Game).
 	 * @returns {Omit<import("./types").GameSaveData, "playerId">}
 	 */
 	json() {

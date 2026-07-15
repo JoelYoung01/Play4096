@@ -1,6 +1,6 @@
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
-import { and, desc, eq, not, sql } from "drizzle-orm";
+import { and, desc, eq, ne, not, sql } from "drizzle-orm";
 import assert from "node:assert";
 
 /**
@@ -47,6 +47,35 @@ export function gameHasReplay(game) {
 		game.moves.length > 0 &&
 		game.moves.length === game.moveCount
 	);
+}
+
+/**
+ * Mark every other in-progress game for this user as complete.
+ *
+ * A player should only have one current (incomplete) run. Older incomplete rows
+ * (e.g. abandoned after Keep Playing → New Game) would otherwise never appear
+ * in history, which requires complete === true.
+ *
+ * Performance: one UPDATE by player_id; usually matches 0 rows.
+ *
+ * @param {string} userId
+ * @param {string} exceptGameId The game that should remain in progress
+ */
+export async function abandonOtherInProgressGames(userId, exceptGameId) {
+	await db
+		.update(table.game)
+		.set({
+			complete: true,
+			// Preserve win-time stamp when present; otherwise use last play time
+			completedOn: sql`coalesce(${table.game.completedOn}, ${table.game.updatedOn})`,
+		})
+		.where(
+			and(
+				eq(table.game.playerId, userId),
+				not(eq(table.game.complete, true)),
+				ne(table.game.id, exceptGameId)
+			)
+		);
 }
 
 /**
@@ -123,6 +152,11 @@ export async function saveGame(game) {
 			.get();
 
 		game.id = newGame.id;
+	}
+
+	// Keep a single current run: any other incomplete rows become history
+	if (game.id && !game.complete) {
+		await abandonOtherInProgressGames(game.playerId, game.id);
 	}
 
 	return game.id;
