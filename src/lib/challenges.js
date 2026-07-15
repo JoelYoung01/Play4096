@@ -7,7 +7,6 @@ import { createSeededRng } from "$lib/rng.js";
 
 export const CHALLENGE_TYPES = {
 	TIME: "time",
-	CLEAR: "clear",
 	RECOVERY: "recovery",
 };
 
@@ -30,14 +29,6 @@ export const CHALLENGE_TIMEZONE = "America/Chicago";
  */
 
 /**
- * @typedef {Object} ClearChallengeParams
- * @property {number} [seed]
- * @property {number[][]} board
- * @property {number} [maxFilled] Success when occupied cells ≤ this
- * @property {number} [clearPercent] Success when occupied ≤ ceil(initial * (1 - percent/100))
- */
-
-/**
  * @typedef {Object} RecoveryChallengeParams
  * @property {number} [seed]
  * @property {number[][]} board
@@ -51,13 +42,12 @@ export const CHALLENGE_TIMEZONE = "America/Chicago";
  * @property {string} title
  * @property {string} description
  * @property {string} difficulty
- * @property {TimeChallengeParams | ClearChallengeParams | RecoveryChallengeParams} params
+ * @property {TimeChallengeParams | RecoveryChallengeParams} params
  */
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 
 const TIME_TITLES = ["Score Sprint", "Point Rush", "Clock Race", "Quick Score"];
-const CLEAR_TITLES = ["Space Maker", "Board Cleaner", "Merge Down", "Clear Path"];
 const RECOVERY_TITLES = ["Near Miss", "Comeback", "High Wire", "Last Stand"];
 
 /**
@@ -197,7 +187,7 @@ export function generateDailyChallengeDefinition(dateStr) {
 	const seed = hashSeed(`play4096-daily-${dateStr}`);
 	const rng = createSeededRng(seed);
 
-	const typeRoll = rng.nextInt(3);
+	const typeRoll = rng.nextInt(2);
 	const difficulty = DIFFICULTIES[rng.nextInt(DIFFICULTIES.length)];
 
 	if (typeRoll === 0) {
@@ -223,37 +213,6 @@ export function generateDailyChallengeDefinition(dateStr) {
 				seed,
 				targetScore,
 				durationSec,
-			},
-		};
-	}
-
-	if (typeRoll === 1) {
-		const fill =
-			difficulty === "Easy"
-				? 10 + rng.nextInt(3)
-				: difficulty === "Medium"
-					? 12 + rng.nextInt(3)
-					: 14 + rng.nextInt(2);
-		const pool =
-			difficulty === "Easy"
-				? [2, 2, 4, 4, 8, 8, 16]
-				: difficulty === "Medium"
-					? [2, 4, 4, 8, 8, 16, 16, 32]
-					: [2, 4, 8, 16, 16, 32, 32, 64, 128];
-		const board = boardFromValues(rng, pickValues(rng, fill, pool));
-		const maxFilled = difficulty === "Easy" ? 4 : difficulty === "Medium" ? 3 : 2;
-		const title = CLEAR_TITLES[rng.nextInt(CLEAR_TITLES.length)];
-
-		return {
-			id,
-			type: CHALLENGE_TYPES.CLEAR,
-			title,
-			description: `This board is crowded. Merge until ${maxFilled} or fewer tiles remain.`,
-			difficulty,
-			params: {
-				seed,
-				board,
-				maxFilled,
 			},
 		};
 	}
@@ -298,21 +257,6 @@ export function countFilledCells(board) {
 }
 
 /**
- * Resolve the clear-board filled-cell target from challenge params.
- * @param {ClearChallengeParams} params
- */
-export function resolveClearTarget(params) {
-	const initialFilled = countFilledCells(params.board);
-	if (typeof params.maxFilled === "number") {
-		return params.maxFilled;
-	}
-	if (typeof params.clearPercent === "number") {
-		return Math.ceil(initialFilled * (1 - params.clearPercent / 100));
-	}
-	return 0;
-}
-
-/**
  * Evaluate whether a challenge run has succeeded or failed.
  *
  * @param {ChallengeDefinition} challenge
@@ -333,14 +277,6 @@ export function evaluateChallenge(challenge, state) {
 		const elapsedMs = state.elapsedMs ?? 0;
 		if (state.score >= targetScore) return "won";
 		if (elapsedMs >= durationSec * 1000) return "lost";
-		if (state.gameOver) return "lost";
-		return "ongoing";
-	}
-
-	if (type === CHALLENGE_TYPES.CLEAR) {
-		const clearParams = /** @type {ClearChallengeParams} */ (params);
-		const target = resolveClearTarget(clearParams);
-		if (countFilledCells(state.board) <= target) return "won";
 		if (state.gameOver) return "lost";
 		return "ongoing";
 	}
@@ -366,12 +302,6 @@ export function formatChallengeObjective(challenge) {
 	if (type === CHALLENGE_TYPES.TIME) {
 		const p = /** @type {TimeChallengeParams} */ (params);
 		return `Score ${p.targetScore.toLocaleString()} in ${p.durationSec}s`;
-	}
-
-	if (type === CHALLENGE_TYPES.CLEAR) {
-		const p = /** @type {ClearChallengeParams} */ (params);
-		const target = resolveClearTarget(p);
-		return `Reduce to ${target} or fewer tiles`;
 	}
 
 	if (type === CHALLENGE_TYPES.RECOVERY) {

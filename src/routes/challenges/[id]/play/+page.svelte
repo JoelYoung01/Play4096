@@ -11,7 +11,6 @@
 		CHALLENGE_TYPES,
 		countFilledCells,
 		evaluateChallenge,
-		resolveClearTarget,
 	} from "$lib/challenges.js";
 	import Btn from "$lib/components/Btn.svelte";
 	import AnimatedBoard from "../../../game/components/AnimatedBoard.svelte";
@@ -32,14 +31,8 @@
 
 	const challenge = $derived(data.challenge);
 	const isTime = $derived(challenge.type === CHALLENGE_TYPES.TIME);
-	const isClear = $derived(challenge.type === CHALLENGE_TYPES.CLEAR);
 	const isRecovery = $derived(challenge.type === CHALLENGE_TYPES.RECOVERY);
 
-	const clearTarget = $derived(
-		isClear ? resolveClearTarget(/** @type {any} */ (challenge.params)) : null
-	);
-
-	const filledCells = $derived(game ? countFilledCells(game.board) : 0);
 	const winTile = $derived(
 		isRecovery && "winTile" in challenge.params ? challenge.params.winTile : null
 	);
@@ -285,15 +278,6 @@
 					>
 						<div class="text-xs font-bold uppercase">Time</div>
 						<div class="font-bold">{formatTime(remainingMs)}</div>
-					</div>
-				{:else if isClear}
-					<div
-						class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
-						style:background-color={page.data.theme?.boardBackground}
-						style:color={page.data.theme?.textDark}
-					>
-						<div class="text-xs font-bold uppercase">Tiles</div>
-						<div class="font-bold">{filledCells}/{clearTarget}</div>
 					</div>
 				{/if}
 			{/if}

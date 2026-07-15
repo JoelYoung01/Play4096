@@ -44,7 +44,11 @@ export function ensureDailyChallenge(dateStr = getChallengeDateString()) {
 		.where(eq(table.dailyChallenge.id, id))
 		.get();
 
-	if (existing) {
+	// Legacy clear-board challenges are removed; regenerate that day as time/recovery.
+	if (existing && existing.type === "clear") {
+		db.delete(table.challengeRun).where(eq(table.challengeRun.challengeId, id)).run();
+		db.delete(table.dailyChallenge).where(eq(table.dailyChallenge.id, id)).run();
+	} else if (existing) {
 		return rowToChallenge(existing);
 	}
 

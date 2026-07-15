@@ -45,7 +45,6 @@
 	 */
 	function typeLabel(type) {
 		if (type === CHALLENGE_TYPES.TIME) return "Time";
-		if (type === CHALLENGE_TYPES.CLEAR) return "Clear";
 		return "Recovery";
 	}
 </script>

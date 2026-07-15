@@ -85,6 +85,13 @@
       "when": 1784077000000,
       "tag": "0011_abandon_orphan_in_progress_games",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1784078000000,
+      "tag": "0012_remove_clear_challenges",
+      "breakpoints": true
     }
   ]
 }
