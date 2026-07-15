@@ -1,45 +1,143 @@
 @import "tailwindcss";
 
 @import "./lib/assets/fonts/Nunito/Nunito.css";
+@import "tw-animate-css";
+@import "shadcn-svelte/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-	--background-color: #fbf8ef;
-	--board-bg: #bbaea0;
-	--primary-color: #ec995b;
-	--primary-color-dark: #e88f4f;
-	--text-color: #776e65;
+	/* Defaults match Classic; runtime theme bridge overwrites these */
+	--background: #fbf8ef;
+	--foreground: #776e65;
+	--card: #fbf8ef;
+	--card-foreground: #776e65;
+	--popover: #ffffff;
+	--popover-foreground: #776e65;
+	--primary: #e88f4f;
+	--primary-foreground: #f9f6f2;
+	--secondary: #c2d4b0;
+	--secondary-foreground: #3e5641;
+	--muted: #eee4d9;
+	--muted-foreground: #776e65;
+	--accent: #ece0c8;
+	--accent-foreground: #776e65;
+	--destructive: #e95937;
+	--border: #cdc1b4;
+	--input: #cdc1b4;
+	--ring: #e88f4f;
+	--radius: 0.5rem;
 
-	font-family: "Nunito", "Arial", sans-serif;
+	--chart-1: #e88f4f;
+	--chart-2: #c2d4b0;
+	--chart-3: #f2b179;
+	--chart-4: #5eda92;
+	--chart-5: #bbada0;
+
+	--sidebar: #fbf8ef;
+	--sidebar-foreground: #776e65;
+	--sidebar-primary: #e88f4f;
+	--sidebar-primary-foreground: #f9f6f2;
+	--sidebar-accent: #eee4d9;
+	--sidebar-accent-foreground: #776e65;
+	--sidebar-border: #cdc1b4;
+	--sidebar-ring: #e88f4f;
+
+	/* Game / board tokens (also set at runtime) */
+	--color-board-background: #bbada0;
+	--color-empty-tile: #cdc1b4;
+	--color-text-light: #776e65;
+	--color-text-dark: #f9f6f2;
+	--color-unknown-tile: #5f5f5f;
+	--text-scale: 3;
+	--luminance-threshold: 0.7;
+	--movement-speed: 50ms;
+
+	/* Temporary dual-publish aliases during migration */
+	--background-color: var(--background);
+	--board-bg: var(--color-board-background);
+	--primary-color: var(--primary);
+	--primary-color-dark: var(--primary);
+	--text-color: var(--foreground);
+	--color-primary: var(--primary);
+	--color-primary-dark: var(--primary);
+	--color-primary-darker: var(--primary);
+	--color-secondary: var(--secondary);
+	--color-secondary-dark: var(--secondary);
+	--color-secondary-darker: var(--secondary);
+	--color-background: var(--background);
 }
 
-button {
-	cursor: pointer;
+.dark {
+	/* Dark values come from runtime theme bridge when Dark preset is active */
+}
 
-	&:disabled {
+@theme inline {
+	--font-sans: "Nunito", "Arial", sans-serif;
+	--font-heading: "Nunito", "Arial", sans-serif;
+	--color-sidebar-ring: var(--sidebar-ring);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar: var(--sidebar);
+	--color-chart-5: var(--chart-5);
+	--color-chart-4: var(--chart-4);
+	--color-chart-3: var(--chart-3);
+	--color-chart-2: var(--chart-2);
+	--color-chart-1: var(--chart-1);
+	--color-ring: var(--ring);
+	--color-input: var(--input);
+	--color-border: var(--border);
+	--color-destructive: var(--destructive);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-accent: var(--accent);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-muted: var(--muted);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-secondary: var(--secondary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-primary: var(--primary);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-popover: var(--popover);
+	--color-card-foreground: var(--card-foreground);
+	--color-card: var(--card);
+	--color-foreground: var(--foreground);
+	--color-background: var(--background);
+	--radius-sm: calc(var(--radius) * 0.6);
+	--radius-md: calc(var(--radius) * 0.8);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.4);
+	--radius-2xl: calc(var(--radius) * 1.8);
+	--radius-3xl: calc(var(--radius) * 2.2);
+	--radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+	html {
+		@apply font-sans;
+	}
+	button {
+		cursor: pointer;
+	}
+	button:disabled {
 		cursor: default;
 		opacity: 0.5;
 	}
-}
-
-.bg-background {
-	background-color: var(--background-color);
-}
-
-.bg-board-bg {
-	background-color: var(--board-bg);
-}
-.bg-primary {
-	background-color: var(--primary-color);
-}
-.hover\:bg-primary-dark:hover {
-	background-color: var(--primary-color-dark);
-}
-
-input:disabled,
-textarea:disabled,
-select:disabled {
-	background-color: #f3f3f3;
-	color: #b5b5b5;
-	opacity: 1;
-	cursor: default;
+	input:disabled,
+	textarea:disabled,
+	select:disabled {
+		background-color: #f3f3f3;
+		color: #b5b5b5;
+		opacity: 1;
+		cursor: default;
+	}
 }
