@@ -3,7 +3,15 @@
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
 	import { clearBestScore, clearGame } from "$lib/localStorage.svelte";
-	import { LogOutIcon, PencilIcon, TrashIcon, CrownIcon, MailIcon, LockIcon } from "@lucide/svelte";
+	import {
+		LogOutIcon,
+		PencilIcon,
+		TrashIcon,
+		CrownIcon,
+		MailIcon,
+		LockIcon,
+		PaletteIcon,
+	} from "@lucide/svelte";
 	import { USER_LEVELS } from "$lib/constants";
 	import ProBadge from "$lib/components/ProBadge.svelte";
 	import { gameState } from "../game/state.svelte";
@@ -104,6 +112,12 @@
 				<PencilIcon size={18} />
 			</div>
 			<div class="flex-5/6 text-start">Edit Profile</div>
+		</Btn>
+		<Btn class="flex w-60 gap-2" href="/themes">
+			<div class="flex flex-1/6 items-center justify-end">
+				<PaletteIcon size={18} />
+			</div>
+			<div class="flex-5/6 text-start">Themes</div>
 		</Btn>
 		{#if data.userProfile.level !== USER_LEVELS.PRO}
 			<a

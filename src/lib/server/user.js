@@ -28,6 +28,7 @@ export function getUserProfile(userId) {
 			displayName: table.userProfile.displayName,
 			avatarUrl: table.userProfile.avatarUrl,
 			bestScore: table.userProfile.bestScore,
+			themeId: table.userProfile.themeId,
 		})
 		.from(table.user)
 		.innerJoin(table.userProfile, eq(table.user.id, table.userProfile.userId))

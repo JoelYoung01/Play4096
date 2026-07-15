@@ -20,4 +20,5 @@ export const userProfile = sqliteTable("user_profile", {
 	displayName: text("display_name"),
 	avatarUrl: text("avatar_url"),
 	bestScore: integer("best_score"),
+	themeId: text("theme_id").notNull().default("classic"),
 });

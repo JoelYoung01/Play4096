@@ -37,7 +37,7 @@
 		},
 		{
 			name: "Exclusive themes and customization",
-			implemented: false,
+			implemented: true,
 		},
 		{
 			name: "Cross-platform games",

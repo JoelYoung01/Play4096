@@ -1,5 +1,10 @@
 import { browser } from "$app/environment";
-import { LOCAL_STORAGE_BEST_SCORE, LOCAL_STORAGE_CURRENT_GAME } from "./constants";
+import {
+	LOCAL_STORAGE_BEST_SCORE,
+	LOCAL_STORAGE_CURRENT_GAME,
+	LOCAL_STORAGE_THEME,
+} from "./constants";
+import { getTheme } from "./assets/themes";
 
 /**
  * Save the game to local storage
@@ -78,4 +83,30 @@ export function loadBestScore() {
 export function clearBestScore() {
 	if (!browser) return;
 	localStorage.removeItem(LOCAL_STORAGE_BEST_SCORE);
+}
+
+/**
+ * Persist selected theme id locally (guest / cache fallback)
+ * @param {string} themeId
+ */
+export function saveThemeId(themeId) {
+	if (!browser) return;
+	localStorage.setItem(LOCAL_STORAGE_THEME, themeId);
+}
+
+/**
+ * @returns {string | null}
+ */
+export function loadThemeId() {
+	if (!browser) return null;
+	const id = localStorage.getItem(LOCAL_STORAGE_THEME);
+	if (id && getTheme(id).id === id) {
+		return id;
+	}
+	return null;
+}
+
+export function clearThemeId() {
+	if (!browser) return;
+	localStorage.removeItem(LOCAL_STORAGE_THEME);
 }

@@ -1,8 +1,5 @@
-import { defaultTheme } from "$lib/assets/themes";
-
 /** @type {import("./$types").LayoutLoad} */
-export function load() {
-	return {
-		theme: defaultTheme,
-	};
+export function load({ data }) {
+	// Pass through server-resolved theme data (theme object + picker metadata)
+	return data;
 }

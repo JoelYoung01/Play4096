@@ -4,8 +4,16 @@
 	import { page } from "$app/state";
 	import FooterNav from "./FooterNav.svelte";
 	import Seo from "./Seo.svelte";
+	import { saveThemeId } from "$lib/localStorage.svelte";
 
 	let { children } = $props();
+
+	// Keep localStorage in sync with the resolved server theme
+	$effect(() => {
+		if (page.data.themeId) {
+			saveThemeId(page.data.themeId);
+		}
+	});
 
 	/**
 	 * Utility function to darken a color
