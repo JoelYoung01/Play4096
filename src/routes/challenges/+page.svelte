@@ -1,7 +1,7 @@
 <script>
 	import { page } from "$app/state";
-	import Btn from "$lib/components/Btn.svelte";
 	import { CHALLENGE_RUN_STATUS, formatChallengeTypeLabel } from "$lib/challenges.js";
+	import { Button } from "$lib/components/ui/button/index.js";
 	import { CrownIcon, ChevronLeftIcon, ChevronRightIcon } from "@lucide/svelte";
 
 	let { data } = $props();
@@ -49,9 +49,9 @@
 	/>
 </svelte:head>
 
-<main class="mx-auto w-full max-w-lg px-4 pt-8 pb-28" style:color={page.data.theme?.text}>
-	<h1 class="text-3xl font-bold text-[var(--color-primary)]">Daily Challenges</h1>
-	<p class="mb-5 text-sm text-gray-500">
+<main class="mx-auto w-full max-w-lg px-4 pt-8 pb-28 text-foreground">
+	<h1 class="text-3xl font-bold text-primary">Daily Challenges</h1>
+	<p class="mb-5 text-sm text-muted-foreground">
 		A fresh challenge every midnight Central Time ({data.timezone.replace("_", " ")}).
 	</p>
 
@@ -67,9 +67,9 @@
 				{formatChallengeTypeLabel(data.todayChallenge.type)} · {data.todayChallenge.difficulty}
 			</p>
 			<p class="mb-3 text-sm opacity-90">{data.todayChallenge.objective}</p>
-			<Btn href="/challenges/{data.todayChallenge.id}" class="w-full justify-center">
+			<Button href="/challenges/{data.todayChallenge.id}" class="w-full justify-center">
 				{data.isPro ? "Play today's challenge" : "View today's challenge"}
-			</Btn>
+			</Button>
 		</section>
 	{/if}
 
@@ -82,33 +82,33 @@
 				Browse today's challenge below. Starting any challenge — and opening past days — requires
 				Pro.
 			</p>
-			<Btn href="/stripe" class="justify-center gap-2">
+			<Button href="/stripe" class="justify-center gap-2">
 				<CrownIcon size={20} />
 				Upgrade to Pro
-			</Btn>
+			</Button>
 		</div>
 	{/if}
 
 	<section class="calendar">
 		<div class="mb-3 flex items-center justify-between">
-			<a
+			<Button
 				href={data.calendar.prevHref}
-				class="inline-flex rounded-md p-2 hover:opacity-80"
-				style:background-color={page.data.theme?.boardBackground}
+				variant="secondary"
+				size="icon-sm"
 				aria-label="Previous month"
 			>
 				<ChevronLeftIcon size={20} />
-			</a>
+			</Button>
 			<h2 class="text-lg font-bold">{data.calendar.monthLabel}</h2>
 			{#if data.calendar.nextHref}
-				<a
+				<Button
 					href={data.calendar.nextHref}
-					class="inline-flex rounded-md p-2 hover:opacity-80"
-					style:background-color={page.data.theme?.boardBackground}
+					variant="secondary"
+					size="icon-sm"
 					aria-label="Next month"
 				>
 					<ChevronRightIcon size={20} />
-				</a>
+				</Button>
 			{:else}
 				<span class="inline-flex rounded-md p-2 opacity-30" aria-hidden="true">
 					<ChevronRightIcon size={20} />
@@ -117,7 +117,7 @@
 		</div>
 
 		<div
-			class="weekday-row mb-1 grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500"
+			class="weekday-row mb-1 grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted-foreground"
 		>
 			{#each weekdays as label, i (i)}
 				<span>{label}</span>
@@ -135,7 +135,7 @@
 			{#each data.calendar.days as day (day.dateStr)}
 				{#if day.isFuture}
 					<span
-						class="day future flex aspect-square flex-col items-center justify-center rounded-lg text-sm text-gray-400"
+						class="day future flex aspect-square flex-col items-center justify-center rounded-lg text-sm text-muted-foreground/60"
 					>
 						{day.day}
 					</span>
@@ -167,7 +167,7 @@
 			{/each}
 		</div>
 
-		<div class="mt-4 flex flex-wrap gap-3 text-xs text-gray-500">
+		<div class="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
 			<span class="inline-flex items-center gap-1.5">
 				<span class="swatch won-swatch"></span> Cleared
 			</span>
@@ -200,6 +200,6 @@
 	}
 
 	.day.today {
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 55%, transparent);
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 55%, transparent);
 	}
 </style>

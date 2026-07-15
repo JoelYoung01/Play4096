@@ -1,5 +1,8 @@
 <script>
 	import { ChevronLeftIcon, ChevronRightIcon } from "@lucide/svelte";
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import { Button } from "$lib/components/ui/button/index.js";
+	import * as Table from "$lib/components/ui/table/index.js";
 	import { LEADERBOARD_PERIODS } from "$lib/leaderboardPeriods.js";
 
 	/**
@@ -38,89 +41,99 @@
 
 <div class="mb-4 flex items-center justify-between gap-2">
 	{#if data.prevDate}
-		<a
+		<Button
 			href="{basePath}?date={data.prevDate}"
-			class="inline-flex items-center gap-0.5 rounded-md bg-gray-200 px-2 py-1.5 text-sm font-semibold text-gray-800 hover:bg-gray-300"
+			variant="secondary"
+			size="sm"
+			class="gap-0.5"
 			aria-label="Previous {periodNoun}"
 		>
 			<ChevronLeftIcon size={16} />
 			<span class="hidden sm:inline">Prev</span>
-		</a>
+		</Button>
 	{:else}
 		<span class="inline-flex w-14"></span>
 	{/if}
 
 	<div class="min-w-0 flex-1 text-center">
-		<p class="text-xs font-bold tracking-wide text-gray-500 uppercase">
+		<p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
 			{data.periodTitle} high scores
 		</p>
-		<p class="truncate text-sm font-semibold text-gray-800">{data.rangeLabel}</p>
+		<p class="truncate text-sm font-semibold text-foreground">{data.rangeLabel}</p>
 	</div>
 
 	{#if data.nextDate}
-		<a
+		<Button
 			href="{basePath}?date={data.nextDate}"
-			class="inline-flex items-center gap-0.5 rounded-md bg-gray-200 px-2 py-1.5 text-sm font-semibold text-gray-800 hover:bg-gray-300"
+			variant="secondary"
+			size="sm"
+			class="gap-0.5"
 			aria-label="Next {periodNoun}"
 		>
 			<span class="hidden sm:inline">Next</span>
 			<ChevronRightIcon size={16} />
-		</a>
+		</Button>
 	{:else}
 		<span class="inline-flex w-14"></span>
 	{/if}
 </div>
 
-<p class="mb-4 text-center text-xs text-gray-500">
+<p class="mb-4 text-center text-xs text-muted-foreground">
 	Best completed classic game score for this {periodNoun} (Central Time).
 </p>
 
 {#if data.leaderboard.length === 0}
-	<p class="rounded-lg bg-gray-100 px-4 py-8 text-center text-sm text-gray-600">
+	<p class="rounded-lg bg-muted px-4 py-8 text-center text-sm text-muted-foreground">
 		No completed scores for this {periodNoun} yet.
 	</p>
 {:else}
-	<table class="w-full border-collapse overflow-hidden rounded-lg">
-		<thead>
-			<tr class="bg-[var(--color-secondary)] text-gray-700">
-				<th class="px-4 py-3 text-left text-sm font-semibold tracking-wide uppercase">Rank</th>
-				<th class="px-4 py-3 text-left text-sm font-semibold tracking-wide uppercase">Username</th>
-				<th class="px-4 py-3 text-end text-sm font-semibold tracking-wide uppercase">Score</th>
-			</tr>
-		</thead>
-		<tbody>
+	<Table.Root class="overflow-hidden rounded-lg border">
+		<Table.Header>
+			<Table.Row class="bg-secondary hover:bg-secondary">
+				<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">Rank</Table.Head>
+				<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">
+					Username
+				</Table.Head>
+				<Table.Head class="px-4 py-3 text-end text-sm font-semibold tracking-wide uppercase">
+					Score
+				</Table.Head>
+			</Table.Row>
+		</Table.Header>
+		<Table.Body>
 			{#each data.leaderboard as leaderboardItem, index (leaderboardItem.id)}
-				<tr
-					class="transition-colors hover:bg-green-200 {index % 2 === 0
-						? 'bg-gray-200'
-						: 'bg-gray-100'}"
-				>
-					<td class="w-16 px-4 py-3 font-semibold text-gray-700"># {index + 1}</td>
-					<td class="px-4 py-3 font-medium text-gray-700">
+				<Table.Row class={index % 2 === 0 ? "bg-muted/60" : "bg-background"}>
+					<Table.Cell class="w-16 px-4 py-3 font-semibold text-foreground">
+						# {index + 1}
+					</Table.Cell>
+					<Table.Cell class="px-4 py-3 font-medium text-foreground">
 						{leaderboardItem.displayName || leaderboardItem.username}
 						{#if leaderboardItem.id === data.user?.id}
-							<span class="text-xs text-gray-500">You</span>
+							<Badge variant="secondary" class="ml-2">You</Badge>
 						{/if}
-					</td>
-					<td class="px-4 py-3 text-end font-bold text-gray-700">
+					</Table.Cell>
+					<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
 						{leaderboardItem.bestScore?.toLocaleString()}
-					</td>
-				</tr>
+					</Table.Cell>
+				</Table.Row>
 			{/each}
 			{#if showUserRow}
-				<tr class="bg-gray-200 transition-colors hover:bg-green-200">
-					<td colspan="3" class="text-center text-lg font-bold text-gray-700">...</td>
-				</tr>
-				<tr class="bg-gray-100 transition-colors hover:bg-green-200">
-					<td class="px-4 py-3 font-semibold text-gray-700"># {data.userRank}</td>
-					<td class="px-4 py-3 font-medium text-gray-700">
+				<Table.Row class="bg-muted/60">
+					<Table.Cell colspan={3} class="text-center text-lg font-bold text-muted-foreground">
+						...
+					</Table.Cell>
+				</Table.Row>
+				<Table.Row>
+					<Table.Cell class="px-4 py-3 font-semibold text-foreground">
+						# {data.userRank}
+					</Table.Cell>
+					<Table.Cell class="px-4 py-3 font-medium text-foreground">
 						{data.user?.displayName || data.user?.username}
-					</td>
-					<td class="px-4 py-3 text-end font-bold text-gray-700">
+					</Table.Cell>
+					<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
 						{data.userBestScore?.toLocaleString()}
-					</td>
-				</tr>
+					</Table.Cell>
+				</Table.Row>
 			{/if}
-		</tbody>
-	</table>
+		</Table.Body>
+	</Table.Root>
 {/if}

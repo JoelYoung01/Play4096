@@ -1,6 +1,7 @@
 <script>
-	import { page } from "$app/state";
 	import { CHALLENGE_TYPES } from "$lib/challenges.js";
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import * as Table from "$lib/components/ui/table/index.js";
 	import { ArrowLeftIcon } from "@lucide/svelte";
 
 	let { data } = $props();
@@ -34,19 +35,16 @@
 	<title>Leaderboard · {challenge.title} - Challenges - 4096</title>
 </svelte:head>
 
-<main
-	class="mx-auto h-full w-full max-w-lg overflow-y-auto px-4 pt-8 pb-28"
-	style:color={page.data.theme?.text}
->
+<main class="mx-auto h-full w-full max-w-lg overflow-y-auto px-4 pt-8 pb-28 text-foreground">
 	<a
 		href="/challenges/{challenge.id}"
-		class="mb-4 inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:underline"
+		class="mb-4 inline-flex items-center gap-1 text-sm text-primary hover:underline"
 	>
 		<ArrowLeftIcon size={16} />
 		Back to challenge
 	</a>
 
-	<p class="mb-1 text-xs font-bold tracking-wide text-gray-500 uppercase">
+	<p class="mb-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">
 		{#if data.isToday}
 			Today's challenge
 		{:else}
@@ -56,9 +54,9 @@
 			· {formatDate(data.dateStr)}
 		{/if}
 	</p>
-	<h1 class="text-3xl font-bold text-[var(--color-primary)]">Leaderboard</h1>
-	<p class="mb-1 text-base font-semibold text-gray-800">{challenge.title}</p>
-	<p class="mb-6 text-sm text-gray-500">
+	<h1 class="text-3xl font-bold text-primary">Leaderboard</h1>
+	<p class="mb-1 text-base font-semibold text-foreground">{challenge.title}</p>
+	<p class="mb-6 text-sm text-muted-foreground">
 		{challenge.difficulty} · {data.typeLabel}
 		{#if challenge.type === CHALLENGE_TYPES.RECOVERY}
 			· fewer moves ranks higher
@@ -66,58 +64,63 @@
 			· higher score ranks higher
 		{/if}
 	</p>
-	<p class="mb-6 text-sm text-gray-600">{data.overview}</p>
+	<p class="mb-6 text-sm text-muted-foreground">{data.overview}</p>
 
 	{#if data.leaderboard.length === 0}
-		<p class="rounded-lg bg-gray-100 px-4 py-8 text-center text-sm text-gray-600">
+		<p class="rounded-lg bg-muted px-4 py-8 text-center text-sm text-muted-foreground">
 			No clears yet for this day. Be the first on the board!
 		</p>
 	{:else}
-		<table class="w-full border-collapse overflow-hidden rounded-lg">
-			<thead>
-				<tr class="bg-[var(--color-secondary)] text-gray-700">
-					<th class="px-4 py-3 text-left text-sm font-semibold tracking-wide uppercase">Rank</th>
-					<th class="px-4 py-3 text-left text-sm font-semibold tracking-wide uppercase">Username</th
-					>
-					<th class="px-4 py-3 text-end text-sm font-semibold tracking-wide uppercase"
-						>{scoreLabel}</th
-					>
-				</tr>
-			</thead>
-			<tbody>
+		<Table.Root class="overflow-hidden rounded-lg border">
+			<Table.Header>
+				<Table.Row class="bg-secondary hover:bg-secondary">
+					<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">
+						Rank
+					</Table.Head>
+					<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">
+						Username
+					</Table.Head>
+					<Table.Head class="px-4 py-3 text-end text-sm font-semibold tracking-wide uppercase">
+						{scoreLabel}
+					</Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
 				{#each data.leaderboard as leaderboardItem, index (leaderboardItem.id)}
-					<tr
-						class="transition-colors hover:bg-green-200 {index % 2 === 0
-							? 'bg-gray-200'
-							: 'bg-gray-100'}"
-					>
-						<td class="w-16 px-4 py-3 font-semibold text-gray-700"># {index + 1}</td>
-						<td class="px-4 py-3 font-medium text-gray-700">
+					<Table.Row class={index % 2 === 0 ? "bg-muted/60" : "bg-background"}>
+						<Table.Cell class="w-16 px-4 py-3 font-semibold text-foreground">
+							# {index + 1}
+						</Table.Cell>
+						<Table.Cell class="px-4 py-3 font-medium text-foreground">
 							{leaderboardItem.displayName || leaderboardItem.username}
 							{#if leaderboardItem.id === data.user?.id}
-								<span class="text-xs text-gray-500">You</span>
+								<Badge variant="secondary" class="ml-2">You</Badge>
 							{/if}
-						</td>
-						<td class="px-4 py-3 text-end font-bold text-gray-700">
+						</Table.Cell>
+						<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
 							{leaderboardItem.bestScore?.toLocaleString()}
-						</td>
-					</tr>
+						</Table.Cell>
+					</Table.Row>
 				{/each}
 				{#if showUserRow}
-					<tr class="bg-gray-200 transition-colors hover:bg-green-200">
-						<td colspan="3" class="text-center text-lg font-bold text-gray-700">...</td>
-					</tr>
-					<tr class="bg-gray-100 transition-colors hover:bg-green-200">
-						<td class="px-4 py-3 font-semibold text-gray-700"># {data.userRank}</td>
-						<td class="px-4 py-3 font-medium text-gray-700">
+					<Table.Row class="bg-muted/60">
+						<Table.Cell colspan={3} class="text-center text-lg font-bold text-muted-foreground">
+							...
+						</Table.Cell>
+					</Table.Row>
+					<Table.Row>
+						<Table.Cell class="px-4 py-3 font-semibold text-foreground">
+							# {data.userRank}
+						</Table.Cell>
+						<Table.Cell class="px-4 py-3 font-medium text-foreground">
 							{data.user?.displayName || data.user?.username}
-						</td>
-						<td class="px-4 py-3 text-end font-bold text-gray-700">
+						</Table.Cell>
+						<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
 							{data.userBestScore?.toLocaleString()}
-						</td>
-					</tr>
+						</Table.Cell>
+					</Table.Row>
 				{/if}
-			</tbody>
-		</table>
+			</Table.Body>
+		</Table.Root>
 	{/if}
 </main>

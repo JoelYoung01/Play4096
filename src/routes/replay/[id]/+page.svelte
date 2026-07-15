@@ -1,7 +1,8 @@
 <script>
 	import { browser } from "$app/environment";
-	import { page } from "$app/state";
 	import { Game } from "$lib/game.svelte.js";
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import { Button } from "$lib/components/ui/button/index.js";
 	import AnimatedBoard from "../../game/components/AnimatedBoard.svelte";
 	import {
 		PauseIcon,
@@ -115,31 +116,26 @@
 	<meta name="description" content="Watch a move-by-move replay of a completed 4096 game." />
 </svelte:head>
 
-<main class="mx-auto w-full max-w-lg px-4 pt-6 pb-28" style:color={page.data.theme?.primary}>
+<main class="mx-auto w-full max-w-lg px-4 pt-6 pb-28 text-foreground">
 	<div class="mb-3 flex items-center gap-2">
-		<a
-			href="/replay"
-			class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
-		>
+		<Button href="/replay" variant="ghost" size="sm" class="gap-1">
 			<ChevronLeftIcon size={16} />
 			History
-		</a>
-		<span class="text-sm text-gray-400">·</span>
-		<span
-			class="rounded-full px-2 py-0.5 text-xs font-bold {data.replay.won
-				? 'bg-green-100 text-green-700'
-				: 'bg-red-100 text-red-700'}"
-		>
+		</Button>
+		<span class="text-sm text-muted-foreground">·</span>
+		<Badge variant={data.replay.won ? "secondary" : "destructive"}>
 			{data.replay.won ? "Win" : "Loss"}
-		</span>
-		<span class="text-sm font-semibold text-gray-700">
+		</Badge>
+		<span class="text-sm font-semibold text-foreground">
 			{data.replay.score.toLocaleString()} pts
 		</span>
 	</div>
 
 	{#if replayGame}
-		<div class="mb-2 flex items-center justify-between text-sm text-gray-600">
-			<span>Score: <strong class="text-gray-900">{replayGame.score.toLocaleString()}</strong></span>
+		<div class="mb-2 flex items-center justify-between text-sm text-muted-foreground">
+			<span
+				>Score: <strong class="text-foreground">{replayGame.score.toLocaleString()}</strong></span
+			>
 			<span>Move {progressLabel}</span>
 		</div>
 
@@ -154,54 +150,50 @@
 		/>
 
 		<div class="relative z-10 mt-2 pb-4">
-			<div class="mb-3 h-1.5 overflow-hidden rounded-full bg-gray-200">
+			<div class="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
 				<div
-					class="h-full rounded-full bg-[var(--color-primary)] transition-[width] duration-150"
+					class="h-full rounded-full bg-primary transition-[width] duration-150"
 					style:width={`${totalMoves ? (moveIndex / totalMoves) * 100 : 0}%`}
 				></div>
 			</div>
 
 			<div class="flex items-center justify-center gap-2">
-				<button
-					type="button"
-					class="inline-flex items-center justify-center rounded-md bg-gray-100 p-3 text-gray-800 hover:bg-gray-200"
+				<Button
+					variant="secondary"
+					size="icon-lg"
 					onclick={resetReplay}
 					aria-label="Restart replay"
 				>
 					<RotateCcwIcon size={20} />
-				</button>
+				</Button>
 
-				<button
-					type="button"
-					class="inline-flex items-center justify-center rounded-md bg-[var(--color-primary)] p-3 text-white"
-					onclick={togglePlay}
-					aria-label={playing ? "Pause" : "Play"}
-				>
+				<Button size="icon-lg" onclick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
 					{#if playing}
 						<PauseIcon size={22} />
 					{:else}
 						<PlayIcon size={22} />
 					{/if}
-				</button>
+				</Button>
 
-				<button
-					type="button"
-					class="inline-flex items-center justify-center rounded-md bg-gray-100 p-3 text-gray-800 hover:bg-gray-200 disabled:opacity-40"
+				<Button
+					variant="secondary"
+					size="icon-lg"
 					onclick={() => stepForward()}
 					disabled={playing || atEnd || !animationIdle}
 					aria-label="Step forward"
 				>
 					<SkipForwardIcon size={20} />
-				</button>
+				</Button>
 
-				<button
-					type="button"
-					class="min-w-[3.5rem] rounded-md bg-gray-100 px-3 py-3 text-sm font-bold text-gray-800 hover:bg-gray-200"
+				<Button
+					variant="secondary"
+					size="icon-lg"
+					class="min-w-[3.5rem] text-sm font-bold"
 					onclick={cycleSpeed}
 					aria-label="Playback speed"
 				>
 					{speed}x
-				</button>
+				</Button>
 			</div>
 		</div>
 	{/if}

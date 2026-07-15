@@ -1,7 +1,6 @@
 <script>
 	import { enhance } from "$app/forms";
 	import { invalidateAll } from "$app/navigation";
-	import { page } from "$app/state";
 	import ThemePreview from "$lib/components/ThemePreview.svelte";
 	import { saveThemeId } from "$lib/localStorage.svelte";
 	import { CrownIcon } from "@lucide/svelte";
@@ -50,12 +49,9 @@
 	<meta name="description" content="Choose a color theme for 4096." />
 </svelte:head>
 
-<main
-	class="mx-auto w-full max-w-lg px-4 pt-10 pb-28"
-	style:color={page.data.theme?.textLight ?? page.data.theme?.text}
->
-	<h1 class="mb-1 text-3xl font-bold" style:color={page.data.theme?.primary}>Themes</h1>
-	<p class="mb-6 text-sm opacity-80">
+<main class="mx-auto w-full max-w-lg px-4 pt-10 pb-28 text-foreground">
+	<h1 class="mb-1 text-3xl font-bold text-primary">Themes</h1>
+	<p class="mb-6 text-sm text-muted-foreground">
 		Pick a preset. The board and UI update immediately. Pro unlocks exclusive palettes.
 	</p>
 

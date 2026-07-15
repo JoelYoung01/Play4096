@@ -1,8 +1,10 @@
 <script>
 	import { enhance } from "$app/forms";
-	import Btn from "$lib/components/Btn.svelte";
 	import { goto } from "$app/navigation";
-	import Alert from "$lib/components/Alert.svelte";
+	import { Alert, AlertDescription } from "$lib/components/ui/alert/index.js";
+	import { Button } from "$lib/components/ui/button/index.js";
+	import { Input } from "$lib/components/ui/input/index.js";
+	import { Label } from "$lib/components/ui/label/index.js";
 
 	let { form } = $props();
 
@@ -29,38 +31,39 @@
 
 <main class="mx-auto mt-10 w-full max-w-md p-8 pb-28">
 	{#if success}
-		<Alert type="success" duration={3000}>
-			<div>Password updated successfully</div>
+		<Alert class="mb-4">
+			<AlertDescription>Password updated successfully</AlertDescription>
 		</Alert>
 	{/if}
 	<h2 class="mb-3 text-2xl font-bold">Change Password</h2>
 	<form class="mb-4 block" method="post" action="?/updatePassword" use:enhance={onSubmit}>
-		<label class="mb-2 block">
-			Current Password
-			<input
+		<div class="mb-2 grid gap-2">
+			<Label for="currentPassword">Current Password</Label>
+			<Input
+				id="currentPassword"
 				disabled={loading}
 				type="password"
 				name="currentPassword"
 				autocomplete="current-password"
-				class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			/>
-		</label>
-		<label class="mb-2 block">
-			New Password
-			<input
+		</div>
+		<div class="mb-2 grid gap-2">
+			<Label for="newPassword">New Password</Label>
+			<Input
+				id="newPassword"
 				disabled={loading}
 				type="password"
 				name="newPassword"
 				autocomplete="new-password"
-				class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			/>
-		</label>
+		</div>
 
-		<p class="text-red-500">{form?.message ?? ""}</p>
+		<p class="text-destructive">{form?.message ?? ""}</p>
 
 		<div class="flex justify-end gap-2">
-			<Btn class="px-4 py-2" href="/account">Cancel</Btn>
-			<Btn class="px-4 py-2" disabled={loading}>{loading ? "Updating..." : "Update Password"}</Btn>
+			<Button href="/account" variant="outline">Cancel</Button>
+			<Button type="submit" disabled={loading}>{loading ? "Updating..." : "Update Password"}</Button
+			>
 		</div>
 	</form>
 </main>

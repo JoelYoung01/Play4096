@@ -1,5 +1,7 @@
 <script>
 	import { USER_LEVELS } from "$lib/constants.js";
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import * as Table from "$lib/components/ui/table/index.js";
 
 	let { data } = $props();
 
@@ -10,48 +12,50 @@
 	);
 </script>
 
-<table class="w-full border-collapse overflow-hidden rounded-lg">
-	<thead>
-		<tr class="bg-[var(--color-secondary)] text-gray-700">
-			<th class="px-4 py-3 text-left text-sm font-semibold tracking-wide uppercase">Rank</th>
-			<th class="px-4 py-3 text-left text-sm font-semibold tracking-wide uppercase">Username</th>
-			<th class="px-4 py-3 text-end text-sm font-semibold tracking-wide uppercase">Score</th>
-		</tr>
-	</thead>
-	<tbody>
+<Table.Root class="overflow-hidden rounded-lg border">
+	<Table.Header>
+		<Table.Row class="bg-secondary hover:bg-secondary">
+			<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">Rank</Table.Head>
+			<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">
+				Username
+			</Table.Head>
+			<Table.Head class="px-4 py-3 text-end text-sm font-semibold tracking-wide uppercase">
+				Score
+			</Table.Head>
+		</Table.Row>
+	</Table.Header>
+	<Table.Body>
 		{#each data.leaderboard as leaderboardItem, index (index)}
-			<tr
-				class="transition-colors hover:bg-green-200 {index % 2 === 0
-					? 'bg-gray-200'
-					: 'bg-gray-100'}"
-			>
-				<td class="w-16 px-4 py-3 font-semibold text-gray-700"># {index + 1}</td>
-				<td class="px-4 py-3 font-medium text-gray-700"
-					>{leaderboardItem.displayName || leaderboardItem.username}
+			<Table.Row class={index % 2 === 0 ? "bg-muted/60" : "bg-background"}>
+				<Table.Cell class="w-16 px-4 py-3 font-semibold text-foreground"># {index + 1}</Table.Cell>
+				<Table.Cell class="px-4 py-3 font-medium text-foreground">
+					{leaderboardItem.displayName || leaderboardItem.username}
 					{#if leaderboardItem.id === data.user?.id}
-						<span class="text-xs text-gray-500">You</span>
+						<Badge variant="secondary" class="ml-2">You</Badge>
 					{/if}
-				</td>
-				<td class="px-4 py-3 text-end font-bold text-gray-700"
-					>{leaderboardItem.bestScore?.toLocaleString()}</td
-				>
-			</tr>
+				</Table.Cell>
+				<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
+					{leaderboardItem.bestScore?.toLocaleString()}
+				</Table.Cell>
+			</Table.Row>
 		{/each}
 		{#if showUserRow}
-			<tr class="bg-gray-200 transition-colors hover:bg-green-200">
-				<td colspan="3" class="text-center text-lg font-bold text-gray-700"> ... </td>
-			</tr>
-			<tr class="bg-gray-100 transition-colors hover:bg-green-200">
-				<td class="px-4 py-3 font-semibold text-gray-700">
+			<Table.Row class="bg-muted/60">
+				<Table.Cell colspan={3} class="text-center text-lg font-bold text-muted-foreground">
+					...
+				</Table.Cell>
+			</Table.Row>
+			<Table.Row>
+				<Table.Cell class="px-4 py-3 font-semibold text-foreground">
 					# {data.userRank}
-				</td>
-				<td class="px-4 py-3 font-medium text-gray-700">
+				</Table.Cell>
+				<Table.Cell class="px-4 py-3 font-medium text-foreground">
 					{data.user?.displayName || data.user?.username}
-				</td>
-				<td class="px-4 py-3 text-end font-bold text-gray-700">
-					{data.user?.bestScore || 0}
-				</td>
-			</tr>
+				</Table.Cell>
+				<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
+					{(data.user?.bestScore || 0).toLocaleString()}
+				</Table.Cell>
+			</Table.Row>
 		{/if}
-	</tbody>
-</table>
+	</Table.Body>
+</Table.Root>

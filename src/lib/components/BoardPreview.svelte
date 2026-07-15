@@ -126,7 +126,7 @@
 	}
 
 	.preview-board.selected {
-		outline: 3px solid var(--color-primary, #e88f4f);
+		outline: 3px solid var(--primary, #e88f4f);
 		outline-offset: 2px;
 	}
 
