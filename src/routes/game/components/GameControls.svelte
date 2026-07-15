@@ -1,9 +1,13 @@
 <script>
 	import { page } from "$app/state";
 	import Menu from "$lib/components/Menu.svelte";
+	import { USER_LEVELS } from "$lib/constants.js";
 	import { Game } from "$lib/game.svelte.js";
 	import { gameState } from "../state.svelte.js";
 	import {
+		BookmarkIcon,
+		BookmarkPlusIcon,
+		CrownIcon,
 		LoaderCircleIcon,
 		MenuIcon,
 		MoveHorizontalIcon,
@@ -39,8 +43,24 @@
 	}
 
 	let game = $derived(gameState.currentGame);
+	let isPro = $derived(page.data.user?.level === USER_LEVELS.PRO);
+	let isLoggedIn = $derived(!!page.data.user);
 
-	let { animationIdle = true, onUndo = undefined } = $props();
+	/**
+	 * @typedef {Object} Props
+	 * @property {boolean} [animationIdle]
+	 * @property {(() => void) | undefined} [onUndo]
+	 * @property {(() => void | Promise<void>) | undefined} [onSetCheckpoint]
+	 * @property {(() => void | Promise<void>) | undefined} [onRestoreCheckpoint]
+	 */
+
+	/** @type {Props} */
+	let {
+		animationIdle = true,
+		onUndo = undefined,
+		onSetCheckpoint = undefined,
+		onRestoreCheckpoint = undefined,
+	} = $props();
 
 	const GAME_OVER_DELAY = 600;
 	const GAME_WIN_DELAY = 400;
@@ -50,6 +70,9 @@
 	let openMenu = $state(false);
 	/** True while waiting for move animations to finish before applying undo */
 	let undoQueued = $state(false);
+	/** True while waiting for animations before restoring a checkpoint */
+	let restoreQueued = $state(false);
+	let checkpointBusy = $state(false);
 
 	$effect(() => {
 		if (!game) return;
@@ -92,10 +115,27 @@
 		onUndo?.();
 	});
 
+	// Flush a queued checkpoint restore once animations settle
+	$effect(() => {
+		if (!restoreQueued) return;
+
+		if (!gameState.hasCheckpoint || !isPro) {
+			restoreQueued = false;
+			return;
+		}
+
+		if (!animationIdle || checkpointBusy) return;
+
+		restoreQueued = false;
+		void runRestoreCheckpoint();
+	});
+
 	function newGame() {
 		showGameOver = false;
 		showWin = false;
 		undoQueued = false;
+		restoreQueued = false;
+		gameState.hasCheckpoint = false;
 		gameState.currentGame = new Game();
 	}
 
@@ -135,6 +175,41 @@
 		onUndo?.();
 	}
 
+	async function runSetCheckpoint() {
+		if (!isPro || !game || checkpointBusy) return;
+		openMenu = false;
+		checkpointBusy = true;
+		try {
+			await onSetCheckpoint?.();
+		} finally {
+			checkpointBusy = false;
+		}
+	}
+
+	async function runRestoreCheckpoint() {
+		if (!isPro || !game || !gameState.hasCheckpoint || checkpointBusy) return;
+		openMenu = false;
+		checkpointBusy = true;
+		try {
+			await onRestoreCheckpoint?.();
+			showGameOver = false;
+			showWin = false;
+		} finally {
+			checkpointBusy = false;
+		}
+	}
+
+	function handleRestoreCheckpoint() {
+		if (!isPro || !gameState.hasCheckpoint || checkpointBusy || restoreQueued) return;
+
+		if (!animationIdle) {
+			restoreQueued = true;
+			return;
+		}
+
+		void runRestoreCheckpoint();
+	}
+
 	// Only disable for real undo unavailability (cooldown / no snapshot) — not mid-animation
 	let undoDisabled = $derived(!game?.canUndo);
 	let undoTitle = $derived(
@@ -148,6 +223,8 @@
 						? `Undo available in ${game.undoCooldownRemaining} move${game.undoCooldownRemaining === 1 ? "" : "s"}`
 						: "Nothing to undo"
 	);
+
+	let canRestoreCheckpoint = $derived(isPro && gameState.hasCheckpoint && !checkpointBusy);
 </script>
 
 <!-- Header -->
@@ -216,6 +293,47 @@
 				<PlusIcon size={18} />
 				New Game
 			</button>
+			{#if isPro}
+				<button
+					class="bg-primary hover:bg-primary-dark flex items-center gap-2 rounded-md p-2 text-nowrap text-white disabled:cursor-not-allowed disabled:opacity-40"
+					onclick={runSetCheckpoint}
+					disabled={!game || game.gameOver || checkpointBusy}
+					title={game?.gameOver
+						? "Checkpoints can only be set during an active game"
+						: "Save a restore point for this run"}
+				>
+					{#if checkpointBusy}
+						<LoaderCircleIcon class="animate-spin" size={18} />
+					{:else}
+						<BookmarkPlusIcon size={18} />
+					{/if}
+					Set Checkpoint
+				</button>
+				<button
+					class="bg-primary hover:bg-primary-dark flex items-center gap-2 rounded-md p-2 text-nowrap text-white disabled:cursor-not-allowed disabled:opacity-40"
+					onclick={handleRestoreCheckpoint}
+					disabled={!canRestoreCheckpoint && !restoreQueued}
+					title={gameState.hasCheckpoint ? "Restore to your last checkpoint" : "No checkpoint set"}
+				>
+					{#if restoreQueued || checkpointBusy}
+						<LoaderCircleIcon class="animate-spin" size={18} />
+					{:else}
+						<BookmarkIcon size={18} />
+					{/if}
+					Restore Checkpoint
+				</button>
+			{:else}
+				<a
+					href={isLoggedIn ? "/stripe" : "/login"}
+					class="bg-primary hover:bg-primary-dark flex items-center gap-2 rounded-md p-2 text-nowrap text-white"
+					onclick={() => {
+						openMenu = false;
+					}}
+				>
+					<CrownIcon size={18} />
+					Checkpoints (Pro)
+				</a>
+			{/if}
 		{/snippet}
 	</Menu>
 	<div class="flex-1"></div>
@@ -261,7 +379,28 @@
 			{#if game.canUndo}
 				<button class="overlay-btn" onclick={handleUndo}>Undo Last Move</button>
 			{/if}
-			<button class="overlay-btn" class:secondary={game.canUndo} onclick={newGame}>Try Again</button
+			{#if isPro && gameState.hasCheckpoint}
+				<button
+					class="overlay-btn"
+					class:secondary={game.canUndo}
+					onclick={handleRestoreCheckpoint}
+					disabled={checkpointBusy || restoreQueued}
+				>
+					{#if restoreQueued || checkpointBusy}
+						Restoring…
+					{:else}
+						Restore Checkpoint
+					{/if}
+				</button>
+			{:else if !isPro}
+				<a href={isLoggedIn ? "/stripe" : "/login"} class="overlay-btn secondary">
+					Checkpoints (Pro)
+				</a>
+			{/if}
+			<button
+				class="overlay-btn"
+				class:secondary={game.canUndo || (isPro && gameState.hasCheckpoint) || !isPro}
+				onclick={newGame}>Try Again</button
 			>
 		</div>
 	</div>
@@ -333,6 +472,8 @@
 		cursor: pointer;
 		margin: 0 10px 10px 0;
 		transition: background-color 0.2s;
+		display: inline-block;
+		text-decoration: none;
 	}
 
 	.overlay-btn:hover {

@@ -32,8 +32,8 @@
 			implemented: true,
 		},
 		{
-			name: "Board Power Ups & Checkpoints",
-			implemented: false,
+			name: "Checkpoints",
+			implemented: true,
 		},
 		{
 			name: "Exclusive themes and customization",

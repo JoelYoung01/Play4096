@@ -105,3 +105,40 @@ export interface GameHistoryEntry {
 
 export type GameHistorySort = "date" | "score" | "moves";
 export type GameHistoryFilter = "all" | "won" | "lost";
+
+
+/** Snapshot payload used when setting a checkpoint */
+export interface CheckpointSaveData {
+  gameId: string;
+  board: number[][];
+  score: number;
+  seed?: number;
+  rngState?: number;
+  moveCount?: number;
+  undoCooldownRemaining?: number;
+  won?: boolean;
+}
+
+/** Active checkpoint metadata returned to the client */
+export interface CheckpointInfo {
+  id: string;
+  gameId: string;
+  createdOn: number;
+  score: number;
+  moveCount: number;
+}
+
+/** Full checkpoint state used when restoring into the current game */
+export interface CheckpointRestoreState {
+  id: string;
+  board: number[][];
+  score: number;
+  seed?: number;
+  rngState?: number;
+  moveCount: number;
+  undoCooldownRemaining: number;
+  won: boolean;
+  complete: boolean;
+  /** Always null after restore — direction history is not captured in checkpoints */
+  moves?: number[] | null;
+}
