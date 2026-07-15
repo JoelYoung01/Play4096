@@ -2,6 +2,7 @@
 	import { enhance } from "$app/forms";
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
+	import BoardPreview from "$lib/components/BoardPreview.svelte";
 	import {
 		CHALLENGE_RUN_STATUS,
 		CHALLENGE_TYPES,
@@ -9,7 +10,6 @@
 		resolveClearTarget,
 	} from "$lib/challenges.js";
 	import { CrownIcon, ArrowLeftIcon } from "@lucide/svelte";
-	import { getTileBackground, getTileColor } from "$lib/game.svelte.js";
 
 	let { data } = $props();
 
@@ -111,32 +111,16 @@
 		{:else}
 			<ul class="mb-6 list-inside list-disc text-sm text-gray-600">
 				<li>Goal tile: {challenge.params.winTile ?? 4096}</li>
+				<li>Fewer moves is better — beat your best clear</li>
 				<li>Start from the preset board below</li>
 				<li>Fail on game over</li>
 			</ul>
 		{/if}
 
-		{#if previewBoard}
+		{#if previewBoard && page.data.theme}
 			<div class="mb-6">
 				<p class="mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Starting board</p>
-				<div
-					class="grid aspect-square grid-cols-4 gap-2.5 rounded-lg p-2.5"
-					style:background-color={page.data.theme?.boardBackground}
-				>
-					{#each previewBoard as row, ri (ri)}
-						{#each row as cell, ci (ci)}
-							<div
-								class="flex items-center justify-center rounded-md text-sm font-extrabold"
-								style:background-color={cell
-									? getTileBackground(cell, page.data.theme)
-									: page.data.theme?.emptyTile}
-								style:color={cell ? getTileColor(cell, page.data.theme) : "transparent"}
-							>
-								{cell || ""}
-							</div>
-						{/each}
-					{/each}
-				</div>
+				<BoardPreview theme={page.data.theme} board={previewBoard} />
 			</div>
 		{/if}
 
@@ -145,6 +129,11 @@
 				{#if data.stats.bestStatus === CHALLENGE_RUN_STATUS.WON}
 					You've cleared this challenge {data.stats.wins} time{data.stats.wins === 1 ? "" : "s"}
 					({data.stats.attempts} attempt{data.stats.attempts === 1 ? "" : "s"}).
+					{#if challenge.type === CHALLENGE_TYPES.RECOVERY && data.stats.bestMoveCount != null}
+						Best: {data.stats.bestMoveCount} move{data.stats.bestMoveCount === 1 ? "" : "s"}.
+					{:else if challenge.type === CHALLENGE_TYPES.TIME && data.stats.bestScore != null}
+						Best score: {data.stats.bestScore.toLocaleString()}.
+					{/if}
 				{:else if data.stats.attempts > 0}
 					{data.stats.attempts} attempt{data.stats.attempts === 1 ? "" : "s"} so far — keep going!
 				{:else}

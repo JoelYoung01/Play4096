@@ -273,7 +273,7 @@ export function generateDailyChallengeDefinition(dateStr) {
 		id,
 		type: CHALLENGE_TYPES.RECOVERY,
 		title,
-		description: `Pull off a ${winTile} from this awkward high-tile scramble.`,
+		description: `Pull off a ${winTile} from this awkward high-tile scramble. Fewer moves is better.`,
 		difficulty,
 		params: {
 			seed,
@@ -376,7 +376,7 @@ export function formatChallengeObjective(challenge) {
 
 	if (type === CHALLENGE_TYPES.RECOVERY) {
 		const p = /** @type {RecoveryChallengeParams} */ (params);
-		return `Reach ${p.winTile ?? 4096}`;
+		return `Reach ${p.winTile ?? 4096} in as few moves as possible`;
 	}
 
 	return challenge.description;

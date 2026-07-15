@@ -33,12 +33,16 @@
 	const challenge = $derived(data.challenge);
 	const isTime = $derived(challenge.type === CHALLENGE_TYPES.TIME);
 	const isClear = $derived(challenge.type === CHALLENGE_TYPES.CLEAR);
+	const isRecovery = $derived(challenge.type === CHALLENGE_TYPES.RECOVERY);
 
 	const clearTarget = $derived(
 		isClear ? resolveClearTarget(/** @type {any} */ (challenge.params)) : null
 	);
 
 	const filledCells = $derived(game ? countFilledCells(game.board) : 0);
+	const winTile = $derived(
+		isRecovery && "winTile" in challenge.params ? challenge.params.winTile : null
+	);
 
 	/**
 	 * Build a Game from challenge params.
@@ -214,7 +218,11 @@
 		name="status"
 		value={result === "won" ? CHALLENGE_RUN_STATUS.WON : CHALLENGE_RUN_STATUS.LOST}
 	/>
-	<input type="hidden" name="score" value={game?.score ?? 0} />
+	<input
+		type="hidden"
+		name="score"
+		value={isRecovery ? (game?.moveCount ?? 0) : (game?.score ?? 0)}
+	/>
 	<input
 		type="hidden"
 		name="metrics"
@@ -222,6 +230,7 @@
 			moveCount: game?.moveCount ?? 0,
 			filledCells: game ? countFilledCells(game.board) : 0,
 			elapsedMs: isTime ? Date.now() - data.run.startedOn : undefined,
+			mergeScore: isRecovery ? (game?.score ?? 0) : undefined,
 		})}
 	/>
 </form>
@@ -240,32 +249,53 @@
 			<p class="text-sm text-gray-500">{data.objective}</p>
 		</div>
 		<div class="flex gap-2">
-			<div
-				class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
-				style:background-color={page.data.theme?.boardBackground}
-				style:color={page.data.theme?.textDark}
-			>
-				<div class="text-xs font-bold uppercase">Score</div>
-				<div class="font-bold">{game?.score.toLocaleString() ?? "—"}</div>
-			</div>
-			{#if isTime}
-				<div
-					class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
-					style:background-color={page.data.theme?.boardBackground}
-					style:color={remainingMs <= 10000 ? "#b91c1c" : page.data.theme?.textDark}
-				>
-					<div class="text-xs font-bold uppercase">Time</div>
-					<div class="font-bold">{formatTime(remainingMs)}</div>
-				</div>
-			{:else if isClear}
+			{#if isRecovery}
 				<div
 					class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
 					style:background-color={page.data.theme?.boardBackground}
 					style:color={page.data.theme?.textDark}
 				>
-					<div class="text-xs font-bold uppercase">Tiles</div>
-					<div class="font-bold">{filledCells}/{clearTarget}</div>
+					<div class="text-xs font-bold uppercase">Moves</div>
+					<div class="font-bold">{game?.moveCount ?? 0}</div>
 				</div>
+				{#if winTile}
+					<div
+						class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
+						style:background-color={page.data.theme?.boardBackground}
+						style:color={page.data.theme?.textDark}
+					>
+						<div class="text-xs font-bold uppercase">Goal</div>
+						<div class="font-bold">{winTile}</div>
+					</div>
+				{/if}
+			{:else}
+				<div
+					class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
+					style:background-color={page.data.theme?.boardBackground}
+					style:color={page.data.theme?.textDark}
+				>
+					<div class="text-xs font-bold uppercase">Score</div>
+					<div class="font-bold">{game?.score.toLocaleString() ?? "—"}</div>
+				</div>
+				{#if isTime}
+					<div
+						class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
+						style:background-color={page.data.theme?.boardBackground}
+						style:color={remainingMs <= 10000 ? "#b91c1c" : page.data.theme?.textDark}
+					>
+						<div class="text-xs font-bold uppercase">Time</div>
+						<div class="font-bold">{formatTime(remainingMs)}</div>
+					</div>
+				{:else if isClear}
+					<div
+						class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
+						style:background-color={page.data.theme?.boardBackground}
+						style:color={page.data.theme?.textDark}
+					>
+						<div class="text-xs font-bold uppercase">Tiles</div>
+						<div class="font-bold">{filledCells}/{clearTarget}</div>
+					</div>
+				{/if}
 			{/if}
 		</div>
 	</div>
@@ -305,7 +335,13 @@
 					Game over before the objective was met.
 				{/if}
 			</p>
-			<p class="mb-4 text-sm text-gray-500">Score: {game?.score.toLocaleString() ?? 0}</p>
+			<p class="mb-4 text-sm text-gray-500">
+				{#if isRecovery}
+					Moves: {game?.moveCount ?? 0}
+				{:else}
+					Score: {game?.score.toLocaleString() ?? 0}
+				{/if}
+			</p>
 			<div class="flex flex-wrap justify-center gap-2">
 				<form method="POST" action="/challenges/{challenge.id}?/start" use:enhance>
 					<Btn type="submit" class="justify-center">Retry</Btn>
