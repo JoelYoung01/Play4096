@@ -25,6 +25,8 @@
 	/** @type {import("$lib/game.svelte.js").Game | null} */
 	let pendingServerSave = null;
 	let lastServerSaveAt = 0;
+	/** @type {Promise<void> | null} */
+	let inflightSavePromise = null;
 
 	/**
 	 * Create a Game, preserving server id when local is missing one
@@ -106,49 +108,109 @@
 	}
 
 	/**
+	 * Persist a game save payload to the server
+	 * @param {Omit<import("$lib/types").GameSaveData, "playerId">} gameData
+	 * @param {{ keepalive?: boolean, game?: import("$lib/game.svelte.js").Game | null }} [options]
+	 */
+	async function persistGameDataToServer(gameData, { keepalive = false, game = null } = {}) {
+		if (!page.data.user) return;
+
+		const run = async () => {
+			try {
+				const response = await fetch("/api/game/save", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify(gameData),
+					keepalive,
+				});
+				if (!response.ok) {
+					throw new Error(`Failed to save game to server: ${response.statusText}`);
+				}
+				const result = await response.json();
+				if (!result.success) {
+					throw new Error(`Failed to save game to server: ${result.error}`);
+				}
+
+				if (result.id && game) {
+					game.id = result.id;
+					// Refresh local snapshot so id survives reloads before the next effect tick
+					localSaveGame(game.json());
+				}
+			} catch (error) {
+				// Keepalive / tab-hide flushes and superseded in-flight saves often abort — not actionable.
+				if (error instanceof DOMException && error.name === "AbortError") return;
+				if (
+					error instanceof TypeError &&
+					/failed to fetch/i.test(error.message) &&
+					(keepalive || document.visibilityState === "hidden")
+				) {
+					return;
+				}
+				console.error("Failed to save game to server:", error);
+			}
+		};
+
+		// Serialize saves so an older incomplete write cannot land after finalize
+		const previous = inflightSavePromise;
+		const promise = (async () => {
+			if (previous) await previous;
+			await run();
+		})();
+
+		inflightSavePromise = promise.finally(() => {
+			if (inflightSavePromise === promise) {
+				inflightSavePromise = null;
+			}
+		});
+		return inflightSavePromise;
+	}
+
+	/**
 	 * Persist current game snapshot to the server
 	 * @param {import("$lib/game.svelte.js").Game} game
 	 * @param {{ keepalive?: boolean }} [options]
 	 */
 	async function saveGameToServer(game, { keepalive = false } = {}) {
-		if (!page.data.user) return;
+		return persistGameDataToServer(game.json(), { keepalive, game });
+	}
 
-		const gameData = game.json();
-
-		try {
-			const response = await fetch("/api/game/save", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(gameData),
-				keepalive,
-			});
-			if (!response.ok) {
-				throw new Error(`Failed to save game to server: ${response.statusText}`);
-			}
-			const result = await response.json();
-			if (!result.success) {
-				throw new Error(`Failed to save game to server: ${result.error}`);
-			}
-
-			if (result.id) {
-				game.id = result.id;
-				// Refresh local snapshot so id survives reloads before the next effect tick
-				localSaveGame(game.json());
-			}
-		} catch (error) {
-			// Keepalive / tab-hide flushes and superseded in-flight saves often abort — not actionable.
-			if (error instanceof DOMException && error.name === "AbortError") return;
-			if (
-				error instanceof TypeError &&
-				/failed to fetch/i.test(error.message) &&
-				(keepalive || document.visibilityState === "hidden")
-			) {
-				return;
-			}
-			console.error("Failed to save game to server:", error);
+	/**
+	 * Cancel any throttled (not yet sent) server save
+	 */
+	function cancelPendingServerSave() {
+		if (saveTimeout) {
+			clearTimeout(saveTimeout);
+			saveTimeout = null;
 		}
+		pendingServerSave = null;
+	}
+
+	/**
+	 * Finalize the current run for history, then start a fresh game.
+	 *
+	 * History only lists complete === true. Winning does not set complete (players
+	 * can keep playing), so New Game must mark the abandoned run complete or it
+	 * disappears from /replay.
+	 */
+	async function handleNewGame() {
+		const previous = gameState.currentGame;
+		cancelPendingServerSave();
+
+		// Let any in-flight incomplete save finish before writing complete:true
+		if (inflightSavePromise) {
+			await inflightSavePromise;
+		}
+
+		if (previous && previous.moveCount > 0 && page.data.user) {
+			const snapshot = { ...previous.json(), complete: true };
+			await persistGameDataToServer(snapshot);
+		}
+
+		pendingEvents.splice(0, pendingEvents.length);
+		gameState.hasCheckpoint = false;
+		gameState.currentGame = new Game();
 	}
 
 	/**
@@ -413,6 +475,7 @@
 	<AnimatedBoard
 		{pendingEvents}
 		{popEvent}
+		onNewGame={handleNewGame}
 		onSetCheckpoint={handleSetCheckpoint}
 		onRestoreCheckpoint={handleRestoreCheckpoint}
 	/>
