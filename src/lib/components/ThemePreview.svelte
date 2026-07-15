@@ -23,8 +23,8 @@
 	/** @type {{ theme: PreviewTheme, selected?: boolean }} */
 	let { theme, selected = false } = $props();
 
-	/** Typical in-game board width used to scale gap/padding */
-	const REF_BOARD_WIDTH = 400;
+	/** Typical mobile in-game board width (~390 viewport minus page padding) */
+	const REF_BOARD_WIDTH = 350;
 
 	const previewValues = [
 		2,
