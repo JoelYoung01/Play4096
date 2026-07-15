@@ -1,13 +1,13 @@
 <script>
 	import { enhance } from "$app/forms";
 	import { page } from "$app/state";
-	import Btn from "$lib/components/Btn.svelte";
 	import BoardPreview from "$lib/components/BoardPreview.svelte";
 	import {
 		CHALLENGE_RUN_STATUS,
 		CHALLENGE_TYPES,
 		formatChallengeTypeLabel,
 	} from "$lib/challenges.js";
+	import { Button } from "$lib/components/ui/button/index.js";
 	import { CrownIcon, ArrowLeftIcon, ChevronRightIcon, TrophyIcon } from "@lucide/svelte";
 
 	let { data } = $props();
@@ -55,16 +55,16 @@
 	<title>{challenge.title} - Challenges - 4096</title>
 </svelte:head>
 
-<main class="mx-auto w-full max-w-lg px-4 pt-8 pb-28" style:color={page.data.theme?.text}>
+<main class="mx-auto w-full max-w-lg px-4 pt-8 pb-28 text-foreground">
 	<a
 		href="/challenges"
-		class="mb-4 inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:underline"
+		class="mb-4 inline-flex items-center gap-1 text-sm text-primary hover:underline"
 	>
 		<ArrowLeftIcon size={16} />
 		Calendar
 	</a>
 
-	<p class="mb-1 text-xs font-bold tracking-wide text-gray-500 uppercase">
+	<p class="mb-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">
 		{#if data.isToday}
 			Today's challenge
 		{:else}
@@ -74,7 +74,7 @@
 			· {formatDate(data.dateStr)}
 		{/if}
 	</p>
-	<h1 class="text-3xl font-bold text-[var(--color-primary)]">{challenge.title}</h1>
+	<h1 class="text-3xl font-bold text-primary">{challenge.title}</h1>
 
 	{#if data.locked}
 		<div
@@ -85,27 +85,31 @@
 				Past daily challenges are a Pro feature — same archive pattern as game history.
 			</p>
 			{#if data.user}
-				<Btn href="/stripe" class="justify-center gap-2">
+				<Button href="/stripe" class="justify-center gap-2">
 					<CrownIcon size={20} />
 					Upgrade to Pro
-				</Btn>
+				</Button>
 			{:else}
-				<Btn href="/login?redirectTo=/challenges/{challenge.id}" class="justify-center">Log in</Btn>
+				<Button href="/login?redirectTo=/challenges/{challenge.id}" class="justify-center">
+					Log in
+				</Button>
 			{/if}
 		</div>
 	{:else}
-		<p class="mb-1 text-sm text-gray-500">{challenge.difficulty} · {typeLabel}</p>
+		<p class="mb-1 text-sm text-muted-foreground">{challenge.difficulty} · {typeLabel}</p>
 		<p class="mb-6 text-base">{data.overview}</p>
 
 		{#if previewBoard && page.data.theme}
 			<div class="mb-6">
-				<p class="mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Starting board</p>
+				<p class="mb-2 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+					Starting board
+				</p>
 				<BoardPreview theme={page.data.theme} board={previewBoard} />
 			</div>
 		{/if}
 
 		{#if data.stats}
-			<p class="mb-4 text-sm text-gray-500">
+			<p class="mb-4 text-sm text-muted-foreground">
 				{#if data.stats.bestStatus === CHALLENGE_RUN_STATUS.WON}
 					You've cleared this challenge {data.stats.wins} time{data.stats.wins === 1 ? "" : "s"}
 					({data.stats.attempts} attempt{data.stats.attempts === 1 ? "" : "s"}).
@@ -124,9 +128,9 @@
 
 		{#if data.isPro}
 			<form method="POST" action="?/start" use:enhance={onStart}>
-				<Btn type="submit" class="w-full justify-center" disabled={starting}>
+				<Button type="submit" class="w-full justify-center" disabled={starting}>
 					{starting ? "Starting…" : "Start Challenge"}
-				</Btn>
+				</Button>
 			</form>
 		{:else}
 			<div
@@ -141,14 +145,14 @@
 					{/if}
 				</p>
 				{#if data.user}
-					<Btn href="/stripe" class="justify-center gap-2">
+					<Button href="/stripe" class="justify-center gap-2">
 						<CrownIcon size={20} />
 						Upgrade to Pro
-					</Btn>
+					</Button>
 				{:else}
-					<Btn href="/login?redirectTo=/challenges/{challenge.id}" class="justify-center"
-						>Log in</Btn
-					>
+					<Button href="/login?redirectTo=/challenges/{challenge.id}" class="justify-center">
+						Log in
+					</Button>
 				{/if}
 			</div>
 		{/if}
@@ -160,7 +164,7 @@
 			style:color={page.data.theme?.textDark}
 		>
 			<span
-				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-secondary)] text-[var(--color-primary)]"
+				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"
 			>
 				<TrophyIcon size={20} />
 			</span>

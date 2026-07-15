@@ -1,7 +1,6 @@
 <script>
 	import { enhance } from "$app/forms";
-	import { page } from "$app/state";
-	import Btn from "$lib/components/Btn.svelte";
+	import { Button } from "$lib/components/ui/button/index.js";
 	import { CheckIcon, CrownIcon, LoaderCircleIcon } from "@lucide/svelte";
 	import { slide } from "svelte/transition";
 
@@ -69,41 +68,48 @@
 	/>
 </svelte:head>
 
-<div class="pb-28" style:background-color={page.data.theme?.background}>
+<div class="bg-background pb-28">
 	<div class="flex items-center justify-center">
-		<div class="mb-[4rem] w-full max-w-md rounded-lg bg-white p-8 text-center">
+		<div class="mb-[4rem] w-full max-w-md rounded-lg bg-card p-8 text-center text-card-foreground">
 			<div class="mb-8">
-				<h1 class="items-bottom mb-2 flex justify-center gap-2 text-3xl font-bold text-gray-900">
+				<h1 class="items-bottom mb-2 flex justify-center gap-2 text-3xl font-bold text-foreground">
 					<CrownIcon size={32} />
 					Upgrade to Pro
 				</h1>
-				<p class="text-gray-600">Unlock advanced features and enhance your 4096 experience</p>
+				<p class="text-muted-foreground">
+					Unlock advanced features and enhance your 4096 experience
+				</p>
 			</div>
 
 			<div class="mb-8">
-				<div class="mb-1 rounded-lg border border-orange-200 bg-orange-100 p-6">
-					<div class="mb-2 text-4xl font-bold text-orange-600">$5</div>
-					<div class="text-sm text-orange-700">One-time payment</div>
+				<div class="mb-1 rounded-lg border border-primary/20 bg-primary/10 p-6">
+					<div class="mb-2 text-4xl font-bold text-primary">$5</div>
+					<div class="text-sm text-primary">One-time payment</div>
 				</div>
 
-				<p class="mb-4 text-sm text-gray-400">Features in gray are planned for future releases.</p>
+				<p class="mb-4 text-sm text-muted-foreground">
+					Features in gray are planned for future releases.
+				</p>
 
 				<div class="space-y-4 text-left">
 					{#each features as feature (feature.name)}
 						<div class="flex items-center" class:opacity-50={!feature.implemented}>
-							<div class="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
+							<div
+								class="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary"
+							>
 								<CheckIcon size={16} />
 							</div>
-							<span class="text-gray-700">{feature.name}</span>
+							<span class="text-foreground">{feature.name}</span>
 						</div>
 					{/each}
 				</div>
 			</div>
 
 			<form method="POST" action="/stripe?/upgrade" use:enhance={onSubmit}>
-				<Btn
+				<Button
 					type="submit"
-					class="flex w-full justify-center gap-2 rounded-lg bg-orange-500 px-6 py-3 font-bold text-white transition-colors duration-200 hover:bg-orange-600 disabled:cursor-default disabled:opacity-50"
+					size="lg"
+					class="w-full justify-center gap-2"
 					disabled={disableUpgrade}
 				>
 					{#if isProcessing}
@@ -114,13 +120,13 @@
 					{:else}
 						Upgrade to Pro - $5
 					{/if}
-				</Btn>
+				</Button>
 				{#if error}
-					<p transition:slide class="text-red-500">{error}</p>
+					<p transition:slide class="text-destructive">{error}</p>
 				{/if}
 			</form>
 
-			<div class="mt-6 text-xs text-gray-500">
+			<div class="mt-6 text-xs text-muted-foreground">
 				<p>Secure payment powered by Stripe</p>
 			</div>
 		</div>

@@ -64,11 +64,8 @@ function contrastText(bg, light, dark) {
  * Apply theme CSS variables to an element (typically document.documentElement).
  * @param {CSSStyleDeclaration} style
  * @param {Theme} theme
- * @param {{ includeLegacyAliases?: boolean }} [options]
  */
-export function applyThemeTokens(style, theme, options = {}) {
-	const { includeLegacyAliases = true } = options;
-
+export function applyThemeTokens(style, theme) {
 	const foreground = theme.text ?? theme.textLight;
 	const primaryFg = contrastText(theme.primary, theme.textDark, theme.textLight);
 	const secondaryFg = contrastText(theme.secondary, theme.textDark, theme.textLight);
@@ -129,25 +126,5 @@ export function applyThemeTokens(style, theme, options = {}) {
 		for (const [value, color] of Object.entries(theme.tiles)) {
 			style.setProperty(`--color-tile-${value}`, color);
 		}
-	}
-
-	if (includeLegacyAliases) {
-		const primaryDark = darkenColor(theme.primary, 0.2);
-		const primaryDarker = darkenColor(theme.primary, 0.4);
-		const secondaryDark = darkenColor(theme.secondary, 0.2);
-		const secondaryDarker = darkenColor(theme.secondary, 0.4);
-
-		style.setProperty("--background-color", theme.background);
-		style.setProperty("--board-bg", theme.boardBackground);
-		style.setProperty("--primary-color", theme.primary);
-		style.setProperty("--primary-color-dark", primaryDark);
-		style.setProperty("--text-color", foreground);
-		style.setProperty("--color-primary", theme.primary);
-		style.setProperty("--color-primary-dark", primaryDark);
-		style.setProperty("--color-primary-darker", primaryDarker);
-		style.setProperty("--color-secondary", theme.secondary);
-		style.setProperty("--color-secondary-dark", secondaryDark);
-		style.setProperty("--color-secondary-darker", secondaryDarker);
-		style.setProperty("--color-background", theme.background);
 	}
 }

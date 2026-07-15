@@ -52,24 +52,6 @@
 	--text-scale: 3;
 	--luminance-threshold: 0.7;
 	--movement-speed: 50ms;
-
-	/* Temporary dual-publish aliases during migration */
-	--background-color: var(--background);
-	--board-bg: var(--color-board-background);
-	--primary-color: var(--primary);
-	--primary-color-dark: var(--primary);
-	--text-color: var(--foreground);
-	--color-primary: var(--primary);
-	--color-primary-dark: var(--primary);
-	--color-primary-darker: var(--primary);
-	--color-secondary: var(--secondary);
-	--color-secondary-dark: var(--secondary);
-	--color-secondary-darker: var(--secondary);
-	--color-background: var(--background);
-}
-
-.dark {
-	/* Dark values come from runtime theme bridge when Dark preset is active */
 }
 
 @theme inline {

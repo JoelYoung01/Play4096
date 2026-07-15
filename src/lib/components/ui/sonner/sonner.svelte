@@ -1,11 +1,11 @@
 <script>
 	import { Toaster as Sonner } from "svelte-sonner";
 	import { mode } from "mode-watcher";
-	import Loader2Icon from '@lucide/svelte/icons/loader-2';
-	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
-	import OctagonXIcon from '@lucide/svelte/icons/octagon-x';
-	import InfoIcon from '@lucide/svelte/icons/info';
-	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
+	import Loader2Icon from "@lucide/svelte/icons/loader-2";
+	import CircleCheckIcon from "@lucide/svelte/icons/circle-check";
+	import OctagonXIcon from "@lucide/svelte/icons/octagon-x";
+	import InfoIcon from "@lucide/svelte/icons/info";
+	import TriangleAlertIcon from "@lucide/svelte/icons/triangle-alert";
 
 	let { ...restProps } = $props();
 </script>

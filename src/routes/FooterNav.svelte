@@ -44,21 +44,16 @@
 </script>
 
 <nav
-	class="fixed bottom-1 left-1/2 z-50 flex -translate-x-1/2 justify-between gap-2 rounded-full p-1 sm:bottom-10"
-	style:background-color={page.data.theme?.boardBackground}
-	style:color={page.data.theme?.text}
+	class="fixed bottom-1 left-1/2 z-50 flex -translate-x-1/2 justify-between gap-2 rounded-full bg-secondary p-1 text-secondary-foreground shadow-lg ring-1 ring-border/50 sm:bottom-10"
 >
 	{#each navItems as navItem, index (index)}
 		{@const IconComponent = navItem.icon}
 		<a
 			href={navItem.href}
-			class="rounded-full p-2"
-			style:background-color={activeNavItem === navItem
-				? page.data.theme?.primary
-				: page.data.theme?.emptyTile}
-			style:color={activeNavItem === navItem
-				? page.data.theme?.textDark
-				: page.data.theme?.textDark}
+			class="rounded-full p-2 transition-colors {activeNavItem === navItem
+				? 'bg-primary text-primary-foreground'
+				: 'bg-background text-foreground hover:bg-muted'}"
+			aria-current={activeNavItem === navItem ? "page" : undefined}
 		>
 			<IconComponent />
 		</a>

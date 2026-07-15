@@ -9,8 +9,9 @@
 	import AnimatedBoard from "./components/AnimatedBoard.svelte";
 	import { browser } from "$app/environment";
 	import { gameState } from "./state.svelte";
-	import Overlay from "$lib/components/Overlay.svelte";
 	import { createSwipeHandlers } from "$lib/swipe.js";
+	import { Button } from "$lib/components/ui/button/index.js";
+	import * as Dialog from "$lib/components/ui/dialog/index.js";
 
 	const { data } = $props();
 	/** Max staleness for server saves while actively playing */
@@ -428,42 +429,46 @@
 	});
 </script>
 
-<Overlay bind:show={conflict} persistent>
-	<div class="bg-background flex flex-col gap-2 rounded-2xl p-2">
-		<p class="w-full text-center">Uh oh! We've detected two active games for this device!</p>
-		<p class="w-full text-center">Please pick which game you would like to keep:</p>
-		<div class="flex w-full gap-2 pt-2 pb-4">
-			<div class="flex-1/2 text-center">
+<Dialog.Root bind:open={conflict}>
+	<Dialog.Content
+		class="sm:max-w-2xl"
+		showCloseButton={false}
+		interactOutsideBehavior="ignore"
+		escapeKeydownBehavior="ignore"
+	>
+		<Dialog.Header>
+			<Dialog.Title class="text-center text-xl">Active game conflict</Dialog.Title>
+			<Dialog.Description class="text-center text-muted-foreground">
+				Uh oh! We've detected two active games for this device. Please pick which game you would
+				like to keep:
+			</Dialog.Description>
+		</Dialog.Header>
+		<div class="grid gap-3 sm:grid-cols-2">
+			<div class="rounded-lg border bg-muted/30 p-4 text-center">
 				<h3 class="text-lg font-bold">Local Game</h3>
 				<p><span class="font-bold">Score:</span> {data.localGame?.score.toLocaleString() || "-"}</p>
-				<p>
+				<p class="mb-4">
 					<span class="font-bold">Last Updated:</span>
 					{getLastUpdated(data.localGame)}
 				</p>
-				<button
-					class="bg-primary hover:bg-primary-dark rounded-full p-2 text-white"
-					onclick={() => resolveConflict("local")}
-				>
+				<Button class="w-full rounded-full" onclick={() => resolveConflict("local")}>
 					Keep Local Game
-				</button>
+				</Button>
 			</div>
-			<div class="flex-1/2 text-center">
+			<div class="rounded-lg border bg-muted/30 p-4 text-center">
 				<h3 class="text-lg font-bold">User Game</h3>
 				<p><span class="font-bold">Score:</span> {data.dbGame?.score.toLocaleString() || "-"}</p>
-				<p>
+				<p class="mb-4">
 					<span class="font-bold">Last Updated:</span>
 					{getLastUpdated(data.dbGame)}
 				</p>
-				<button
-					class="bg-primary hover:bg-primary-dark rounded-full p-2 text-white"
-					onclick={() => resolveConflict("server")}
-				>
+				<Button class="w-full rounded-full" onclick={() => resolveConflict("server")}>
 					Keep User Game
-				</button>
+				</Button>
 			</div>
 		</div>
-	</div>
-</Overlay>
+	</Dialog.Content>
+</Dialog.Root>
 
 <div
 	class="game-container"
@@ -481,7 +486,7 @@
 	/>
 
 	<!-- Instructions -->
-	<div class="text-center text-sm" style:color={page.data.theme?.textLight}>
+	<div class="text-center text-sm text-muted-foreground">
 		<p>
 			<strong>How to play:</strong> Use arrow keys or swipe to move tiles. When two tiles with the same
 			number touch, they merge into one!
@@ -497,6 +502,6 @@
 		margin: 0 auto;
 		padding: 20px;
 		padding-bottom: 5rem;
-		color: var(--text-color);
+		color: var(--foreground);
 	}
 </style>

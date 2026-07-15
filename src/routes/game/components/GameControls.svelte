@@ -1,8 +1,9 @@
 <script>
 	import { page } from "$app/state";
-	import Menu from "$lib/components/Menu.svelte";
 	import { USER_LEVELS } from "$lib/constants.js";
 	import { Game } from "$lib/game.svelte.js";
+	import { Button } from "$lib/components/ui/button/index.js";
+	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 	import { gameState } from "../state.svelte.js";
 	import {
 		BookmarkIcon,
@@ -267,42 +268,39 @@
 </div>
 
 <div class="mb-2 flex items-center gap-1">
-	<Menu bind:open={openMenu}>
-		{#snippet activator()}
-			<button class="controls-btn bg-primary hover:bg-primary-dark relative">
-				<div class="relative h-[18px] w-[18px]">
-					{#if openMenu}
-						<div
-							class="absolute inset-0"
-							in:scaleRotate={{ duration: 200, start: 0.8, delay: 100, rotateDegrees: -45 }}
-							out:scaleRotate={{ duration: 150, start: 0.8, rotateDegrees: -45 }}
-						>
-							<XIcon size={18} />
-						</div>
-					{:else}
-						<div
-							class="absolute inset-0"
-							in:scaleRotate={{ duration: 200, start: 0.8, delay: 100 }}
-							out:scaleRotate={{ duration: 150, start: 0.8 }}
-						>
-							<MenuIcon size={18} />
-						</div>
-					{/if}
-				</div>
-			</button>
-		{/snippet}
-		{#snippet content()}
-			<button
-				class=" bg-primary hover:bg-primary-dark flex items-center gap-2 rounded-md p-2 text-nowrap text-white"
-				onclick={newGame}
-			>
+	<DropdownMenu.Root bind:open={openMenu}>
+		<DropdownMenu.Trigger
+			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80"
+			aria-label="Game menu"
+		>
+			<div class="relative h-[18px] w-[18px]">
+				{#if openMenu}
+					<div
+						class="absolute inset-0"
+						in:scaleRotate={{ duration: 200, start: 0.8, delay: 100, rotateDegrees: -45 }}
+						out:scaleRotate={{ duration: 150, start: 0.8, rotateDegrees: -45 }}
+					>
+						<XIcon size={18} />
+					</div>
+				{:else}
+					<div
+						class="absolute inset-0"
+						in:scaleRotate={{ duration: 200, start: 0.8, delay: 100 }}
+						out:scaleRotate={{ duration: 150, start: 0.8 }}
+					>
+						<MenuIcon size={18} />
+					</div>
+				{/if}
+			</div>
+		</DropdownMenu.Trigger>
+		<DropdownMenu.Content class="w-56">
+			<DropdownMenu.Item onSelect={newGame}>
 				<PlusIcon size={18} />
 				New Game
-			</button>
+			</DropdownMenu.Item>
 			{#if isPro}
-				<button
-					class="bg-primary hover:bg-primary-dark flex items-center gap-2 rounded-md p-2 text-nowrap text-white disabled:cursor-not-allowed disabled:opacity-40"
-					onclick={runSetCheckpoint}
+				<DropdownMenu.Item
+					onSelect={() => void runSetCheckpoint()}
 					disabled={!game || game.gameOver || checkpointBusy}
 					title={game?.gameOver
 						? "Checkpoints can only be set during an active game"
@@ -314,10 +312,9 @@
 						<BookmarkPlusIcon size={18} />
 					{/if}
 					Set Checkpoint
-				</button>
-				<button
-					class="bg-primary hover:bg-primary-dark flex items-center gap-2 rounded-md p-2 text-nowrap text-white disabled:cursor-not-allowed disabled:opacity-40"
-					onclick={handleRestoreCheckpoint}
+				</DropdownMenu.Item>
+				<DropdownMenu.Item
+					onSelect={handleRestoreCheckpoint}
 					disabled={!canRestoreCheckpoint && !restoreQueued}
 					title={gameState.hasCheckpoint ? "Restore to your last checkpoint" : "No checkpoint set"}
 				>
@@ -327,24 +324,25 @@
 						<BookmarkIcon size={18} />
 					{/if}
 					Restore Checkpoint
-				</button>
+				</DropdownMenu.Item>
 			{:else}
-				<a
+				<Button
 					href={isLoggedIn ? "/stripe" : "/login"}
-					class="bg-primary hover:bg-primary-dark flex items-center gap-2 rounded-md p-2 text-nowrap text-white"
+					variant="ghost"
+					class="w-full justify-start gap-2 px-2"
 					onclick={() => {
 						openMenu = false;
 					}}
 				>
 					<CrownIcon size={18} />
 					Checkpoints (Pro)
-				</a>
+				</Button>
 			{/if}
-		{/snippet}
-	</Menu>
+		</DropdownMenu.Content>
+	</DropdownMenu.Root>
 	<div class="flex-1"></div>
 	<button
-		class="controls-btn bg-primary hover:bg-primary-dark relative disabled:cursor-not-allowed disabled:opacity-40"
+		class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
 		onclick={handleUndo}
 		disabled={undoDisabled}
 		title={undoTitle}
@@ -360,16 +358,28 @@
 			<span class="cooldown-badge">{game.undoCooldownRemaining}</span>
 		{/if}
 	</button>
-	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateBoard}>
+	<button
+		class="controls-btn bg-primary text-primary-foreground hover:bg-primary/80"
+		onclick={rotateBoard}
+	>
 		<RotateCwIcon size={18} />
 	</button>
-	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={rotateReverse}>
+	<button
+		class="controls-btn bg-primary text-primary-foreground hover:bg-primary/80"
+		onclick={rotateReverse}
+	>
 		<RotateCcwIcon size={18} />
 	</button>
-	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={mirrorBoardHorizontally}>
+	<button
+		class="controls-btn bg-primary text-primary-foreground hover:bg-primary/80"
+		onclick={mirrorBoardHorizontally}
+	>
 		<MoveHorizontalIcon size={18} />
 	</button>
-	<button class="controls-btn bg-primary hover:bg-primary-dark" onclick={mirrorBoardVertically}>
+	<button
+		class="controls-btn bg-primary text-primary-foreground hover:bg-primary/80"
+		onclick={mirrorBoardVertically}
+	>
 		<MoveVerticalIcon size={18} />
 	</button>
 </div>
@@ -383,12 +393,12 @@
 			<h2>Game Over!</h2>
 			<p>Final Score: {game.score.toLocaleString()}</p>
 			{#if game.canUndo}
-				<button class="overlay-btn" onclick={handleUndo}>Undo Last Move</button>
+				<Button class="m-1" onclick={handleUndo}>Undo Last Move</Button>
 			{/if}
 			{#if isPro && gameState.hasCheckpoint}
-				<button
-					class="overlay-btn"
-					class:secondary={game.canUndo}
+				<Button
+					class="m-1"
+					variant={game.canUndo ? "secondary" : "default"}
 					onclick={handleRestoreCheckpoint}
 					disabled={checkpointBusy || restoreQueued}
 				>
@@ -397,17 +407,21 @@
 					{:else}
 						Restore Checkpoint
 					{/if}
-				</button>
+				</Button>
 			{:else if !isPro}
-				<a href={isLoggedIn ? "/stripe" : "/login"} class="overlay-btn secondary">
+				<Button href={isLoggedIn ? "/stripe" : "/login"} class="m-1" variant="secondary">
 					Checkpoints (Pro)
-				</a>
+				</Button>
 			{/if}
-			<button
-				class="overlay-btn"
-				class:secondary={game.canUndo || (isPro && gameState.hasCheckpoint) || !isPro}
-				onclick={newGame}>Try Again</button
+			<Button
+				class="m-1"
+				variant={game.canUndo || (isPro && gameState.hasCheckpoint) || !isPro
+					? "secondary"
+					: "default"}
+				onclick={newGame}
 			>
+				Try Again
+			</Button>
 		</div>
 	</div>
 {/if}
@@ -417,8 +431,8 @@
 		<div class="overlay-content">
 			<h2>You Won!</h2>
 			<p>Score: {game.score.toLocaleString()}</p>
-			<button class="overlay-btn" onclick={continueGame}>Keep Playing</button>
-			<button class="overlay-btn secondary" onclick={newGame}>New Game</button>
+			<Button class="m-1" onclick={continueGame}>Keep Playing</Button>
+			<Button class="m-1" variant="secondary" onclick={newGame}>New Game</Button>
 		</div>
 	</div>
 {/if}
@@ -427,7 +441,7 @@
 	@reference "../../../app.css";
 
 	.controls-btn {
-		@apply rounded-full p-2 text-white;
+		@apply rounded-full p-2;
 	}
 
 	.cooldown-badge {
@@ -448,7 +462,8 @@
 	}
 
 	.overlay-content {
-		background: white;
+		background: var(--popover);
+		color: var(--popover-foreground);
 		padding: 40px;
 		border-radius: 12px;
 		text-align: center;
@@ -457,40 +472,12 @@
 
 	.overlay-content h2 {
 		margin: 0 0 20px 0;
-		color: #776e65;
 		font-size: 2rem;
 	}
 
 	.overlay-content p {
 		margin: 0 0 30px 0;
-		color: #776e65;
+		color: var(--muted-foreground);
 		font-size: 1.2rem;
-	}
-
-	.overlay-btn {
-		background: #8f7a66;
-		color: white;
-		border: none;
-		padding: 12px 24px;
-		border-radius: 6px;
-		font-size: 1rem;
-		font-weight: bold;
-		cursor: pointer;
-		margin: 0 10px 10px 0;
-		transition: background-color 0.2s;
-		display: inline-block;
-		text-decoration: none;
-	}
-
-	.overlay-btn:hover {
-		background: #7f6a56;
-	}
-
-	.overlay-btn.secondary {
-		background: #bbada0;
-	}
-
-	.overlay-btn.secondary:hover {
-		background: #ab9d90;
 	}
 </style>

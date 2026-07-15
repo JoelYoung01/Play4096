@@ -12,7 +12,7 @@
 		countFilledCells,
 		evaluateChallenge,
 	} from "$lib/challenges.js";
-	import Btn from "$lib/components/Btn.svelte";
+	import { Button } from "$lib/components/ui/button/index.js";
 	import AnimatedBoard from "../../../game/components/AnimatedBoard.svelte";
 
 	let { data } = $props();
@@ -265,13 +265,12 @@
 	ontouchstart={handleTouchStart}
 	ontouchmove={handleTouchMove}
 	ontouchend={handleTouchEnd}
-	style:color={page.data.theme?.text}
 >
 	<div class="mb-3 flex items-start gap-2">
 		<div class="flex-1">
-			<p class="text-xs font-bold tracking-wide text-gray-500 uppercase">Daily Challenge</p>
-			<h1 class="text-2xl font-bold text-[var(--color-primary)]">{challenge.title}</h1>
-			<p class="text-sm text-gray-500">{data.objective}</p>
+			<p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">Daily Challenge</p>
+			<h1 class="text-2xl font-bold text-primary">{challenge.title}</h1>
+			<p class="text-sm text-muted-foreground">{data.objective}</p>
 		</div>
 		<div class="flex gap-2">
 			{#if isRecovery}
@@ -327,14 +326,12 @@
 		</div>
 	{/if}
 
-	<p class="text-center text-sm text-gray-500">
+	<p class="text-center text-sm text-muted-foreground">
 		Arrow keys or swipe to move. Challenge progress is saved when you finish.
 	</p>
 
 	<p class="mt-3 text-center text-sm">
-		<a href="/challenges/{challenge.id}" class="text-[var(--color-primary)] hover:underline">
-			Abandon & back
-		</a>
+		<a href="/challenges/{challenge.id}" class="text-primary hover:underline"> Abandon & back </a>
 	</p>
 </div>
 
@@ -351,7 +348,7 @@
 					Game over before the objective was met.
 				{/if}
 			</p>
-			<p class="mb-4 text-sm text-gray-500">
+			<p class="mb-4 text-sm text-muted-foreground">
 				{#if isRecovery}
 					Moves: {game?.moveCount ?? 0}
 				{:else}
@@ -360,11 +357,11 @@
 			</p>
 			<div class="flex flex-wrap justify-center gap-2">
 				<form method="POST" action="?/start" use:enhance={onRetry}>
-					<Btn type="submit" class="justify-center" disabled={retrying || submitting}>
+					<Button type="submit" class="justify-center" disabled={retrying || submitting}>
 						{retrying ? "Starting…" : "Retry"}
-					</Btn>
+					</Button>
 				</form>
-				<Btn href="/challenges" class="justify-center">Calendar</Btn>
+				<Button href="/challenges" class="justify-center" variant="secondary">Calendar</Button>
 			</div>
 		</div>
 	</div>
@@ -377,6 +374,7 @@
 		margin: 0 auto;
 		padding: 20px;
 		padding-bottom: 5rem;
+		color: var(--foreground);
 	}
 
 	.overlay {
@@ -391,13 +389,13 @@
 	}
 
 	.overlay-content {
-		background: white;
+		background: var(--popover);
 		padding: 2rem;
 		border-radius: 12px;
 		text-align: center;
 		max-width: 400px;
 		width: 100%;
-		color: #776e65;
+		color: var(--popover-foreground);
 	}
 
 	.overlay-content h2 {

@@ -21,9 +21,7 @@
 	$effect(() => {
 		const theme = page.data.theme;
 		if (theme) {
-			applyThemeTokens(document.documentElement.style, theme, {
-				includeLegacyAliases: true,
-			});
+			applyThemeTokens(document.documentElement.style, theme);
 		}
 	});
 </script>

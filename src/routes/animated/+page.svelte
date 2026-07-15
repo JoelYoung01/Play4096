@@ -199,7 +199,7 @@
 		padding: 20px;
 		padding-bottom: 5rem;
 		font-family: "Arial", sans-serif;
-		color: var(--text-color);
+		color: var(--foreground);
 	}
 
 	.game-title {
@@ -219,8 +219,8 @@
 	}
 
 	.score-box {
-		background: var(--board-bg);
-		color: var(--background-color);
+		background: var(--color-board-background);
+		color: var(--background);
 		flex: 0 0 80px;
 		font-size: 1.2rem;
 
@@ -238,8 +238,8 @@
 	}
 
 	.new-game-btn {
-		background: var(--primary-color);
-		color: white;
+		background: var(--primary);
+		color: var(--primary-foreground);
 		border: none;
 		padding: 12px 24px;
 		border-radius: 6px;
@@ -249,7 +249,7 @@
 		transition: background-color 0.2s;
 
 		&:hover {
-			background: var(--primary-color-dark);
+			background: color-mix(in srgb, var(--primary) 80%, black);
 		}
 	}
 
