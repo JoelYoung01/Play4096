@@ -12,7 +12,6 @@
 			key: "daily",
 			label: "Daily",
 			href: "/leaderboard/daily",
-			disabled: true,
 		},
 		{
 			key: "weekly",
@@ -29,7 +28,11 @@
 	];
 
 	let activePage = $derived(
-		availableLeaderboards.find((leaderboard) => leaderboard.href === page.url.pathname)
+		availableLeaderboards.find(
+			(leaderboard) =>
+				leaderboard.href === page.url.pathname ||
+				(leaderboard.key === "daily" && page.url.pathname.startsWith("/leaderboard/daily"))
+		)
 	);
 
 	let { children } = $props();
@@ -37,7 +40,9 @@
 
 <main class="mx-auto mt-10 w-full max-w-lg p-8 pb-28">
 	<h1 class=" text-3xl font-bold text-[var(--color-primary)]">Leaderboard</h1>
-	<p class="mb-4 text-sm text-gray-500">Time frame leaderboards are coming soon!</p>
+	<p class="mb-4 text-sm text-gray-500">
+		All-time high scores and each day's daily challenge rankings.
+	</p>
 	<div class="mb-3 flex items-center gap-2">
 		{#each availableLeaderboards as leaderboard, key (key)}
 			<form method="get" action={leaderboard.href} class="flex-1">
