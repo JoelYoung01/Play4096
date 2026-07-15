@@ -116,9 +116,12 @@ export class Game {
 		startingTiles = DEFAULT_STARTING_TILES,
 		initialState = null,
 		seed = undefined,
+		winTile = DEFAULT_WIN_TILE,
 	} = {}) {
 		this.id = id ?? initialState?.id;
 		this.boardSize = boardSize;
+		/** @type {number} */
+		this.winTile = winTile;
 
 		/** @type {number[][]} */
 		this.board = $state(
@@ -245,7 +248,7 @@ export class Game {
 	checkWin() {
 		for (let i = 0; i < this.boardSize; i++) {
 			for (let j = 0; j < this.boardSize; j++) {
-				if (this.board[i][j] === DEFAULT_WIN_TILE) {
+				if (this.board[i][j] >= this.winTile) {
 					this.won = true;
 					return true;
 				}

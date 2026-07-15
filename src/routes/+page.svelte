@@ -47,6 +47,7 @@
 				Upgrade to Pro
 			</Btn>
 		{/if}
+		<Btn href="/challenges" class="justify-center">Challenges</Btn>
 		<Btn href="/leaderboard" class="justify-center">View Leaderboard</Btn>
 	</div>
 

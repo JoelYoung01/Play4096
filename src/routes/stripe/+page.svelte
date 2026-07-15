@@ -45,7 +45,7 @@
 		},
 		{
 			name: "Challenges",
-			implemented: false,
+			implemented: true,
 		},
 	];
 

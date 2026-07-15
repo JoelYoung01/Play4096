@@ -50,6 +50,8 @@ export interface GameOptions {
   startingTiles?: number;
   initialState?: GameState | null;
   seed?: number;
+  /** Tile value that counts as a win (default 4096). Used by recovery challenges. */
+  winTile?: number;
 }
 
 export interface GameUndoSnapshot {
