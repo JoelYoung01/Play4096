@@ -19,6 +19,28 @@
 	}
 
 	/**
+	 * Background for a calendar day cell. Status colors fill the whole day
+	 * so cleared/failed days stay readable on the brand primary (today).
+	 * @param {{ status: string | null; isToday: boolean }} day
+	 */
+	function dayBackground(day) {
+		if (day.status === CHALLENGE_RUN_STATUS.WON) return "#16a34a";
+		if (day.status === CHALLENGE_RUN_STATUS.LOST) return "#dc2626";
+		if (day.isToday) return page.data.theme?.primary;
+		return page.data.theme?.boardBackground;
+	}
+
+	/**
+	 * @param {{ status: string | null; isToday: boolean }} day
+	 */
+	function dayColor(day) {
+		if (day.status === CHALLENGE_RUN_STATUS.WON || day.status === CHALLENGE_RUN_STATUS.LOST) {
+			return "#ffffff";
+		}
+		return page.data.theme?.textDark;
+	}
+
+	/**
 	 * @param {string} type
 	 */
 	function typeLabel(type) {
@@ -147,28 +169,22 @@
 							day.status
 						)} flex aspect-square flex-col items-center justify-center rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
 						class:today={day.isToday}
-						style:background-color={day.isToday
-							? page.data.theme?.primary
-							: page.data.theme?.boardBackground}
-						style:color={day.isToday ? page.data.theme?.textDark : page.data.theme?.textDark}
+						style:background-color={dayBackground(day)}
+						style:color={dayColor(day)}
+						aria-label={`${day.dateStr}${day.status === CHALLENGE_RUN_STATUS.WON ? ", cleared" : day.status === CHALLENGE_RUN_STATUS.LOST ? ", failed" : ""}`}
 					>
 						<span>{day.day}</span>
-						{#if day.status === CHALLENGE_RUN_STATUS.WON}
-							<span class="dot won-dot"></span>
-						{:else if day.status === CHALLENGE_RUN_STATUS.LOST}
-							<span class="dot lost-dot"></span>
-						{/if}
 					</a>
 				{/if}
 			{/each}
 		</div>
 
 		<div class="mt-4 flex flex-wrap gap-3 text-xs text-gray-500">
-			<span class="inline-flex items-center gap-1">
-				<span class="dot won-dot inline-block"></span> Cleared
+			<span class="inline-flex items-center gap-1.5">
+				<span class="swatch won-swatch"></span> Cleared
 			</span>
-			<span class="inline-flex items-center gap-1">
-				<span class="dot lost-dot inline-block"></span> Attempted
+			<span class="inline-flex items-center gap-1.5">
+				<span class="swatch lost-swatch"></span> Failed
 			</span>
 			{#if !data.isPro}
 				<span class="inline-flex items-center gap-1">
@@ -180,22 +196,22 @@
 </main>
 
 <style>
-	.dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 999px;
-		margin-top: 2px;
+	.swatch {
+		width: 12px;
+		height: 12px;
+		border-radius: 4px;
+		display: inline-block;
 	}
 
-	.won-dot {
+	.won-swatch {
 		background: #16a34a;
 	}
 
-	.lost-dot {
+	.lost-swatch {
 		background: #dc2626;
 	}
 
 	.day.today {
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 40%, transparent);
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 55%, transparent);
 	}
 </style>

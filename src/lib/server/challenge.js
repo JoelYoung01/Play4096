@@ -95,30 +95,54 @@ export function getChallengeById(id) {
 }
 
 /**
+ * @param {unknown} metrics
+ * @returns {number | null}
+ */
+function moveCountFromMetrics(metrics) {
+	if (!metrics || typeof metrics !== "object") return null;
+	const value = /** @type {{ moveCount?: unknown }} */ (metrics).moveCount;
+	return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
  * @param {string} userId
  * @param {string[]} challengeIds
- * @returns {Record<string, { bestStatus: string | null; attempts: number; wins: number }>}
+ * @returns {Record<string, { bestStatus: string | null; attempts: number; wins: number; bestMoveCount: number | null; bestScore: number | null }>}
  */
 export function getChallengeStatsForUser(userId, challengeIds = []) {
 	const runs = db
 		.select({
 			challengeId: table.challengeRun.challengeId,
 			status: table.challengeRun.status,
+			score: table.challengeRun.score,
+			metrics: table.challengeRun.metrics,
 		})
 		.from(table.challengeRun)
 		.where(eq(table.challengeRun.userId, userId))
 		.all();
 
-	/** @type {Record<string, { bestStatus: string | null; attempts: number; wins: number }>} */
+	/** @type {Record<string, { bestStatus: string | null; attempts: number; wins: number; bestMoveCount: number | null; bestScore: number | null }>} */
 	const stats = {};
 
 	for (const challengeId of challengeIds) {
-		stats[challengeId] = { bestStatus: null, attempts: 0, wins: 0 };
+		stats[challengeId] = {
+			bestStatus: null,
+			attempts: 0,
+			wins: 0,
+			bestMoveCount: null,
+			bestScore: null,
+		};
 	}
 
 	for (const run of runs) {
 		if (!stats[run.challengeId]) {
-			stats[run.challengeId] = { bestStatus: null, attempts: 0, wins: 0 };
+			stats[run.challengeId] = {
+				bestStatus: null,
+				attempts: 0,
+				wins: 0,
+				bestMoveCount: null,
+				bestScore: null,
+			};
 		}
 		const entry = stats[run.challengeId];
 		if (run.status !== CHALLENGE_RUN_STATUS.ABANDONED) {
@@ -127,6 +151,16 @@ export function getChallengeStatsForUser(userId, challengeIds = []) {
 		if (run.status === CHALLENGE_RUN_STATUS.WON) {
 			entry.wins += 1;
 			entry.bestStatus = CHALLENGE_RUN_STATUS.WON;
+			const moves = moveCountFromMetrics(run.metrics);
+			if (moves != null && (entry.bestMoveCount == null || moves < entry.bestMoveCount)) {
+				entry.bestMoveCount = moves;
+			}
+			if (
+				typeof run.score === "number" &&
+				(entry.bestScore == null || run.score > entry.bestScore)
+			) {
+				entry.bestScore = run.score;
+			}
 		} else if (
 			run.status === CHALLENGE_RUN_STATUS.LOST &&
 			entry.bestStatus !== CHALLENGE_RUN_STATUS.WON

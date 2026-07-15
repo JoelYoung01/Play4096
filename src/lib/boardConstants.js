@@ -1,4 +1,4 @@
-/** Shared geometry for AnimatedBoard and ThemePreview */
+/** Shared geometry for AnimatedBoard and BoardPreview */
 export const BOARD_GAP = 10;
 export const BOARD_PADDING = 10;
 export const TILE_BORDER_RADIUS = 6;
