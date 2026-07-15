@@ -1,7 +1,7 @@
 <script>
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
-	import { CHALLENGE_RUN_STATUS, CHALLENGE_TYPES } from "$lib/challenges.js";
+	import { CHALLENGE_RUN_STATUS, formatChallengeTypeLabel } from "$lib/challenges.js";
 	import { CrownIcon, ChevronLeftIcon, ChevronRightIcon } from "@lucide/svelte";
 
 	let { data } = $props();
@@ -39,14 +39,6 @@
 		}
 		return page.data.theme?.textDark;
 	}
-
-	/**
-	 * @param {string} type
-	 */
-	function typeLabel(type) {
-		if (type === CHALLENGE_TYPES.TIME) return "Time";
-		return "Recovery";
-	}
 </script>
 
 <svelte:head>
@@ -75,7 +67,7 @@
 			<p class="mb-1 text-xs font-bold tracking-wide uppercase opacity-70">Today · {data.today}</p>
 			<h2 class="text-xl font-bold">{data.todayChallenge.title}</h2>
 			<p class="mb-1 text-sm opacity-80">
-				{typeLabel(data.todayChallenge.type)} · {data.todayChallenge.difficulty}
+				{formatChallengeTypeLabel(data.todayChallenge.type)} · {data.todayChallenge.difficulty}
 			</p>
 			<p class="mb-3 text-sm opacity-90">{data.todayChallenge.objective}</p>
 			<Btn href="/challenges/{data.todayChallenge.id}" class="w-full justify-center">
