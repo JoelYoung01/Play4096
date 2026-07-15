@@ -90,11 +90,15 @@
 		<dd class="mb-2">{data.userProfile.displayName || data.userProfile.username}</dd>
 		<dt class="font-bold text-gray-700">Email</dt>
 		<dd class="mb-2">
-			{data.userProfile.email}
-			{#if data.userProfile.emailVerified}
-				<span class="text-green-500">(Verified)</span>
+			{#if data.userProfile.email}
+				{data.userProfile.email}
+				{#if data.userProfile.emailVerified}
+					<span class="text-green-500">(Verified)</span>
+				{:else}
+					<span class="text-red-500">(Unverified)</span>
+				{/if}
 			{:else}
-				<span class="text-red-500">(Unverified)</span>
+				<span class="text-gray-400">None</span>
 			{/if}
 		</dd>
 	</dl>

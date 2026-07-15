@@ -139,6 +139,15 @@
 				localSaveGame(game.json());
 			}
 		} catch (error) {
+			// Keepalive / tab-hide flushes and superseded in-flight saves often abort — not actionable.
+			if (error instanceof DOMException && error.name === "AbortError") return;
+			if (
+				error instanceof TypeError &&
+				/failed to fetch/i.test(error.message) &&
+				(keepalive || document.visibilityState === "hidden")
+			) {
+				return;
+			}
 			console.error("Failed to save game to server:", error);
 		}
 	}

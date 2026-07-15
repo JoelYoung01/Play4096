@@ -72,7 +72,7 @@
 	{#if open}
 		<div
 			bind:this={menuRef}
-			class="absolute left-0 z-50 mt-2 flex flex-col gap-2"
+			class="absolute left-0 z-50 mt-2 flex flex-col gap-2 rounded-xl bg-white/95 p-2 shadow-lg ring-1 ring-black/10 backdrop-blur-sm"
 			transition:fly={{ y: -10, duration: 200, easing: cubicOut }}
 		>
 			{#if content}
