@@ -7,10 +7,12 @@
 
 	import GameControls from "./GameControls.svelte";
 	import { gameState } from "../state.svelte.js";
-
-	const GAP = 10;
-	const PADDING = 10;
-	const TILE_BORDER_RADIUS = 6;
+	import {
+		BOARD_GAP as GAP,
+		BOARD_PADDING as PADDING,
+		TILE_BORDER_RADIUS,
+		BOARD_BORDER_RADIUS,
+	} from "$lib/boardConstants.js";
 
 	/**
 	 * @type {{
@@ -222,7 +224,11 @@
 	/>
 {/if}
 
-<div class="board-container" bind:this={boardContainer}>
+<div
+	class="board-container"
+	bind:this={boardContainer}
+	style:--board-radius={`${BOARD_BORDER_RADIUS}px`}
+>
 	<div
 		class="game-board"
 		style:background={theme.boardBackground}
@@ -255,7 +261,7 @@
 	.game-board {
 		display: grid;
 		aspect-ratio: 1;
-		border-radius: 8px;
+		border-radius: var(--board-radius, 8px);
 		position: relative;
 		z-index: 1;
 	}

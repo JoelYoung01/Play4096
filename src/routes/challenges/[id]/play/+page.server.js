@@ -1,11 +1,7 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { USER_LEVELS } from "$lib/constants.js";
-import {
-	CHALLENGE_RUN_STATUS,
-	formatChallengeObjective,
-	getChallengeById,
-} from "$lib/challenges.js";
-import { completeChallengeRun, getChallengeRun } from "$lib/server/challenge.js";
+import { CHALLENGE_RUN_STATUS, formatChallengeObjective } from "$lib/challenges.js";
+import { completeChallengeRun, getChallengeById, getChallengeRun } from "$lib/server/challenge.js";
 import { requireLogin } from "$lib/server/user.js";
 
 /** @type {import("./$types").PageServerLoad} */

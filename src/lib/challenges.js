@@ -1,7 +1,9 @@
 /**
- * Challenge content definitions (static for v1).
- * Three types: time, clear, recovery — see issue #5.
+ * Challenge types, evaluation, and deterministic daily generation.
+ * Daily challenges resolve in America/Chicago (CST/CDT).
  */
+
+import { createSeededRng } from "$lib/rng.js";
 
 export const CHALLENGE_TYPES = {
 	TIME: "time",
@@ -15,6 +17,9 @@ export const CHALLENGE_RUN_STATUS = {
 	LOST: "lost",
 	ABANDONED: "abandoned",
 };
+
+/** IANA zone for daily challenge rollover (midnight Central Time) */
+export const CHALLENGE_TIMEZONE = "America/Chicago";
 
 /**
  * @typedef {Object} TimeChallengeParams
@@ -49,62 +54,233 @@ export const CHALLENGE_RUN_STATUS = {
  * @property {TimeChallengeParams | ClearChallengeParams | RecoveryChallengeParams} params
  */
 
-/** @type {ChallengeDefinition[]} */
-export const CHALLENGES = [
-	{
-		id: "sprint-500",
-		type: CHALLENGE_TYPES.TIME,
-		title: "Score Sprint",
-		description: "Reach 500 points before the clock hits zero. Starts from a fresh board.",
-		difficulty: "Easy",
-		params: {
-			seed: 2048,
-			targetScore: 500,
-			durationSec: 60,
-		},
-	},
-	{
-		id: "space-maker",
-		type: CHALLENGE_TYPES.CLEAR,
-		title: "Space Maker",
-		description: "This board is packed. Merge until 4 or fewer tiles remain.",
-		difficulty: "Medium",
-		params: {
-			seed: 4096,
-			board: [
-				[2, 2, 4, 4],
-				[8, 8, 16, 16],
-				[2, 2, 4, 4],
-				[8, 8, 0, 0],
-			],
-			maxFilled: 4,
-		},
-	},
-	{
-		id: "near-miss",
-		type: CHALLENGE_TYPES.RECOVERY,
-		title: "Near Miss",
-		description: "Pull off a 2048 from this awkward high-tile scramble.",
-		difficulty: "Hard",
-		params: {
-			seed: 1024,
-			winTile: 2048,
-			board: [
-				[1024, 512, 256, 128],
-				[4, 8, 16, 32],
-				[2, 64, 0, 0],
-				[0, 0, 0, 0],
-			],
-		},
-	},
-];
+const DIFFICULTIES = ["Easy", "Medium", "Hard"];
+
+const TIME_TITLES = ["Score Sprint", "Point Rush", "Clock Race", "Quick Score"];
+const CLEAR_TITLES = ["Space Maker", "Board Cleaner", "Merge Down", "Clear Path"];
+const RECOVERY_TITLES = ["Near Miss", "Comeback", "High Wire", "Last Stand"];
 
 /**
- * @param {string} id
- * @returns {ChallengeDefinition | undefined}
+ * Format a Date as YYYY-MM-DD in the challenge timezone.
+ * @param {Date} [date]
+ * @returns {string}
  */
-export function getChallengeById(id) {
-	return CHALLENGES.find((c) => c.id === id);
+export function getChallengeDateString(date = new Date()) {
+	return new Intl.DateTimeFormat("en-CA", {
+		timeZone: CHALLENGE_TIMEZONE,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	}).format(date);
+}
+
+/**
+ * Parse YYYY-MM-DD into calendar parts.
+ * @param {string} dateStr
+ * @returns {{ year: number; month: number; day: number } | null}
+ */
+export function parseChallengeDate(dateStr) {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+	if (!match) return null;
+	const year = Number(match[1]);
+	const month = Number(match[2]);
+	const day = Number(match[3]);
+	if (!Number.isFinite(year) || month < 1 || month > 12 || day < 1 || day > 31) return null;
+	return { year, month, day };
+}
+
+/**
+ * Build daily challenge id from a date string.
+ * @param {string} dateStr YYYY-MM-DD
+ */
+export function dailyChallengeId(dateStr) {
+	return `daily-${dateStr}`;
+}
+
+/**
+ * Extract YYYY-MM-DD from a daily challenge id.
+ * @param {string} id
+ * @returns {string | null}
+ */
+export function dateFromChallengeId(id) {
+	if (id.startsWith("daily-")) {
+		const dateStr = id.slice("daily-".length);
+		return parseChallengeDate(dateStr) ? dateStr : null;
+	}
+	return parseChallengeDate(id) ? id : null;
+}
+
+/**
+ * Compare two YYYY-MM-DD strings.
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+export function compareDateStrings(a, b) {
+	return a.localeCompare(b);
+}
+
+/**
+ * Hash a string into a uint32 seed.
+ * @param {string} input
+ */
+function hashSeed(input) {
+	let h = 2166136261;
+	for (let i = 0; i < input.length; i++) {
+		h ^= input.charCodeAt(i);
+		h = Math.imul(h, 16777619);
+	}
+	return h >>> 0;
+}
+
+/**
+ * Create an empty 4x4 board.
+ * @returns {number[][]}
+ */
+function emptyBoard() {
+	return Array.from({ length: 4 }, () => Array(4).fill(0));
+}
+
+/**
+ * Place values onto random empty cells.
+ * @param {ReturnType<typeof createSeededRng>} rng
+ * @param {number[]} values
+ * @returns {number[][]}
+ */
+function boardFromValues(rng, values) {
+	const board = emptyBoard();
+	const positions = [];
+	for (let r = 0; r < 4; r++) {
+		for (let c = 0; c < 4; c++) {
+			positions.push({ r, c });
+		}
+	}
+	for (let i = positions.length - 1; i > 0; i--) {
+		const j = rng.nextInt(i + 1);
+		const tmp = positions[i];
+		positions[i] = positions[j];
+		positions[j] = tmp;
+	}
+	for (let i = 0; i < values.length && i < positions.length; i++) {
+		const { r, c } = positions[i];
+		board[r][c] = values[i];
+	}
+	return board;
+}
+
+/**
+ * @param {ReturnType<typeof createSeededRng>} rng
+ * @param {number} count
+ * @param {number[]} pool
+ */
+function pickValues(rng, count, pool) {
+	/** @type {number[]} */
+	const values = [];
+	for (let i = 0; i < count; i++) {
+		values.push(pool[rng.nextInt(pool.length)]);
+	}
+	return values;
+}
+
+/**
+ * Deterministically generate a daily challenge definition for a Central-Time date.
+ * @param {string} dateStr YYYY-MM-DD
+ * @returns {ChallengeDefinition}
+ */
+export function generateDailyChallengeDefinition(dateStr) {
+	const parsed = parseChallengeDate(dateStr);
+	if (!parsed) {
+		throw new Error(`Invalid challenge date: ${dateStr}`);
+	}
+
+	const id = dailyChallengeId(dateStr);
+	const seed = hashSeed(`play4096-daily-${dateStr}`);
+	const rng = createSeededRng(seed);
+
+	const typeRoll = rng.nextInt(3);
+	const difficulty = DIFFICULTIES[rng.nextInt(DIFFICULTIES.length)];
+
+	if (typeRoll === 0) {
+		const durationOptions =
+			difficulty === "Easy" ? [90, 75] : difficulty === "Medium" ? [60, 50] : [45, 40];
+		const scoreOptions =
+			difficulty === "Easy"
+				? [300, 400, 500]
+				: difficulty === "Medium"
+					? [600, 800, 1000]
+					: [1200, 1500, 2000];
+		const durationSec = durationOptions[rng.nextInt(durationOptions.length)];
+		const targetScore = scoreOptions[rng.nextInt(scoreOptions.length)];
+		const title = TIME_TITLES[rng.nextInt(TIME_TITLES.length)];
+
+		return {
+			id,
+			type: CHALLENGE_TYPES.TIME,
+			title,
+			description: `Reach ${targetScore.toLocaleString()} points before the clock hits zero. Fresh board, fixed seed.`,
+			difficulty,
+			params: {
+				seed,
+				targetScore,
+				durationSec,
+			},
+		};
+	}
+
+	if (typeRoll === 1) {
+		const fill =
+			difficulty === "Easy"
+				? 10 + rng.nextInt(3)
+				: difficulty === "Medium"
+					? 12 + rng.nextInt(3)
+					: 14 + rng.nextInt(2);
+		const pool =
+			difficulty === "Easy"
+				? [2, 2, 4, 4, 8, 8, 16]
+				: difficulty === "Medium"
+					? [2, 4, 4, 8, 8, 16, 16, 32]
+					: [2, 4, 8, 16, 16, 32, 32, 64, 128];
+		const board = boardFromValues(rng, pickValues(rng, fill, pool));
+		const maxFilled = difficulty === "Easy" ? 4 : difficulty === "Medium" ? 3 : 2;
+		const title = CLEAR_TITLES[rng.nextInt(CLEAR_TITLES.length)];
+
+		return {
+			id,
+			type: CHALLENGE_TYPES.CLEAR,
+			title,
+			description: `This board is crowded. Merge until ${maxFilled} or fewer tiles remain.`,
+			difficulty,
+			params: {
+				seed,
+				board,
+				maxFilled,
+			},
+		};
+	}
+
+	const winTile = difficulty === "Easy" ? 512 : difficulty === "Medium" ? 1024 : 2048;
+	const highValues =
+		difficulty === "Easy"
+			? [256, 128, 64, 32, 16, 8, 4, 2]
+			: difficulty === "Medium"
+				? [512, 256, 128, 64, 32, 16, 8, 4]
+				: [1024, 512, 256, 128, 64, 32, 16, 8];
+	const extras = pickValues(rng, 2 + rng.nextInt(3), [2, 4, 8, 16]);
+	const board = boardFromValues(rng, [...highValues.slice(0, 6 + rng.nextInt(3)), ...extras]);
+	const title = RECOVERY_TITLES[rng.nextInt(RECOVERY_TITLES.length)];
+
+	return {
+		id,
+		type: CHALLENGE_TYPES.RECOVERY,
+		title,
+		description: `Pull off a ${winTile} from this awkward high-tile scramble.`,
+		difficulty,
+		params: {
+			seed,
+			winTile,
+			board,
+		},
+	};
 }
 
 /**
@@ -204,4 +380,31 @@ export function formatChallengeObjective(challenge) {
 	}
 
 	return challenge.description;
+}
+
+/**
+ * Days in a calendar month (1-indexed month).
+ * @param {number} year
+ * @param {number} month
+ */
+export function daysInMonth(year, month) {
+	return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/**
+ * Weekday of the 1st of the month in CST (0=Sun … 6=Sat).
+ * Uses noon UTC on that calendar day as a stable anchor.
+ * @param {number} year
+ * @param {number} month
+ */
+export function weekdayOfMonthStart(year, month) {
+	const dateStr = `${year}-${String(month).padStart(2, "0")}-01`;
+	// Format weekday in Challenge TZ for that civil date at midday UTC
+	const probe = new Date(`${dateStr}T18:00:00.000Z`);
+	const weekday = new Intl.DateTimeFormat("en-US", {
+		timeZone: CHALLENGE_TIMEZONE,
+		weekday: "short",
+	}).format(probe);
+	const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+	return map[/** @type {keyof typeof map} */ (weekday)] ?? 0;
 }

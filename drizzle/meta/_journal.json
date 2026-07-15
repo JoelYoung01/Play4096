@@ -71,6 +71,13 @@
       "when": 1784075000000,
       "tag": "0009_game_checkpoint",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1784076000000,
+      "tag": "0010_daily_challenge",
+      "breakpoints": true
     }
   ]
 }

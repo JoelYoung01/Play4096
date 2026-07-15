@@ -1,6 +1,26 @@
-import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, integer, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 import { user } from "./userSchemas.js";
+
+/**
+ * Persisted daily challenge definitions (one per Central-Time calendar day).
+ * `id` is `daily-YYYY-MM-DD`.
+ */
+export const dailyChallenge = sqliteTable(
+	"daily_challenge",
+	{
+		id: text("id").primaryKey(),
+		/** YYYY-MM-DD in America/Chicago */
+		challengeDate: text("challenge_date").notNull(),
+		type: text("type").notNull(),
+		title: text("title").notNull(),
+		description: text("description").notNull(),
+		difficulty: text("difficulty").notNull(),
+		params: text("params", { mode: "json" }).notNull(),
+		createdOn: integer("created_on", { mode: "timestamp" }).notNull(),
+	},
+	(t) => [uniqueIndex("daily_challenge_date_uidx").on(t.challengeDate)]
+);
 
 /** Challenge attempt / run attribution for logged-in Pro users */
 export const challengeRun = sqliteTable("challenge_run", {
