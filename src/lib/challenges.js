@@ -207,7 +207,10 @@ export function generateDailyChallengeDefinition(dateStr) {
 			id,
 			type: CHALLENGE_TYPES.TIME,
 			title,
-			description: `Reach ${targetScore.toLocaleString()} points before the clock hits zero. Fresh board, fixed seed.`,
+			description: formatChallengeOverview({
+				type: CHALLENGE_TYPES.TIME,
+				params: { targetScore, durationSec },
+			}),
 			difficulty,
 			params: {
 				seed,
@@ -232,7 +235,10 @@ export function generateDailyChallengeDefinition(dateStr) {
 		id,
 		type: CHALLENGE_TYPES.RECOVERY,
 		title,
-		description: `Pull off a ${winTile} from this awkward high-tile scramble. Fewer moves is better.`,
+		description: formatChallengeOverview({
+			type: CHALLENGE_TYPES.RECOVERY,
+			params: { winTile, board },
+		}),
 		difficulty,
 		params: {
 			seed,
@@ -293,8 +299,8 @@ export function evaluateChallenge(challenge, state) {
 }
 
 /**
- * Human-readable objective line for UI.
- * @param {ChallengeDefinition} challenge
+ * Short goal line for HUD / calendar (no fail-rule noise).
+ * @param {Pick<ChallengeDefinition, 'type' | 'params'> & { description?: string }} challenge
  */
 export function formatChallengeObjective(challenge) {
 	const { type, params } = challenge;
@@ -306,10 +312,40 @@ export function formatChallengeObjective(challenge) {
 
 	if (type === CHALLENGE_TYPES.RECOVERY) {
 		const p = /** @type {RecoveryChallengeParams} */ (params);
-		return `Reach ${p.winTile ?? 4096} in as few moves as possible`;
+		return `Reach ${p.winTile ?? 4096} in fewest moves`;
 	}
 
-	return challenge.description;
+	return challenge.description ?? "";
+}
+
+/**
+ * One-line goal + rules overview for the pregame screen.
+ * @param {Pick<ChallengeDefinition, 'type' | 'params'> & { description?: string }} challenge
+ */
+export function formatChallengeOverview(challenge) {
+	const { type, params } = challenge;
+
+	if (type === CHALLENGE_TYPES.TIME) {
+		const p = /** @type {TimeChallengeParams} */ (params);
+		return `Score ${p.targetScore.toLocaleString()} in ${p.durationSec}s. Timeout or game over fails.`;
+	}
+
+	if (type === CHALLENGE_TYPES.RECOVERY) {
+		const p = /** @type {RecoveryChallengeParams} */ (params);
+		return `Reach ${p.winTile ?? 4096} in fewest moves. Game over fails.`;
+	}
+
+	return challenge.description ?? "";
+}
+
+/**
+ * Short label for challenge type (pregame / calendar meta).
+ * @param {typeof CHALLENGE_TYPES[keyof typeof CHALLENGE_TYPES]} type
+ */
+export function formatChallengeTypeLabel(type) {
+	if (type === CHALLENGE_TYPES.TIME) return "Time";
+	if (type === CHALLENGE_TYPES.RECOVERY) return "Recovery";
+	return type;
 }
 
 /**

@@ -2,7 +2,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import { USER_LEVELS } from "$lib/constants.js";
 import {
 	dateFromChallengeId,
-	formatChallengeObjective,
+	formatChallengeOverview,
 	getChallengeDateString,
 } from "$lib/challenges.js";
 import {
@@ -50,7 +50,7 @@ export async function load({ locals, params }) {
 				description: "Upgrade to Pro to play past daily challenges.",
 				params: {},
 			},
-			objective: "Pro archive",
+			overview: "Upgrade to Pro to open past daily challenges.",
 			dateStr,
 			stats: null,
 		};
@@ -62,7 +62,7 @@ export async function load({ locals, params }) {
 		locked: false,
 		isToday,
 		challenge,
-		objective: formatChallengeObjective(challenge),
+		overview: formatChallengeOverview(challenge),
 		dateStr,
 		stats,
 	};

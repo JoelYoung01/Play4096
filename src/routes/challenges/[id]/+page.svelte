@@ -3,7 +3,11 @@
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
 	import BoardPreview from "$lib/components/BoardPreview.svelte";
-	import { CHALLENGE_RUN_STATUS, CHALLENGE_TYPES } from "$lib/challenges.js";
+	import {
+		CHALLENGE_RUN_STATUS,
+		CHALLENGE_TYPES,
+		formatChallengeTypeLabel,
+	} from "$lib/challenges.js";
 	import { CrownIcon, ArrowLeftIcon } from "@lucide/svelte";
 
 	let { data } = $props();
@@ -11,6 +15,7 @@
 	let starting = $state(false);
 
 	const challenge = $derived(data.challenge);
+	const typeLabel = $derived(formatChallengeTypeLabel(challenge.type));
 
 	const previewBoard = $derived(
 		!data.locked && "board" in challenge.params && Array.isArray(challenge.params.board)
@@ -88,23 +93,8 @@
 			{/if}
 		</div>
 	{:else}
-		<p class="mb-1 text-sm text-gray-500">{challenge.difficulty} · {data.objective}</p>
-		<p class="mb-6">{challenge.description}</p>
-
-		{#if challenge.type === CHALLENGE_TYPES.TIME}
-			<ul class="mb-6 list-inside list-disc text-sm text-gray-600">
-				<li>Target score: {challenge.params.targetScore.toLocaleString()}</li>
-				<li>Time limit: {challenge.params.durationSec}s</li>
-				<li>Fail if the timer runs out or you game over first</li>
-			</ul>
-		{:else}
-			<ul class="mb-6 list-inside list-disc text-sm text-gray-600">
-				<li>Goal tile: {challenge.params.winTile ?? 4096}</li>
-				<li>Fewer moves is better — beat your best clear</li>
-				<li>Start from the preset board below</li>
-				<li>Fail on game over</li>
-			</ul>
-		{/if}
+		<p class="mb-1 text-sm text-gray-500">{challenge.difficulty} · {typeLabel}</p>
+		<p class="mb-6 text-base">{data.overview}</p>
 
 		{#if previewBoard && page.data.theme}
 			<div class="mb-6">
