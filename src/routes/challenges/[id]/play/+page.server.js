@@ -1,7 +1,17 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { USER_LEVELS } from "$lib/constants.js";
-import { CHALLENGE_RUN_STATUS, formatChallengeObjective } from "$lib/challenges.js";
-import { completeChallengeRun, getChallengeById, getChallengeRun } from "$lib/server/challenge.js";
+import {
+	CHALLENGE_RUN_STATUS,
+	dateFromChallengeId,
+	formatChallengeObjective,
+	getChallengeDateString,
+} from "$lib/challenges.js";
+import {
+	completeChallengeRun,
+	getChallengeById,
+	getChallengeRun,
+	startChallengeRun,
+} from "$lib/server/challenge.js";
 import { requireLogin } from "$lib/server/user.js";
 
 /** @type {import("./$types").PageServerLoad} */
@@ -42,6 +52,29 @@ export async function load({ params, url }) {
 
 /** @type {import("./$types").Actions} */
 export const actions = {
+	/** Start a fresh run (Retry) — redirects to this play page with the new run id. */
+	start: async ({ params }) => {
+		const user = requireLogin(`/challenges/${params.id}/play`);
+
+		if (user.level !== USER_LEVELS.PRO) {
+			redirect(303, "/stripe");
+		}
+
+		const challenge = getChallengeById(params.id);
+		if (!challenge) {
+			return fail(404, { error: "Challenge not found" });
+		}
+
+		const dateStr = dateFromChallengeId(challenge.id);
+		const today = getChallengeDateString();
+		if (dateStr && dateStr > today) {
+			return fail(400, { error: "Challenge not available yet" });
+		}
+
+		const run = await startChallengeRun(user.id, challenge.id);
+		redirect(303, `/challenges/${challenge.id}/play?run=${run.id}`);
+	},
+
 	complete: async ({ request, params }) => {
 		const user = requireLogin(`/challenges/${params.id}/play`);
 

@@ -1,7 +1,7 @@
 <script>
-	import { browser } from "$app/environment";
-	import { enhance } from "$app/forms";
-	import { onMount } from "svelte";
+	import { applyAction, enhance } from "$app/forms";
+	import { goto } from "$app/navigation";
+	import { untrack } from "svelte";
 	import { page } from "$app/state";
 	import { Game } from "$lib/game.svelte.js";
 	import { DIRECTIONS } from "$lib/constants.js";
@@ -22,6 +22,7 @@
 	let result = $state(/** @type {'won' | 'lost' | null} */ (null));
 	let remainingMs = $state(0);
 	let submitting = $state(false);
+	let retrying = $state(false);
 
 	/** @type {import("$lib/types").GameEvent[]} */
 	let pendingEvents = $state([]);
@@ -66,16 +67,19 @@
 		return new Game({ seed, winTile });
 	}
 
-	function initGame() {
-		if (!browser) return;
+	/**
+	 * @param {number} startedOn
+	 */
+	function initGame(startedOn) {
 		pendingEvents = [];
 		game = createChallengeGame();
 		result = null;
+		submitting = false;
+		retrying = false;
 
-		if (isTime) {
+		if (isTime && "durationSec" in challenge.params) {
 			const durationMs = challenge.params.durationSec * 1000;
-			const elapsed = Date.now() - data.run.startedOn;
-			remainingMs = Math.max(0, durationMs - elapsed);
+			remainingMs = Math.max(0, durationMs - (Date.now() - startedOn));
 		}
 	}
 
@@ -99,10 +103,13 @@
 		queueMicrotask(() => completeForm?.requestSubmit());
 	}
 
-	function checkOutcome() {
+	/**
+	 * @param {number} [startedOn]
+	 */
+	function checkOutcome(startedOn = data.run.startedOn) {
 		if (!game || result) return;
 
-		const elapsedMs = isTime ? Date.now() - data.run.startedOn : undefined;
+		const elapsedMs = isTime ? Date.now() - startedOn : undefined;
 		const outcome = evaluateChallenge(challenge, {
 			board: game.board,
 			score: game.score,
@@ -161,24 +168,36 @@
 
 	const { handleTouchStart, handleTouchEnd, handleTouchMove } = createSwipeHandlers(handleMove);
 
-	onMount(() => {
-		if (data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) {
-			result = data.run.status === CHALLENGE_RUN_STATUS.WON ? "won" : "lost";
+	// Re-init when Retry starts a new run on the same play route (no remount).
+	$effect(() => {
+		const runId = data.run.id;
+		const status = data.run.status;
+		const startedOn = data.run.startedOn;
+		void runId;
+
+		if (status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) {
+			result = status === CHALLENGE_RUN_STATUS.WON ? "won" : "lost";
 			return;
 		}
 
-		initGame();
-		checkOutcome();
+		const timed = untrack(() => isTime);
+		const durationSec = untrack(() =>
+			"durationSec" in challenge.params ? challenge.params.durationSec : null
+		);
+		untrack(() => {
+			initGame(startedOn);
+			checkOutcome(startedOn);
+		});
 
 		window.addEventListener("keydown", handleKeydown);
 
 		/** @type {ReturnType<typeof setInterval> | null} */
 		let timer = null;
-		if (isTime) {
+		if (timed && durationSec != null) {
+			const durationMs = durationSec * 1000;
 			timer = setInterval(() => {
-				const durationMs = challenge.params.durationSec * 1000;
-				remainingMs = Math.max(0, durationMs - (Date.now() - data.run.startedOn));
-				checkOutcome();
+				remainingMs = Math.max(0, durationMs - (Date.now() - startedOn));
+				checkOutcome(startedOn);
 			}, 200);
 		}
 
@@ -187,6 +206,19 @@
 			if (timer) clearInterval(timer);
 		};
 	});
+
+	/** @type {import("@sveltejs/kit").SubmitFunction} */
+	const onRetry = () => {
+		retrying = true;
+		return async ({ result: actionResult }) => {
+			if (actionResult.type === "redirect") {
+				await goto(actionResult.location);
+				return;
+			}
+			retrying = false;
+			await applyAction(actionResult);
+		};
+	};
 </script>
 
 <svelte:head>
@@ -313,7 +345,7 @@
 			<p>
 				{#if result === "won"}
 					Nice work — {data.objective.toLowerCase()}.
-				{:else if isTime && game && game.score < challenge.params.targetScore}
+				{:else if isTime && game && "targetScore" in challenge.params && game.score < challenge.params.targetScore}
 					Time's up (or game over) with {game.score.toLocaleString()} points.
 				{:else}
 					Game over before the objective was met.
@@ -327,8 +359,10 @@
 				{/if}
 			</p>
 			<div class="flex flex-wrap justify-center gap-2">
-				<form method="POST" action="/challenges/{challenge.id}?/start" use:enhance>
-					<Btn type="submit" class="justify-center">Retry</Btn>
+				<form method="POST" action="?/start" use:enhance={onRetry}>
+					<Btn type="submit" class="justify-center" disabled={retrying || submitting}>
+						{retrying ? "Starting…" : "Retry"}
+					</Btn>
 				</form>
 				<Btn href="/challenges" class="justify-center">Calendar</Btn>
 			</div>
