@@ -154,7 +154,7 @@
 				<h2 class="text-lg font-bold text-[var(--color-primary)]">Global leaderboard</h2>
 				{#if data.dateStr}
 					<a
-						href="/leaderboard/daily?date={data.dateStr}"
+						href="/leaderboard/challenge?date={data.dateStr}"
 						class="text-xs font-semibold text-[var(--color-primary)] hover:underline"
 					>
 						View full board

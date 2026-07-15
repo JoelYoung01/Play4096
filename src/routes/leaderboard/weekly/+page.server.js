@@ -3,5 +3,5 @@ import { loadClassicPeriodLeaderboard } from "$lib/server/classicLeaderboardLoad
 
 /** @type {import("./$types").PageServerLoad} */
 export async function load(event) {
-	return loadClassicPeriodLeaderboard(event, LEADERBOARD_PERIODS.DAILY);
+	return loadClassicPeriodLeaderboard(event, LEADERBOARD_PERIODS.WEEKLY);
 }
