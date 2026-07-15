@@ -3,12 +3,7 @@
 	import { page } from "$app/state";
 	import Btn from "$lib/components/Btn.svelte";
 	import BoardPreview from "$lib/components/BoardPreview.svelte";
-	import {
-		CHALLENGE_RUN_STATUS,
-		CHALLENGE_TYPES,
-		countFilledCells,
-		resolveClearTarget,
-	} from "$lib/challenges.js";
+	import { CHALLENGE_RUN_STATUS, CHALLENGE_TYPES } from "$lib/challenges.js";
 	import { CrownIcon, ArrowLeftIcon } from "@lucide/svelte";
 
 	let { data } = $props();
@@ -101,12 +96,6 @@
 				<li>Target score: {challenge.params.targetScore.toLocaleString()}</li>
 				<li>Time limit: {challenge.params.durationSec}s</li>
 				<li>Fail if the timer runs out or you game over first</li>
-			</ul>
-		{:else if challenge.type === CHALLENGE_TYPES.CLEAR}
-			<ul class="mb-6 list-inside list-disc text-sm text-gray-600">
-				<li>Starting tiles: {countFilledCells(challenge.params.board)}</li>
-				<li>Clear to ≤ {resolveClearTarget(challenge.params)} occupied cells</li>
-				<li>Fail on game over before reaching the target</li>
 			</ul>
 		{:else}
 			<ul class="mb-6 list-inside list-disc text-sm text-gray-600">
