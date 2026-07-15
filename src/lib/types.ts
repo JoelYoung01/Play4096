@@ -70,6 +70,8 @@ export interface GameState {
   rngState?: number;
   moveCount?: number;
   undoCooldownRemaining?: number;
+  /** Recorded move directions; null when replay was invalidated (e.g. cheat) */
+  moves?: number[] | null;
 }
 
 export interface GameSaveData {
@@ -83,4 +85,21 @@ export interface GameSaveData {
   rngState?: number;
   moveCount?: number;
   undoCooldownRemaining?: number;
+  /** Recorded move directions; null when replay was invalidated (e.g. cheat) */
+  moves?: number[] | null;
 }
+
+export interface GameHistoryEntry {
+  id: string;
+  score: number;
+  won: boolean;
+  complete: boolean;
+  moveCount: number;
+  createdOn: Date;
+  updatedOn: Date;
+  completedOn: Date | null;
+  hasReplay: boolean;
+}
+
+export type GameHistorySort = "date" | "score" | "moves";
+export type GameHistoryFilter = "all" | "won" | "lost";

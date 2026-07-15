@@ -87,6 +87,20 @@ export function isSameGame(game1, game2) {
 }
 
 /**
+ * Resolve the recorded move list when hydrating a Game.
+ * Fresh games start with []; legacy mid-game saves without a moves field are not replayable.
+ * @param {import("./types").GameState | null | undefined} initialState
+ * @returns {number[] | null}
+ */
+function resolveRecordedMoves(initialState) {
+	if (!initialState) return [];
+	if (initialState.moves === null) return null;
+	if (Array.isArray(initialState.moves)) return [...initialState.moves];
+	if ((initialState.moveCount ?? 0) === 0) return [];
+	return null;
+}
+
+/**
  * Game Class
  *
  * Encapsulates the game state and logic
@@ -122,6 +136,12 @@ export class Game {
 		this.undoCooldownRemaining = $state(0);
 		/** @type {boolean} Reactive flag — true when a one-step undo snapshot exists */
 		this.hasUndoSnapshot = $state(false);
+		/**
+		 * Recorded successful move directions for replay.
+		 * null means recording was invalidated (cheat / legacy mid-game).
+		 * @type {number[] | null}
+		 */
+		this.moves = $state(resolveRecordedMoves(initialState));
 
 		const resolvedSeed = seed ?? initialState?.seed ?? generateSeed();
 		/** @type {number} */
@@ -203,8 +223,19 @@ export class Game {
 		this.#previousState = null;
 		this.hasUndoSnapshot = false;
 		this.undoCooldownRemaining = UNDO_COOLDOWN_MOVES;
+		if (this.moves) {
+			this.moves = this.moves.slice(0, -1);
+		}
 
 		return true;
+	}
+
+	/**
+	 * Stop recording moves so this game cannot be replayed from seed+directions
+	 * (used after board transforms that bypass moveTiles).
+	 */
+	invalidateMoveRecording() {
+		this.moves = null;
 	}
 
 	/**
@@ -485,6 +516,9 @@ export class Game {
 			moveQueue.push({ snapshot: newBoard });
 			this.board = newBoard;
 			this.moveCount += 1;
+			if (this.moves) {
+				this.moves = [...this.moves, direction];
+			}
 			if (this.undoCooldownRemaining > 0) {
 				this.undoCooldownRemaining -= 1;
 			}
@@ -517,6 +551,8 @@ export class Game {
 	rotateBoard(factor) {
 		if (factor <= 0) return;
 
+		this.invalidateMoveRecording();
+
 		const newBoard = Array(this.boardSize)
 			.fill(null)
 			.map(() => Array(this.boardSize).fill(0));
@@ -535,6 +571,8 @@ export class Game {
 	 * Mirror the board horizontally
 	 */
 	mirrorBoardHorizontally() {
+		this.invalidateMoveRecording();
+
 		const newBoard = Array(this.boardSize)
 			.fill(null)
 			.map(() => Array(this.boardSize).fill(0));
@@ -551,6 +589,8 @@ export class Game {
 	 * Mirror the board vertically
 	 */
 	mirrorBoardVertically() {
+		this.invalidateMoveRecording();
+
 		const newBoard = Array(this.boardSize)
 			.fill(null)
 			.map(() => Array(this.boardSize).fill(0));
@@ -578,6 +618,7 @@ export class Game {
 			rngState: this.rng.state,
 			moveCount: this.moveCount,
 			undoCooldownRemaining: this.undoCooldownRemaining,
+			moves: this.moves,
 		};
 	}
 }

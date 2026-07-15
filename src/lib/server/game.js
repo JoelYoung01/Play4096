@@ -1,6 +1,6 @@
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
-import { and, desc, eq, not } from "drizzle-orm";
+import { and, desc, eq, not, sql } from "drizzle-orm";
 import assert from "node:assert";
 
 /**
@@ -26,6 +26,30 @@ export async function saveScore(score, userId) {
 }
 
 /**
+ * Normalize moves for persistence
+ * @param {number[] | null | undefined} moves
+ * @returns {number[] | null}
+ */
+function normalizeMoves(moves) {
+	if (moves === null) return null;
+	if (Array.isArray(moves)) return moves;
+	return [];
+}
+
+/**
+ * Whether a saved game can be deterministically replayed from seed + moves
+ * @param {{ seed: number | null, moves: number[] | null, moveCount: number }} game
+ */
+export function gameHasReplay(game) {
+	return (
+		game.seed != null &&
+		Array.isArray(game.moves) &&
+		game.moves.length > 0 &&
+		game.moves.length === game.moveCount
+	);
+}
+
+/**
  * Save a game to the database.
  *
  * Creates a game if the id is not in the database.
@@ -44,10 +68,15 @@ export async function saveGame(game) {
 		assert(existingGame, `Game with id ${game.id} not found`);
 	}
 
-	// If game with id already exists, check for win (to save a completedOn date) and update the game
+	const moves = normalizeMoves(game.moves);
+
+	// If game with id already exists, check for completion and update the game
 	if (game.id && existingGame) {
 		let completedOn = existingGame.completedOn;
-		if (!existingGame.won && game.won) {
+		// Stamp completedOn the first time a game finishes (win or loss)
+		if (!existingGame.complete && game.complete) {
+			completedOn = new Date();
+		} else if (!existingGame.won && game.won && !completedOn) {
 			completedOn = new Date();
 		}
 
@@ -62,6 +91,7 @@ export async function saveGame(game) {
 				rngState: game.rngState ?? null,
 				moveCount: game.moveCount ?? 0,
 				undoCooldownRemaining: game.undoCooldownRemaining ?? 0,
+				moves,
 				completedOn,
 				updatedOn: new Date(),
 			})
@@ -70,6 +100,7 @@ export async function saveGame(game) {
 
 	// If game did not exist in db, create it.
 	else {
+		const now = new Date();
 		const newGame = db
 			.insert(table.game)
 			.values({
@@ -83,8 +114,10 @@ export async function saveGame(game) {
 				rngState: game.rngState ?? null,
 				moveCount: game.moveCount ?? 0,
 				undoCooldownRemaining: game.undoCooldownRemaining ?? 0,
-				createdOn: new Date(),
-				updatedOn: new Date(),
+				moves,
+				createdOn: now,
+				updatedOn: now,
+				completedOn: game.complete ? now : null,
 			})
 			.returning({ id: table.game.id })
 			.get();
@@ -106,6 +139,105 @@ export function getCurrentGame(userId) {
 		.from(table.game)
 		.where(and(eq(table.game.playerId, userId), not(eq(table.game.complete, true))))
 		.orderBy(desc(table.game.updatedOn))
+		.get();
+
+	return game ?? null;
+}
+
+/**
+ * List completed games for history (Pro feature)
+ *
+ * @param {string} userId
+ * @param {{
+ *   sort?: import("$lib/types").GameHistorySort,
+ *   filter?: import("$lib/types").GameHistoryFilter,
+ *   limit?: number,
+ *   offset?: number,
+ * }} [options]
+ * @returns {import("$lib/types").GameHistoryEntry[]}
+ */
+export function getCompletedGames(userId, options = {}) {
+	const sort = options.sort ?? "date";
+	const filter = options.filter ?? "all";
+	const limit = options.limit ?? 50;
+	const offset = options.offset ?? 0;
+
+	/** @type {import("drizzle-orm").SQL | undefined} */
+	let filterClause;
+	if (filter === "won") {
+		filterClause = eq(table.game.won, true);
+	} else if (filter === "lost") {
+		filterClause = and(eq(table.game.won, false), eq(table.game.complete, true));
+	}
+
+	const whereClause = filterClause
+		? and(eq(table.game.playerId, userId), eq(table.game.complete, true), filterClause)
+		: and(eq(table.game.playerId, userId), eq(table.game.complete, true));
+
+	/** @type {import("drizzle-orm").SQL[]} */
+	let orderBy;
+	if (sort === "score") {
+		orderBy = [desc(table.game.score), desc(table.game.updatedOn)];
+	} else if (sort === "moves") {
+		orderBy = [desc(table.game.moveCount), desc(table.game.updatedOn)];
+	} else {
+		// Prefer completedOn when present, fall back to updatedOn
+		orderBy = [
+			desc(sql`coalesce(${table.game.completedOn}, ${table.game.updatedOn})`),
+			desc(table.game.updatedOn),
+		];
+	}
+
+	const rows = db
+		.select({
+			id: table.game.id,
+			score: table.game.score,
+			won: table.game.won,
+			complete: table.game.complete,
+			moveCount: table.game.moveCount,
+			createdOn: table.game.createdOn,
+			updatedOn: table.game.updatedOn,
+			completedOn: table.game.completedOn,
+			seed: table.game.seed,
+			moves: table.game.moves,
+		})
+		.from(table.game)
+		.where(whereClause)
+		.orderBy(...orderBy)
+		.limit(limit)
+		.offset(offset)
+		.all();
+
+	return rows.map((row) => ({
+		id: row.id,
+		score: row.score ?? 0,
+		won: row.won,
+		complete: row.complete,
+		moveCount: row.moveCount,
+		createdOn: row.createdOn,
+		updatedOn: row.updatedOn,
+		completedOn: row.completedOn,
+		hasReplay: gameHasReplay({
+			seed: row.seed,
+			moves: row.moves,
+			moveCount: row.moveCount,
+		}),
+	}));
+}
+
+/**
+ * Get a completed game owned by the user (for replay)
+ *
+ * @param {string} gameId
+ * @param {string} userId
+ */
+export function getCompletedGameById(gameId, userId) {
+	const game = db
+		.select()
+		.from(table.game)
+		.where(
+			and(eq(table.game.id, gameId), eq(table.game.playerId, userId), eq(table.game.complete, true))
+		)
 		.get();
 
 	return game ?? null;

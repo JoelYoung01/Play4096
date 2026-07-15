@@ -29,7 +29,7 @@
 		},
 		{
 			name: "Game History & Replay",
-			implemented: false,
+			implemented: true,
 		},
 		{
 			name: "Board Power Ups & Checkpoints",

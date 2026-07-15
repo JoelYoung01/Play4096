@@ -19,6 +19,7 @@ export function load({ locals }) {
 				rngState: dbGame.rngState ?? undefined,
 				moveCount: dbGame.moveCount ?? 0,
 				undoCooldownRemaining: dbGame.undoCooldownRemaining ?? 0,
+				moves: dbGame.moves ?? null,
 				lastUpdated: dbGame.updatedOn.getTime(),
 			};
 		}
