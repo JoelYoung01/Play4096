@@ -26,27 +26,16 @@
 	];
 
 	let activePage = $derived(
-		availableLeaderboards.find((leaderboard) => leaderboard.href === page.url.pathname) ??
-			(page.url.pathname.startsWith("/leaderboard/challenge")
-				? { key: "challenge", label: "Challenge", href: "/leaderboard/challenge" }
-				: undefined)
+		availableLeaderboards.find((leaderboard) => leaderboard.href === page.url.pathname)
 	);
-
-	const isChallengeBoard = $derived(page.url.pathname.startsWith("/leaderboard/challenge"));
 
 	let { children } = $props();
 </script>
 
-<main class="mx-auto mt-10 w-full max-w-lg p-8 pb-28">
+<main class="mx-auto mt-10 w-full max-w-lg p-8">
 	<h1 class=" text-3xl font-bold text-[var(--color-primary)]">Leaderboard</h1>
-	<p class="mb-4 text-sm text-gray-500">
-		{#if isChallengeBoard}
-			Global rankings for each day's daily challenge.
-		{:else}
-			Classic high scores by time frame. Challenge rankings live on the challenge board.
-		{/if}
-	</p>
-	<div class="mb-2 flex items-center gap-2">
+	<p class="mb-4 text-sm text-gray-500">Classic high scores by time frame.</p>
+	<div class="mb-3 flex items-center gap-2">
 		{#each availableLeaderboards as leaderboard, key (key)}
 			<form method="get" action={leaderboard.href} class="flex-1">
 				<button
@@ -60,16 +49,6 @@
 			</form>
 		{/each}
 	</div>
-	<p class="mb-3 text-center text-xs">
-		<a
-			href="/leaderboard/challenge"
-			class="font-semibold text-[var(--color-primary)] hover:underline {isChallengeBoard
-				? 'underline'
-				: ''}"
-		>
-			Daily challenge board
-		</a>
-	</p>
 
 	{@render children?.()}
 

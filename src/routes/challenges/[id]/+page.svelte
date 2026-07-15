@@ -8,7 +8,7 @@
 		CHALLENGE_TYPES,
 		formatChallengeTypeLabel,
 	} from "$lib/challenges.js";
-	import { CrownIcon, ArrowLeftIcon } from "@lucide/svelte";
+	import { CrownIcon, ArrowLeftIcon, ChevronRightIcon, TrophyIcon } from "@lucide/svelte";
 
 	let { data } = $props();
 
@@ -22,6 +22,10 @@
 			? challenge.params.board
 			: null
 	);
+
+	const leaderboardHref = $derived(`/challenges/${challenge.id}/leaderboard`);
+
+	const scoreUnit = $derived(challenge.type === CHALLENGE_TYPES.RECOVERY ? "moves" : "pts");
 
 	function onStart() {
 		starting = true;
@@ -149,84 +153,41 @@
 			</div>
 		{/if}
 
-		<section class="mt-8">
-			<div class="mb-3 flex items-baseline justify-between gap-2">
-				<h2 class="text-lg font-bold text-[var(--color-primary)]">Global leaderboard</h2>
-				{#if data.dateStr}
-					<a
-						href="/leaderboard/challenge?date={data.dateStr}"
-						class="text-xs font-semibold text-[var(--color-primary)] hover:underline"
-					>
-						View full board
-					</a>
-				{/if}
-			</div>
-			<p class="mb-3 text-xs text-gray-500">
-				{#if challenge.type === CHALLENGE_TYPES.RECOVERY}
-					Best clear by moves (fewer is better).
-				{:else}
-					Best clear by score (higher is better).
-				{/if}
-			</p>
-			{#if data.leaderboard.length === 0}
-				<p class="rounded-lg bg-gray-100 px-4 py-6 text-center text-sm text-gray-600">
-					No clears yet — be the first!
-				</p>
-			{:else}
-				{@const scoreLabel = challenge.type === CHALLENGE_TYPES.RECOVERY ? "Moves" : "Score"}
-				{@const showUserRow =
-					data.userRank != null &&
-					data.userBestScore != null &&
-					!data.leaderboard.some((l) => l.id === data.user?.id)}
-				<table class="w-full border-collapse overflow-hidden rounded-lg">
-					<thead>
-						<tr class="bg-[var(--color-secondary)] text-gray-700">
-							<th class="px-3 py-2 text-left text-xs font-semibold tracking-wide uppercase">Rank</th
-							>
-							<th class="px-3 py-2 text-left text-xs font-semibold tracking-wide uppercase"
-								>Player</th
-							>
-							<th class="px-3 py-2 text-end text-xs font-semibold tracking-wide uppercase"
-								>{scoreLabel}</th
-							>
-						</tr>
-					</thead>
-					<tbody>
-						{#each data.leaderboard as entry, index (entry.id)}
-							<tr
-								class="transition-colors hover:bg-green-200 {index % 2 === 0
-									? 'bg-gray-200'
-									: 'bg-gray-100'}"
-							>
-								<td class="w-12 px-3 py-2 text-sm font-semibold text-gray-700"># {index + 1}</td>
-								<td class="px-3 py-2 text-sm font-medium text-gray-700">
-									{entry.displayName || entry.username}
-									{#if entry.id === data.user?.id}
-										<span class="text-xs text-gray-500">You</span>
-									{/if}
-								</td>
-								<td class="px-3 py-2 text-end text-sm font-bold text-gray-700">
-									{entry.bestScore?.toLocaleString()}
-								</td>
-							</tr>
-						{/each}
-						{#if showUserRow}
-							<tr class="bg-gray-200">
-								<td colspan="3" class="text-center text-sm font-bold text-gray-700">...</td>
-							</tr>
-							<tr class="bg-gray-100">
-								<td class="px-3 py-2 text-sm font-semibold text-gray-700"># {data.userRank}</td>
-								<td class="px-3 py-2 text-sm font-medium text-gray-700">
-									{data.user?.displayName || data.user?.username}
-								</td>
-								<td class="px-3 py-2 text-end text-sm font-bold text-gray-700">
-									{data.userBestScore?.toLocaleString()}
-								</td>
-							</tr>
+		<a
+			href={leaderboardHref}
+			class="mt-6 flex items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:brightness-95"
+			style:background-color={page.data.theme?.boardBackground}
+			style:color={page.data.theme?.textDark}
+		>
+			<span
+				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-secondary)] text-[var(--color-primary)]"
+			>
+				<TrophyIcon size={20} />
+			</span>
+			<span class="min-w-0 flex-1">
+				<span class="block text-sm font-bold tracking-wide uppercase opacity-80"
+					>Global leaderboard</span
+				>
+				{#if data.userRank != null && data.userBestScore != null}
+					<span class="block text-base font-semibold">
+						Your rank: #{data.userRank}
+						{#if data.entryCount > 0}
+							<span class="font-normal opacity-80">of {data.entryCount}</span>
 						{/if}
-					</tbody>
-				</table>
-			{/if}
-		</section>
+						<span class="font-normal opacity-80">
+							· {data.userBestScore.toLocaleString()}
+							{scoreUnit}
+						</span>
+					</span>
+				{:else if data.entryCount > 0}
+					<span class="block text-base font-semibold">
+						{data.entryCount} clear{data.entryCount === 1 ? "" : "s"} — tap to view
+					</span>
+				{:else}
+					<span class="block text-base font-semibold">No clears yet — be the first</span>
+				{/if}
+			</span>
+			<ChevronRightIcon size={20} class="shrink-0 opacity-70" />
+		</a>
 	{/if}
 </main>

@@ -203,11 +203,20 @@ export function getDailyChallengeLeaderboard(challengeId, challengeType, limit =
  * @param {string} userId
  * @param {string} challengeId
  * @param {string} challengeType
- * @returns {{ rank: number; bestScore: number } | null}
+ * @returns {{ rank: number; bestScore: number; total: number } | null}
  */
 export function getDailyChallengeUserRank(userId, challengeId, challengeType) {
 	const ranked = getBestWinsByUser(challengeId, challengeType);
 	const index = ranked.findIndex((entry) => entry.id === userId);
 	if (index < 0) return null;
-	return { rank: index + 1, bestScore: ranked[index].bestScore };
+	return { rank: index + 1, bestScore: ranked[index].bestScore, total: ranked.length };
+}
+
+/**
+ * How many players have a winning clear on this challenge.
+ * @param {string} challengeId
+ * @param {string} challengeType
+ */
+export function getDailyChallengeEntryCount(challengeId, challengeType) {
+	return getBestWinsByUser(challengeId, challengeType).length;
 }
