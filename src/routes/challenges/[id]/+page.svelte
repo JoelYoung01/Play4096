@@ -51,10 +51,7 @@
 	<title>{challenge.title} - Challenges - 4096</title>
 </svelte:head>
 
-<main
-	class="mx-auto w-full max-w-lg px-4 pt-8 pb-28"
-	style:color={page.data.theme?.text}
->
+<main class="mx-auto w-full max-w-lg px-4 pt-8 pb-28" style:color={page.data.theme?.text}>
 	<a
 		href="/challenges"
 		class="mb-4 inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:underline"

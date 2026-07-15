@@ -115,10 +115,7 @@
 	<meta name="description" content="Watch a move-by-move replay of a completed 4096 game." />
 </svelte:head>
 
-<main
-	class="mx-auto w-full max-w-lg px-4 pt-6 pb-28"
-	style:color={page.data.theme?.primary}
->
+<main class="mx-auto w-full max-w-lg px-4 pt-6 pb-28" style:color={page.data.theme?.primary}>
 	<div class="mb-3 flex items-center gap-2">
 		<a
 			href="/replay"
