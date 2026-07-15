@@ -1,0 +1,16 @@
+/** Shared CSS for swipe/gesture prevention on game play surfaces only. */
+.play-surface {
+	/* Prevent Chrome's pull-to-refresh and other touch gestures */
+	touch-action: none;
+	user-select: none;
+	overscroll-behavior: contain;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-webkit-overflow-scrolling: touch;
+	-webkit-overscroll-behavior: contain;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-user-drag: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+}

@@ -37,7 +37,10 @@
 	<meta name="description" content="Browse and replay your completed 4096 games." />
 </svelte:head>
 
-<main class="mx-auto mt-10 mb-[5rem] w-full max-w-lg p-8" style:color={page.data.theme?.primary}>
+<main
+	class="mx-auto h-full w-full max-w-lg overflow-y-auto px-6 pt-10 pb-28"
+	style:color={page.data.theme?.primary}
+>
 	<h1 class="text-3xl font-bold">Game History</h1>
 	<p class="mb-4 text-sm text-gray-500">
 		Completed games only — replay wins and losses move by move.

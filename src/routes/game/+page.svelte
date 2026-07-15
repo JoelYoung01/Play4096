@@ -10,10 +10,9 @@
 	import { browser } from "$app/environment";
 	import { gameState } from "./state.svelte";
 	import Overlay from "$lib/components/Overlay.svelte";
+	import { createSwipeHandlers } from "$lib/swipe.js";
 
 	const { data } = $props();
-
-	const TOUCH_THRESHOLD = 5;
 	/** Max staleness for server saves while actively playing */
 	const SAVE_THROTTLE_MS = 1000;
 	let conflict = $state(false);
@@ -347,58 +346,7 @@
 		}
 	}
 
-	// Handle touch/swipe events for mobile
-	let touchStartX = 0;
-	let touchStartY = 0;
-
-	/**
-	 * Handle touch/swipe events for mobile
-	 * @param {TouchEvent} event
-	 */
-	function handleTouchStart(event) {
-		touchStartX = event.touches[0].clientX;
-		touchStartY = event.touches[0].clientY;
-	}
-
-	/**
-	 * Handle touch/swipe events for mobile
-	 * @param {TouchEvent} event
-	 */
-	function handleTouchEnd(event) {
-		if (!touchStartX || !touchStartY) return;
-
-		const touchEndX = event.changedTouches[0].clientX;
-		const touchEndY = event.changedTouches[0].clientY;
-
-		const diffX = touchStartX - touchEndX;
-		const diffY = touchStartY - touchEndY;
-
-		if (Math.abs(diffX) < TOUCH_THRESHOLD && Math.abs(diffY) < TOUCH_THRESHOLD) return;
-
-		// Prevent default behavior
-		event.preventDefault();
-		event.stopPropagation();
-
-		if (Math.abs(diffX) > Math.abs(diffY)) {
-			if (diffX > 0) handleMove(DIRECTIONS.LEFT);
-			else handleMove(DIRECTIONS.RIGHT);
-		} else {
-			if (diffY > 0) handleMove(DIRECTIONS.UP);
-			else handleMove(DIRECTIONS.DOWN);
-		}
-
-		touchStartX = 0;
-		touchStartY = 0;
-	}
-
-	/**
-	 * Handle touch move events to prevent scrolling during swipe
-	 * @param {TouchEvent} event
-	 */
-	function handleTouchMove(event) {
-		event.preventDefault();
-		event.stopPropagation();
-	}
+	const { handleTouchStart, handleTouchEnd, handleTouchMove } = createSwipeHandlers(handleMove);
 
 	// Setup listeners on mount
 	onMount(() => {

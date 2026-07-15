@@ -3,8 +3,9 @@
 	import { enhance } from "$app/forms";
 	import { onMount } from "svelte";
 	import { page } from "$app/state";
-	import { Game, getTileBackground, getTileColor } from "$lib/game.svelte.js";
+	import { Game } from "$lib/game.svelte.js";
 	import { DIRECTIONS } from "$lib/constants.js";
+	import { createSwipeHandlers } from "$lib/swipe.js";
 	import {
 		CHALLENGE_RUN_STATUS,
 		CHALLENGE_TYPES,
@@ -13,16 +14,18 @@
 		resolveClearTarget,
 	} from "$lib/challenges.js";
 	import Btn from "$lib/components/Btn.svelte";
+	import AnimatedBoard from "../../../game/components/AnimatedBoard.svelte";
 
 	let { data } = $props();
-
-	const TOUCH_THRESHOLD = 5;
 
 	/** @type {Game | null} */
 	let game = $state(null);
 	let result = $state(/** @type {'won' | 'lost' | null} */ (null));
 	let remainingMs = $state(0);
 	let submitting = $state(false);
+
+	/** @type {import("$lib/types").GameEvent[]} */
+	let pendingEvents = $state([]);
 
 	/** @type {HTMLFormElement | null} */
 	let completeForm = $state(null);
@@ -68,6 +71,7 @@
 
 	function initGame() {
 		if (!browser) return;
+		pendingEvents = [];
 		game = createChallengeGame();
 		result = null;
 
@@ -116,12 +120,20 @@
 	}
 
 	/**
+	 * @returns {import("$lib/types").GameEvent | undefined}
+	 */
+	function popEvent() {
+		return pendingEvents.shift();
+	}
+
+	/**
 	 * @param {number} direction
 	 */
 	function handleMove(direction) {
 		if (!game || result) return;
 		const events = game.moveTiles(direction);
 		if (events.length > 0) {
+			pendingEvents.push(...events);
 			checkOutcome();
 		}
 	}
@@ -150,39 +162,7 @@
 		}
 	}
 
-	let touchStartX = 0;
-	let touchStartY = 0;
-
-	/** @param {TouchEvent} event */
-	function handleTouchStart(event) {
-		touchStartX = event.touches[0].clientX;
-		touchStartY = event.touches[0].clientY;
-	}
-
-	/** @param {TouchEvent} event */
-	function handleTouchEnd(event) {
-		if (!touchStartX || !touchStartY) return;
-		const touchEndX = event.changedTouches[0].clientX;
-		const touchEndY = event.changedTouches[0].clientY;
-		const diffX = touchStartX - touchEndX;
-		const diffY = touchStartY - touchEndY;
-		if (Math.abs(diffX) < TOUCH_THRESHOLD && Math.abs(diffY) < TOUCH_THRESHOLD) return;
-		event.preventDefault();
-		if (Math.abs(diffX) > Math.abs(diffY)) {
-			if (diffX > 0) handleMove(DIRECTIONS.LEFT);
-			else handleMove(DIRECTIONS.RIGHT);
-		} else {
-			if (diffY > 0) handleMove(DIRECTIONS.UP);
-			else handleMove(DIRECTIONS.DOWN);
-		}
-		touchStartX = 0;
-		touchStartY = 0;
-	}
-
-	/** @param {TouchEvent} event */
-	function handleTouchMove(event) {
-		event.preventDefault();
-	}
+	const { handleTouchStart, handleTouchEnd, handleTouchMove } = createSwipeHandlers(handleMove);
 
 	onMount(() => {
 		if (data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) {
@@ -255,7 +235,7 @@
 >
 	<div class="mb-3 flex items-start gap-2">
 		<div class="flex-1">
-			<p class="text-xs font-bold tracking-wide text-gray-500 uppercase">Challenge</p>
+			<p class="text-xs font-bold tracking-wide text-gray-500 uppercase">Daily Challenge</p>
 			<h1 class="text-2xl font-bold text-[var(--color-primary)]">{challenge.title}</h1>
 			<p class="text-sm text-gray-500">{data.objective}</p>
 		</div>
@@ -291,24 +271,7 @@
 	</div>
 
 	{#if game}
-		<div
-			class="mb-4 grid aspect-square grid-cols-4 gap-2.5 rounded-lg p-2.5"
-			style:background-color={page.data.theme?.boardBackground}
-		>
-			{#each game.board as row, ri (ri)}
-				{#each row as cell, ci (`${ri}-${ci}`)}
-					<div
-						class="flex items-center justify-center rounded-md text-xl font-extrabold sm:text-2xl"
-						style:background-color={cell
-							? getTileBackground(cell, page.data.theme)
-							: page.data.theme?.emptyTile}
-						style:color={cell ? getTileColor(cell, page.data.theme) : "transparent"}
-					>
-						{cell || ""}
-					</div>
-				{/each}
-			{/each}
-		</div>
+		<AnimatedBoard {game} {pendingEvents} {popEvent} showControls={false} />
 	{:else}
 		<div
 			class="mb-4 flex aspect-square items-center justify-center rounded-lg"
@@ -347,7 +310,7 @@
 				<form method="POST" action="/challenges/{challenge.id}?/start" use:enhance>
 					<Btn type="submit" class="justify-center">Retry</Btn>
 				</form>
-				<Btn href="/challenges" class="justify-center">All Challenges</Btn>
+				<Btn href="/challenges" class="justify-center">Calendar</Btn>
 			</div>
 		</div>
 	</div>
@@ -356,7 +319,7 @@
 <style lang="postcss">
 	.challenge-play {
 		max-width: 500px;
-		min-height: 100vh;
+		min-height: 100%;
 		margin: 0 auto;
 		padding: 20px;
 		padding-bottom: 5rem;

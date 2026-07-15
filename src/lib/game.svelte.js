@@ -30,7 +30,7 @@ export function getTileBackground(value, theme = defaultTheme) {
  */
 export function getTileColor(value, theme = defaultTheme) {
 	// Get the background color for this tile
-	const bg = getTileBackground(value);
+	const bg = getTileBackground(value, theme);
 
 	/**
 	 * Helper to parse hex color to RGB
