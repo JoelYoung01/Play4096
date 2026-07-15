@@ -8,7 +8,7 @@
 		CHALLENGE_TYPES,
 		formatChallengeTypeLabel,
 	} from "$lib/challenges.js";
-	import { CrownIcon, ArrowLeftIcon } from "@lucide/svelte";
+	import { CrownIcon, ArrowLeftIcon, ChevronRightIcon, TrophyIcon } from "@lucide/svelte";
 
 	let { data } = $props();
 
@@ -22,6 +22,10 @@
 			? challenge.params.board
 			: null
 	);
+
+	const leaderboardHref = $derived(`/challenges/${challenge.id}/leaderboard`);
+
+	const scoreUnit = $derived(challenge.type === CHALLENGE_TYPES.RECOVERY ? "moves" : "pts");
 
 	function onStart() {
 		starting = true;
@@ -148,5 +152,42 @@
 				{/if}
 			</div>
 		{/if}
+
+		<a
+			href={leaderboardHref}
+			class="mt-6 flex items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:brightness-95"
+			style:background-color={page.data.theme?.boardBackground}
+			style:color={page.data.theme?.textDark}
+		>
+			<span
+				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-secondary)] text-[var(--color-primary)]"
+			>
+				<TrophyIcon size={20} />
+			</span>
+			<span class="min-w-0 flex-1">
+				<span class="block text-sm font-bold tracking-wide uppercase opacity-80"
+					>Global leaderboard</span
+				>
+				{#if data.userRank != null && data.userBestScore != null}
+					<span class="block text-base font-semibold">
+						Your rank: #{data.userRank}
+						{#if data.entryCount > 0}
+							<span class="font-normal opacity-80">of {data.entryCount}</span>
+						{/if}
+						<span class="font-normal opacity-80">
+							· {data.userBestScore.toLocaleString()}
+							{scoreUnit}
+						</span>
+					</span>
+				{:else if data.entryCount > 0}
+					<span class="block text-base font-semibold">
+						{data.entryCount} clear{data.entryCount === 1 ? "" : "s"} — tap to view
+					</span>
+				{:else}
+					<span class="block text-base font-semibold">No clears yet — be the first</span>
+				{/if}
+			</span>
+			<ChevronRightIcon size={20} class="shrink-0 opacity-70" />
+		</a>
 	{/if}
 </main>

@@ -10,6 +10,7 @@ import {
 	getChallengeStatsForUser,
 	startChallengeRun,
 } from "$lib/server/challenge.js";
+import { getDailyChallengeEntryCount, getDailyChallengeUserRank } from "$lib/server/leaderboard.js";
 import { getUserProfile, requireLogin } from "$lib/server/user.js";
 
 /** @type {import("./$types").PageServerLoad} */
@@ -53,7 +54,22 @@ export async function load({ locals, params }) {
 			overview: "Upgrade to Pro to open past daily challenges.",
 			dateStr,
 			stats: null,
+			userRank: null,
+			userBestScore: null,
+			entryCount: 0,
 		};
+	}
+
+	const entryCount = getDailyChallengeEntryCount(challenge.id, challenge.type);
+	let userRank = null;
+	/** @type {number | null} */
+	let userBestScore = null;
+	if (user) {
+		const rankInfo = getDailyChallengeUserRank(user.id, challenge.id, challenge.type);
+		if (rankInfo) {
+			userRank = rankInfo.rank;
+			userBestScore = rankInfo.bestScore;
+		}
 	}
 
 	return {
@@ -65,6 +81,9 @@ export async function load({ locals, params }) {
 		overview: formatChallengeOverview(challenge),
 		dateStr,
 		stats,
+		userRank,
+		userBestScore,
+		entryCount,
 	};
 }
 

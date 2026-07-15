@@ -12,19 +12,16 @@
 			key: "daily",
 			label: "Daily",
 			href: "/leaderboard/daily",
-			disabled: true,
 		},
 		{
 			key: "weekly",
 			label: "Weekly",
 			href: "/leaderboard/weekly",
-			disabled: true,
 		},
 		{
 			key: "monthly",
 			label: "Monthly",
 			href: "/leaderboard/monthly",
-			disabled: true,
 		},
 	];
 
@@ -35,15 +32,14 @@
 	let { children } = $props();
 </script>
 
-<main class="mx-auto mt-10 w-full max-w-lg p-8 pb-28">
+<main class="mx-auto mt-10 w-full max-w-lg p-8">
 	<h1 class=" text-3xl font-bold text-[var(--color-primary)]">Leaderboard</h1>
-	<p class="mb-4 text-sm text-gray-500">Time frame leaderboards are coming soon!</p>
+	<p class="mb-4 text-sm text-gray-500">Classic high scores by time frame.</p>
 	<div class="mb-3 flex items-center gap-2">
 		{#each availableLeaderboards as leaderboard, key (key)}
 			<form method="get" action={leaderboard.href} class="flex-1">
 				<button
-					disabled={leaderboard.disabled}
-					class="w-full rounded-md py-2 text-center font-bold text-gray-800 {activePage?.key ===
+					class="w-full rounded-md py-2 text-center text-sm font-bold text-gray-800 sm:text-base {activePage?.key ===
 					leaderboard.key
 						? 'bg-[var(--color-secondary)] '
 						: 'bg-gray-200'}"
