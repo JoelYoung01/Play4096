@@ -109,9 +109,19 @@ function moveCountFromMetrics(metrics) {
 }
 
 /**
+ * @param {unknown} metrics
+ * @returns {number | null}
+ */
+function elapsedMsFromMetrics(metrics) {
+	if (!metrics || typeof metrics !== "object") return null;
+	const value = /** @type {{ elapsedMs?: unknown }} */ (metrics).elapsedMs;
+	return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+/**
  * @param {string} userId
  * @param {string[]} challengeIds
- * @returns {Record<string, { bestStatus: string | null; attempts: number; wins: number; bestMoveCount: number | null; bestScore: number | null }>}
+ * @returns {Record<string, { bestStatus: string | null; attempts: number; wins: number; bestMoveCount: number | null; bestElapsedMs: number | null; bestScore: number | null }>}
  */
 export function getChallengeStatsForUser(userId, challengeIds = []) {
 	const runs = db
@@ -125,7 +135,7 @@ export function getChallengeStatsForUser(userId, challengeIds = []) {
 		.where(eq(table.challengeRun.userId, userId))
 		.all();
 
-	/** @type {Record<string, { bestStatus: string | null; attempts: number; wins: number; bestMoveCount: number | null; bestScore: number | null }>} */
+	/** @type {Record<string, { bestStatus: string | null; attempts: number; wins: number; bestMoveCount: number | null; bestElapsedMs: number | null; bestScore: number | null }>} */
 	const stats = {};
 
 	for (const challengeId of challengeIds) {
@@ -134,6 +144,7 @@ export function getChallengeStatsForUser(userId, challengeIds = []) {
 			attempts: 0,
 			wins: 0,
 			bestMoveCount: null,
+			bestElapsedMs: null,
 			bestScore: null,
 		};
 	}
@@ -145,6 +156,7 @@ export function getChallengeStatsForUser(userId, challengeIds = []) {
 				attempts: 0,
 				wins: 0,
 				bestMoveCount: null,
+				bestElapsedMs: null,
 				bestScore: null,
 			};
 		}
@@ -158,6 +170,10 @@ export function getChallengeStatsForUser(userId, challengeIds = []) {
 			const moves = moveCountFromMetrics(run.metrics);
 			if (moves != null && (entry.bestMoveCount == null || moves < entry.bestMoveCount)) {
 				entry.bestMoveCount = moves;
+			}
+			const elapsed = elapsedMsFromMetrics(run.metrics);
+			if (elapsed != null && (entry.bestElapsedMs == null || elapsed < entry.bestElapsedMs)) {
+				entry.bestElapsedMs = elapsed;
 			}
 			if (
 				typeof run.score === "number" &&

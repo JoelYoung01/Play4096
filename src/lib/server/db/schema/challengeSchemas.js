@@ -30,8 +30,12 @@ export const challengeRun = sqliteTable("challenge_run", {
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	status: text("status").notNull(),
+	/**
+	 * Ranking metric for wins: elapsed ms for time challenges, move count for recovery.
+	 * Merge points live in metrics.mergeScore.
+	 */
 	score: integer("score").notNull().default(0),
-	/** Extra metrics JSON: elapsedMs, filledCells, moveCount, etc. */
+	/** Extra metrics JSON: elapsedMs, filledCells, moveCount, mergeScore, etc. */
 	metrics: text("metrics", { mode: "json" }),
 	startedOn: integer("started_on", { mode: "timestamp" }).notNull(),
 	finishedOn: integer("finished_on", { mode: "timestamp" }),

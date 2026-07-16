@@ -307,7 +307,7 @@ export function formatChallengeObjective(challenge) {
 
 	if (type === CHALLENGE_TYPES.TIME) {
 		const p = /** @type {TimeChallengeParams} */ (params);
-		return `Score ${p.targetScore.toLocaleString()} in ${p.durationSec}s`;
+		return `Score ${p.targetScore.toLocaleString()} as fast as you can (${p.durationSec}s limit)`;
 	}
 
 	if (type === CHALLENGE_TYPES.RECOVERY) {
@@ -327,7 +327,7 @@ export function formatChallengeOverview(challenge) {
 
 	if (type === CHALLENGE_TYPES.TIME) {
 		const p = /** @type {TimeChallengeParams} */ (params);
-		return `Score ${p.targetScore.toLocaleString()} in ${p.durationSec}s. Timeout or game over fails.`;
+		return `Score ${p.targetScore.toLocaleString()} as fast as you can within ${p.durationSec}s. Faster clears rank higher. Timeout or game over fails.`;
 	}
 
 	if (type === CHALLENGE_TYPES.RECOVERY) {
@@ -336,6 +336,35 @@ export function formatChallengeOverview(challenge) {
 	}
 
 	return challenge.description ?? "";
+}
+
+/**
+ * Format a challenge completion time for leaderboards and stats.
+ * @param {number | null | undefined} ms
+ * @returns {string}
+ */
+export function formatChallengeElapsedMs(ms) {
+	if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return "—";
+	const totalSec = ms / 1000;
+	if (totalSec < 60) {
+		return `${totalSec.toFixed(1)}s`;
+	}
+	const minutes = Math.floor(totalSec / 60);
+	const seconds = totalSec - minutes * 60;
+	return `${minutes}:${seconds.toFixed(1).padStart(4, "0")}`;
+}
+
+/**
+ * Format a daily-challenge leaderboard / rank metric for display.
+ * @param {typeof CHALLENGE_TYPES[keyof typeof CHALLENGE_TYPES]} type
+ * @param {number | null | undefined} value elapsed ms (time) or move count (recovery)
+ */
+export function formatChallengeRankValue(type, value) {
+	if (type === CHALLENGE_TYPES.TIME) {
+		return formatChallengeElapsedMs(value);
+	}
+	if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+	return value.toLocaleString();
 }
 
 /**

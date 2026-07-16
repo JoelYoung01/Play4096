@@ -131,16 +131,37 @@ export function getClassicPeriodUserRank(userId, start, end) {
 }
 
 /**
- * Whether lower scores rank better for this challenge type.
- * Time challenges store points (higher better); recovery stores move count (lower better).
+ * Ranking value for a winning challenge run.
+ * Time challenges rank by elapsed ms (prefer metrics.elapsedMs; score stores ms on new clears).
+ * Recovery challenges rank by move count stored in score.
+ *
+ * @param {{ score: number | null; metrics: unknown }} win
  * @param {string} challengeType
+ * @returns {number | null}
  */
-function isLowerBetter(challengeType) {
-	return challengeType === CHALLENGE_TYPES.RECOVERY;
+function rankingValueFromWin(win, challengeType) {
+	if (challengeType === CHALLENGE_TYPES.TIME) {
+		if (win.metrics && typeof win.metrics === "object") {
+			const elapsed = /** @type {{ elapsedMs?: unknown }} */ (win.metrics).elapsedMs;
+			if (typeof elapsed === "number" && Number.isFinite(elapsed) && elapsed >= 0) {
+				return elapsed;
+			}
+		}
+		if (typeof win.score === "number" && Number.isFinite(win.score) && win.score >= 0) {
+			return win.score;
+		}
+		return null;
+	}
+
+	if (typeof win.score !== "number" || !Number.isFinite(win.score)) return null;
+	return win.score;
 }
 
 /**
- * Best winning score per user for a daily challenge, ordered for the leaderboard.
+ * Best winning run per user for a daily challenge, ordered for the leaderboard.
+ * Both time (elapsed ms) and recovery (move count) rank lower-is-better.
+ * `bestScore` is the ranking metric value (ms or moves).
+ *
  * @param {string} challengeId
  * @param {string} challengeType
  * @returns {{ id: string; username: string; displayName: string | null; bestScore: number }[]}
@@ -150,6 +171,7 @@ function getBestWinsByUser(challengeId, challengeType) {
 		.select({
 			userId: table.challengeRun.userId,
 			score: table.challengeRun.score,
+			metrics: table.challengeRun.metrics,
 			username: table.user.username,
 			displayName: table.userProfile.displayName,
 		})
@@ -164,27 +186,26 @@ function getBestWinsByUser(challengeId, challengeType) {
 		)
 		.all();
 
-	const lowerBetter = isLowerBetter(challengeType);
 	/** @type {Map<string, { id: string; username: string; displayName: string | null; bestScore: number }>} */
 	const bestByUser = new Map();
 
 	for (const win of wins) {
-		if (typeof win.score !== "number" || !Number.isFinite(win.score)) continue;
+		const value = rankingValueFromWin(win, challengeType);
+		if (value == null) continue;
 		const existing = bestByUser.get(win.userId);
-		const isBetter =
-			!existing || (lowerBetter ? win.score < existing.bestScore : win.score > existing.bestScore);
+		const isBetter = !existing || value < existing.bestScore;
 		if (isBetter) {
 			bestByUser.set(win.userId, {
 				id: win.userId,
 				username: win.username,
 				displayName: win.displayName ?? null,
-				bestScore: win.score,
+				bestScore: value,
 			});
 		}
 	}
 
 	const ranked = [...bestByUser.values()];
-	ranked.sort((a, b) => (lowerBetter ? a.bestScore - b.bestScore : b.bestScore - a.bestScore));
+	ranked.sort((a, b) => a.bestScore - b.bestScore);
 	return ranked;
 }
 

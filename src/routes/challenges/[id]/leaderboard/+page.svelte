@@ -1,5 +1,5 @@
 <script>
-	import { CHALLENGE_TYPES } from "$lib/challenges.js";
+	import { CHALLENGE_TYPES, formatChallengeRankValue } from "$lib/challenges.js";
 	import { Badge } from "$lib/components/ui/badge/index.js";
 	import * as Table from "$lib/components/ui/table/index.js";
 	import { ArrowLeftIcon } from "@lucide/svelte";
@@ -7,7 +7,7 @@
 	let { data } = $props();
 
 	const challenge = $derived(data.challenge);
-	const scoreLabel = $derived(challenge.type === CHALLENGE_TYPES.RECOVERY ? "Moves" : "Score");
+	const scoreLabel = $derived(challenge.type === CHALLENGE_TYPES.RECOVERY ? "Moves" : "Time");
 
 	const showUserRow = $derived(
 		data.userRank != null &&
@@ -61,7 +61,7 @@
 		{#if challenge.type === CHALLENGE_TYPES.RECOVERY}
 			· fewer moves ranks higher
 		{:else}
-			· higher score ranks higher
+			· faster time ranks higher
 		{/if}
 	</p>
 	<p class="mb-6 text-sm text-muted-foreground">{data.overview}</p>
@@ -98,7 +98,7 @@
 							{/if}
 						</Table.Cell>
 						<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
-							{leaderboardItem.bestScore?.toLocaleString()}
+							{formatChallengeRankValue(challenge.type, leaderboardItem.bestScore)}
 						</Table.Cell>
 					</Table.Row>
 				{/each}
@@ -116,7 +116,7 @@
 							{data.user?.displayName || data.user?.username}
 						</Table.Cell>
 						<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
-							{data.userBestScore?.toLocaleString()}
+							{formatChallengeRankValue(challenge.type, data.userBestScore)}
 						</Table.Cell>
 					</Table.Row>
 				{/if}

@@ -11,6 +11,7 @@
 		CHALLENGE_TYPES,
 		countFilledCells,
 		evaluateChallenge,
+		formatChallengeElapsedMs,
 	} from "$lib/challenges.js";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import AnimatedBoard from "../../../game/components/AnimatedBoard.svelte";
@@ -21,6 +22,8 @@
 	let game = $state(null);
 	let result = $state(/** @type {'won' | 'lost' | null} */ (null));
 	let remainingMs = $state(0);
+	/** Elapsed ms captured when the run finishes (time challenges). */
+	let finishedElapsedMs = $state(/** @type {number | null} */ (null));
 	let submitting = $state(false);
 	let retrying = $state(false);
 
@@ -74,6 +77,7 @@
 		pendingEvents = [];
 		game = createChallengeGame();
 		result = null;
+		finishedElapsedMs = null;
 		submitting = false;
 		retrying = false;
 
@@ -99,6 +103,9 @@
 	function finish(status) {
 		if (result || submitting || data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) return;
 		result = status;
+		if (isTime) {
+			finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
+		}
 		submitting = true;
 		queueMicrotask(() => completeForm?.requestSubmit());
 	}
@@ -177,6 +184,12 @@
 
 		if (status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) {
 			result = status === CHALLENGE_RUN_STATUS.WON ? "won" : "lost";
+			const metrics = data.run.metrics;
+			if (metrics && typeof metrics === "object") {
+				const elapsed = /** @type {{ elapsedMs?: unknown }} */ (metrics).elapsedMs;
+				finishedElapsedMs =
+					typeof elapsed === "number" && Number.isFinite(elapsed) ? elapsed : null;
+			}
 			return;
 		}
 
@@ -246,7 +259,11 @@
 	<input
 		type="hidden"
 		name="score"
-		value={isRecovery ? (game?.moveCount ?? 0) : (game?.score ?? 0)}
+		value={isRecovery
+			? (game?.moveCount ?? 0)
+			: isTime
+				? (finishedElapsedMs ?? Math.max(0, Date.now() - data.run.startedOn))
+				: (game?.score ?? 0)}
 	/>
 	<input
 		type="hidden"
@@ -254,8 +271,10 @@
 		value={JSON.stringify({
 			moveCount: game?.moveCount ?? 0,
 			filledCells: game ? countFilledCells(game.board) : 0,
-			elapsedMs: isTime ? Date.now() - data.run.startedOn : undefined,
-			mergeScore: isRecovery ? (game?.score ?? 0) : undefined,
+			elapsedMs: isTime
+				? (finishedElapsedMs ?? Math.max(0, Date.now() - data.run.startedOn))
+				: undefined,
+			mergeScore: game?.score ?? 0,
 		})}
 	/>
 </form>
@@ -351,6 +370,9 @@
 			<p class="mb-4 text-sm text-muted-foreground">
 				{#if isRecovery}
 					Moves: {game?.moveCount ?? 0}
+				{:else if isTime}
+					Time: {formatChallengeElapsedMs(finishedElapsedMs)}
+					· Score: {game?.score.toLocaleString() ?? 0}
 				{:else}
 					Score: {game?.score.toLocaleString() ?? 0}
 				{/if}
