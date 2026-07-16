@@ -5,6 +5,8 @@
 	import {
 		CHALLENGE_RUN_STATUS,
 		CHALLENGE_TYPES,
+		formatChallengeElapsedMs,
+		formatChallengeRankValue,
 		formatChallengeTypeLabel,
 	} from "$lib/challenges.js";
 	import { Button } from "$lib/components/ui/button/index.js";
@@ -24,8 +26,6 @@
 	);
 
 	const leaderboardHref = $derived(`/challenges/${challenge.id}/leaderboard`);
-
-	const scoreUnit = $derived(challenge.type === CHALLENGE_TYPES.RECOVERY ? "moves" : "pts");
 
 	function onStart() {
 		starting = true;
@@ -115,8 +115,8 @@
 					({data.stats.attempts} attempt{data.stats.attempts === 1 ? "" : "s"}).
 					{#if challenge.type === CHALLENGE_TYPES.RECOVERY && data.stats.bestMoveCount != null}
 						Best: {data.stats.bestMoveCount} move{data.stats.bestMoveCount === 1 ? "" : "s"}.
-					{:else if challenge.type === CHALLENGE_TYPES.TIME && data.stats.bestScore != null}
-						Best score: {data.stats.bestScore.toLocaleString()}.
+					{:else if challenge.type === CHALLENGE_TYPES.TIME && data.stats.bestElapsedMs != null}
+						Best time: {formatChallengeElapsedMs(data.stats.bestElapsedMs)}.
 					{/if}
 				{:else if data.stats.attempts > 0}
 					{data.stats.attempts} attempt{data.stats.attempts === 1 ? "" : "s"} so far — keep going!
@@ -179,8 +179,10 @@
 							<span class="font-normal opacity-80">of {data.entryCount}</span>
 						{/if}
 						<span class="font-normal opacity-80">
-							· {data.userBestScore.toLocaleString()}
-							{scoreUnit}
+							· {formatChallengeRankValue(challenge.type, data.userBestScore)}
+							{#if challenge.type === CHALLENGE_TYPES.RECOVERY}
+								moves
+							{/if}
 						</span>
 					</span>
 				{:else if data.entryCount > 0}
