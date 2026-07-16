@@ -92,6 +92,13 @@
       "when": 1784078000000,
       "tag": "0012_remove_clear_challenges",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1784079000000,
+      "tag": "0013_wipe_profile_best_scores",
+      "breakpoints": true
     }
   ]
 }

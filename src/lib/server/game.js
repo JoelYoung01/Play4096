@@ -4,11 +4,16 @@ import { and, desc, eq, ne, not, sql } from "drizzle-orm";
 import assert from "node:assert";
 
 /**
- * Check if the score is the new best score and update the user profile if it is
- * @param {number} score
+ * Recompute `user_profile.best_score` from completed classic games.
+ *
+ * Profile best is a cache for personal UI only — all-time leaderboard aggregates
+ * from `game` rows. Never trust a client-submitted score here (that path used to
+ * allow inflated highs without a matching game).
+ *
  * @param {string} userId
+ * @returns {Promise<number | null>} The recomputed best score, or null if none
  */
-export async function saveScore(score, userId) {
+export async function syncBestScoreFromGames(userId) {
 	const userProfile = db
 		.select()
 		.from(table.userProfile)
@@ -17,12 +22,41 @@ export async function saveScore(score, userId) {
 
 	assert(userProfile, "User profile not found");
 
-	if (!userProfile.bestScore || score > userProfile.bestScore) {
-		await db
-			.update(table.userProfile)
-			.set({ bestScore: score })
-			.where(eq(table.userProfile.userId, userId));
-	}
+	const bestRow = db
+		.select({
+			bestScore: sql`max(${table.game.score})`,
+		})
+		.from(table.game)
+		.where(
+			and(
+				eq(table.game.playerId, userId),
+				eq(table.game.complete, true),
+				sql`${table.game.score} is not null`
+			)
+		)
+		.get();
+
+	const rawBest = bestRow?.bestScore;
+	const bestScore =
+		typeof rawBest === "number" && Number.isFinite(rawBest)
+			? rawBest
+			: typeof rawBest === "string" && rawBest !== "" && Number.isFinite(Number(rawBest))
+				? Number(rawBest)
+				: null;
+
+	await db.update(table.userProfile).set({ bestScore }).where(eq(table.userProfile.userId, userId));
+
+	return bestScore;
+}
+
+/**
+ * @deprecated Prefer syncBestScoreFromGames — client-submitted scores are ignored.
+ * Kept as the `/game?/saveScore` action target for older clients.
+ * @param {number} _score
+ * @param {string} userId
+ */
+export async function saveScore(_score, userId) {
+	await syncBestScoreFromGames(userId);
 }
 
 /**
@@ -157,6 +191,10 @@ export async function saveGame(game) {
 	// Keep a single current run: any other incomplete rows become history
 	if (game.id && !game.complete) {
 		await abandonOtherInProgressGames(game.playerId, game.id);
+		await syncBestScoreFromGames(game.playerId);
+	} else if (game.complete && typeof game.score === "number") {
+		// Refresh personal best cache from completed runs
+		await syncBestScoreFromGames(game.playerId);
 	}
 
 	return game.id;

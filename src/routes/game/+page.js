@@ -1,5 +1,6 @@
 import { browser } from "$app/environment";
-import { loadBestScore, loadGame } from "$lib/localStorage.svelte";
+import { deserialize } from "$app/forms";
+import { loadBestScore, loadGame, saveBestScore } from "$lib/localStorage.svelte";
 import { general, gameState } from "./state.svelte.js";
 
 /** @type {import("./$types").PageLoad} */
@@ -18,19 +19,29 @@ export async function load({ data, fetch }) {
 		// Load game from local storage
 		localGame = loadGame();
 
-		// Compare local vs db best score, take highest
-		const storageScore = loadBestScore();
-		gameState.bestScore = Math.max(gameState.bestScore, storageScore);
-		gameState.bestScore = Math.max(gameState.bestScore, bestScore);
-
-		// If the best score is higher than what came from the server, update the server
-		if (gameState.bestScore > bestScore) {
-			const form = new FormData();
-			form.append("score", `${gameState.bestScore}`);
-			await fetch("/game?/saveScore", {
+		if (user) {
+			// Authoritative personal best comes from completed games on the server.
+			// Resync (and overwrite inflated localStorage leftovers from old bugs).
+			const res = await fetch("/game?/saveScore", {
 				method: "POST",
-				body: form,
+				body: new FormData(),
 			});
+
+			if (res.ok) {
+				try {
+					const result = deserialize(await res.text());
+					if (result.type === "success" && typeof result.data?.bestScore === "number") {
+						bestScore = result.data.bestScore;
+					}
+				} catch {
+					// Fall back to profile bestScore from SSR
+				}
+			}
+
+			gameState.bestScore = Math.max(gameState.bestScore, bestScore);
+			saveBestScore(bestScore, { force: true });
+		} else {
+			gameState.bestScore = Math.max(gameState.bestScore, loadBestScore());
 		}
 	}
 

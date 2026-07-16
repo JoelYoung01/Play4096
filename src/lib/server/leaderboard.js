@@ -1,51 +1,8 @@
-import { eq, desc, count, and, gt, gte, lt, sql } from "drizzle-orm";
+import { eq, and, gte, lt, sql } from "drizzle-orm";
 import { CHALLENGE_RUN_STATUS, CHALLENGE_TYPES } from "$lib/challenges.js";
 import { USER_LEVELS } from "$lib/constants";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-
-export async function getAllTimeLeaderboard() {
-	const leaderboard = await db
-		.select({
-			id: table.user.id,
-			username: table.user.username,
-			displayName: table.userProfile.displayName,
-			bestScore: table.userProfile.bestScore,
-		})
-		.from(table.user)
-		.innerJoin(table.userProfile, eq(table.user.id, table.userProfile.userId))
-		.where(eq(table.user.level, USER_LEVELS.PRO))
-		.orderBy(desc(table.userProfile.bestScore))
-		.limit(10);
-
-	return leaderboard;
-}
-
-/**
- * Get the rank of a user in the all time leaderboard
- * @param {string} userId
- */
-export async function getAllTimeUserRank(userId) {
-	const userResult = db
-		.select({
-			bestScore: table.userProfile.bestScore,
-		})
-		.from(table.userProfile)
-		.where(eq(table.userProfile.userId, userId))
-		.get();
-
-	const bestScore = userResult?.bestScore ?? 0;
-
-	const [{ count: betterUsersCount }] = await db
-		.select({
-			count: count(),
-		})
-		.from(table.user)
-		.innerJoin(table.userProfile, eq(table.user.id, table.userProfile.userId))
-		.where(and(eq(table.user.level, USER_LEVELS.PRO), gt(table.userProfile.bestScore, bestScore)));
-
-	return betterUsersCount + 1;
-}
 
 /**
  * Score attribution instant for a finished classic game.
@@ -54,16 +11,26 @@ export async function getAllTimeUserRank(userId) {
 const gameScoreAt = sql`coalesce(${table.game.completedOn}, ${table.game.updatedOn})`;
 
 /**
- * Best classic score per Pro user within a half-open time window [start, end).
- * Source: completed `game` rows (not all-time profile best).
+ * Best completed classic score per Pro user.
+ * Optional half-open time window [start, end). Omit both for all-time.
  *
- * @param {Date} start
- * @param {Date} end
+ * Source of truth: completed `game` rows (not denormalized profile best_score).
+ *
+ * @param {Date} [start]
+ * @param {Date} [end]
  * @returns {{ id: string; username: string; displayName: string | null; bestScore: number }[]}
  */
-function getClassicBestByUserInRange(start, end) {
-	const startMs = start.getTime();
-	const endMs = end.getTime();
+function getClassicBestByUser(start, end) {
+	/** @type {import("drizzle-orm").SQL[]} */
+	const conditions = [
+		eq(table.user.level, USER_LEVELS.PRO),
+		eq(table.game.complete, true),
+		sql`${table.game.score} is not null`,
+	];
+
+	if (start != null && end != null) {
+		conditions.push(gte(gameScoreAt, start.getTime()), lt(gameScoreAt, end.getTime()));
+	}
 
 	const rows = db
 		.select({
@@ -75,15 +42,7 @@ function getClassicBestByUserInRange(start, end) {
 		.from(table.game)
 		.innerJoin(table.user, eq(table.game.playerId, table.user.id))
 		.leftJoin(table.userProfile, eq(table.user.id, table.userProfile.userId))
-		.where(
-			and(
-				eq(table.user.level, USER_LEVELS.PRO),
-				eq(table.game.complete, true),
-				sql`${table.game.score} is not null`,
-				gte(gameScoreAt, startMs),
-				lt(gameScoreAt, endMs)
-			)
-		)
+		.where(and(...conditions))
 		.all();
 
 	/** @type {Map<string, { id: string; username: string; displayName: string | null; bestScore: number }>} */
@@ -107,13 +66,33 @@ function getClassicBestByUserInRange(start, end) {
 }
 
 /**
+ * All-time classic leaderboard from completed games (max score per Pro user).
+ * @param {number} [limit]
+ */
+export function getAllTimeLeaderboard(limit = 10) {
+	return getClassicBestByUser().slice(0, limit);
+}
+
+/**
+ * 1-based rank of a user on the all-time classic leaderboard, or null if no completed score.
+ * @param {string} userId
+ * @returns {{ rank: number; bestScore: number } | null}
+ */
+export function getAllTimeUserRank(userId) {
+	const ranked = getClassicBestByUser();
+	const index = ranked.findIndex((entry) => entry.id === userId);
+	if (index < 0) return null;
+	return { rank: index + 1, bestScore: ranked[index].bestScore };
+}
+
+/**
  * Classic high-score leaderboard for a time window.
  * @param {Date} start
  * @param {Date} end
  * @param {number} [limit]
  */
 export function getClassicPeriodLeaderboard(start, end, limit = 10) {
-	return getClassicBestByUserInRange(start, end).slice(0, limit);
+	return getClassicBestByUser(start, end).slice(0, limit);
 }
 
 /**
@@ -124,7 +103,7 @@ export function getClassicPeriodLeaderboard(start, end, limit = 10) {
  * @returns {{ rank: number; bestScore: number } | null}
  */
 export function getClassicPeriodUserRank(userId, start, end) {
-	const ranked = getClassicBestByUserInRange(start, end);
+	const ranked = getClassicBestByUser(start, end);
 	const index = ranked.findIndex((entry) => entry.id === userId);
 	if (index < 0) return null;
 	return { rank: index + 1, bestScore: ranked[index].bestScore };
