@@ -3,6 +3,7 @@ import { CHALLENGE_RUN_STATUS, CHALLENGE_TYPES } from "$lib/challenges.js";
 import { USER_LEVELS } from "$lib/constants";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
+import { gameHasReplaySql } from "$lib/server/game";
 
 /**
  * Score attribution instant for a finished classic game.
@@ -14,7 +15,8 @@ const gameScoreAt = sql`coalesce(${table.game.completedOn}, ${table.game.updated
  * Best completed classic score per Pro user.
  * Optional half-open time window [start, end). Omit both for all-time.
  *
- * Source of truth: completed `game` rows (not denormalized profile best_score).
+ * Source of truth: completed, replayable `game` rows (not denormalized profile
+ * best_score). Games without seed+moves cannot be verified and do not rank.
  *
  * @param {Date} [start]
  * @param {Date} [end]
@@ -26,6 +28,7 @@ function getClassicBestByUser(start, end) {
 		eq(table.user.level, USER_LEVELS.PRO),
 		eq(table.game.complete, true),
 		sql`${table.game.score} is not null`,
+		gameHasReplaySql,
 	];
 
 	if (start != null && end != null) {
