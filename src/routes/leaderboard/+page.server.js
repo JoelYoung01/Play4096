@@ -8,16 +8,23 @@ export async function load({ locals }) {
 		user = getUserProfile(locals.user.id);
 	}
 
-	const leaderboard = await getAllTimeLeaderboard();
+	const leaderboard = getAllTimeLeaderboard();
 	let userRank = null;
+	/** @type {number | null} */
+	let userBestScore = null;
 
 	if (user) {
-		userRank = await getAllTimeUserRank(user.id);
+		const rankInfo = getAllTimeUserRank(user.id);
+		if (rankInfo) {
+			userRank = rankInfo.rank;
+			userBestScore = rankInfo.bestScore;
+		}
 	}
 
 	return {
 		user,
 		userRank,
+		userBestScore,
 		leaderboard,
 	};
 }

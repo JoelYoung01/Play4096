@@ -1,6 +1,6 @@
 import { USER_LEVELS } from "$lib/constants.js";
 import { getActiveCheckpoint } from "$lib/server/checkpoint";
-import { getCurrentGame, saveScore } from "$lib/server/game";
+import { getCurrentGame, syncBestScoreFromGames } from "$lib/server/game";
 import { getUserProfile } from "$lib/server/user.js";
 import { fail } from "@sveltejs/kit";
 
@@ -43,15 +43,14 @@ export function load({ locals }) {
 
 /** @type {import("./$types").Actions} */
 export const actions = {
-	saveScore: async ({ request, locals }) => {
+	saveScore: async ({ locals }) => {
 		if (!locals.user) {
 			return fail(401, { message: "Not logged in." });
 		}
 
-		const formData = await request.formData();
-		const score = Number(formData.get("score"));
-		await saveScore(score, locals.user.id);
+		// Recompute personal best from completed games (ignore any client-submitted score).
+		const bestScore = await syncBestScoreFromGames(locals.user.id);
 
-		return { success: true };
+		return { success: true, bestScore: bestScore ?? 0 };
 	},
 };

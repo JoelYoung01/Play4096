@@ -6,9 +6,10 @@
 	let { data } = $props();
 
 	let showUserRow = $derived(
-		!!data.userRank &&
+		data.userRank != null &&
+			data.userBestScore != null &&
 			data.user?.level === USER_LEVELS.PRO &&
-			!data.leaderboard.some((l) => l.username === data.user?.username)
+			!data.leaderboard.some((l) => l.id === data.user?.id)
 	);
 </script>
 
@@ -25,7 +26,7 @@
 		</Table.Row>
 	</Table.Header>
 	<Table.Body>
-		{#each data.leaderboard as leaderboardItem, index (index)}
+		{#each data.leaderboard as leaderboardItem, index (leaderboardItem.id)}
 			<Table.Row class={index % 2 === 0 ? "bg-muted/60" : "bg-background"}>
 				<Table.Cell class="w-16 px-4 py-3 font-semibold text-foreground"># {index + 1}</Table.Cell>
 				<Table.Cell class="px-4 py-3 font-medium text-foreground">
@@ -53,7 +54,7 @@
 					{data.user?.displayName || data.user?.username}
 				</Table.Cell>
 				<Table.Cell class="px-4 py-3 text-end font-bold text-foreground">
-					{(data.user?.bestScore || 0).toLocaleString()}
+					{data.userBestScore?.toLocaleString()}
 				</Table.Cell>
 			</Table.Row>
 		{/if}

@@ -61,11 +61,12 @@ export function clearGame() {
 /**
  * Save the best score to local storage
  * @param {number} score
+ * @param {{ force?: boolean }} [options] When force is true, overwrite even if lower (e.g. after server wipe/resync)
  */
-export function saveBestScore(score) {
+export function saveBestScore(score, options = {}) {
 	if (!browser) return;
 	const current = loadBestScore();
-	if (score > current) {
+	if (options.force || score > current) {
 		localStorage.setItem(LOCAL_STORAGE_BEST_SCORE, `${score}`);
 	}
 }
