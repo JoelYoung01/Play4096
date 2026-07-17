@@ -4,11 +4,28 @@ import { and, desc, eq, ne, not, sql } from "drizzle-orm";
 import assert from "node:assert";
 
 /**
+ * SQL predicate matching {@link gameHasReplay}: seed + non-empty moves whose
+ * length equals move_count. Use for leaderboard / best-score queries so
+ * unverifiable (cheat / checkpoint / legacy) scores cannot rank.
+ *
+ * @type {import("drizzle-orm").SQL}
+ */
+export const gameHasReplaySql = /** @type {import("drizzle-orm").SQL} */ (
+	and(
+		sql`${table.game.seed} is not null`,
+		sql`${table.game.moves} is not null`,
+		sql`json_array_length(${table.game.moves}) > 0`,
+		sql`json_array_length(${table.game.moves}) = ${table.game.moveCount}`
+	)
+);
+
+/**
  * Recompute `user_profile.best_score` from completed classic games.
  *
  * Profile best is a cache for personal UI only — all-time leaderboard aggregates
- * from `game` rows. Never trust a client-submitted score here (that path used to
- * allow inflated highs without a matching game).
+ * from `game` rows. Only replayable games count (seed + matching move history).
+ * Never trust a client-submitted score here (that path used to allow inflated
+ * highs without a matching game).
  *
  * @param {string} userId
  * @returns {Promise<number | null>} The recomputed best score, or null if none
@@ -31,7 +48,8 @@ export async function syncBestScoreFromGames(userId) {
 			and(
 				eq(table.game.playerId, userId),
 				eq(table.game.complete, true),
-				sql`${table.game.score} is not null`
+				sql`${table.game.score} is not null`,
+				gameHasReplaySql
 			)
 		)
 		.get();
