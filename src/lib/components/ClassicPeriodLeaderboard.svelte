@@ -79,18 +79,19 @@
 </div>
 
 <p class="mb-4 text-center text-xs text-muted-foreground">
-	Best completed classic game score for this {periodNoun} (Central Time).
+	Best classic score (including active runs) last updated this {periodNoun} (Central Time).
 </p>
 
 {#if data.leaderboard.length === 0}
 	<p class="rounded-lg bg-muted px-4 py-8 text-center text-sm text-muted-foreground">
-		No completed scores for this {periodNoun} yet.
+		No scores for this {periodNoun} yet.
 	</p>
 {:else}
 	<Table.Root class="overflow-hidden rounded-lg border">
 		<Table.Header>
 			<Table.Row class="bg-secondary hover:bg-secondary">
-				<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">Rank</Table.Head>
+				<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">Rank</Table.Head
+				>
 				<Table.Head class="px-4 py-3 text-sm font-semibold tracking-wide uppercase">
 					Username
 				</Table.Head>

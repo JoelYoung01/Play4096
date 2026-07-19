@@ -9,10 +9,16 @@ export const game = sqliteTable("game", {
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	createdOn: integer("created_on", { mode: "timestamp" }).notNull(),
+	/** Last activity (every autosave). Period leaderboards key off this. */
 	updatedOn: integer("updated_on", { mode: "timestamp" }).notNull(),
+	/**
+	 * When the run finished or first reached a win — not a copy of updatedOn.
+	 * Freezes on first win / finalize while updatedOn keeps moving (Keep Playing).
+	 */
 	completedOn: integer("completed_on", { mode: "timestamp" }),
 	score: integer("score"),
 	won: integer("won", { mode: "boolean" }).notNull(),
+	/** false = active run; true = finished (including abandoned prior runs) */
 	complete: integer("complete", { mode: "boolean" }).notNull(),
 	board: text("board", { mode: "json" }).$type<number[][]>().notNull(),
 	/** Recorded move directions (see DIRECTIONS) for Pro replay — null when not replayable */

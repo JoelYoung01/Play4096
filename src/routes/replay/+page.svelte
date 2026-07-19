@@ -29,17 +29,36 @@
 		const filter = updates.filter ?? data.filter;
 		return `/replay?sort=${encodeURIComponent(sort)}&filter=${encodeURIComponent(filter)}`;
 	}
+
+	/**
+	 * @param {import("$lib/types").GameHistoryEntry} game
+	 */
+	function statusLabel(game) {
+		if (game.status === "active") return "ACTIVE";
+		return game.won ? "WIN" : "LOSS";
+	}
+
+	/**
+	 * @param {import("$lib/types").GameHistoryEntry} game
+	 */
+	function statusClass(game) {
+		if (game.status === "active") return "bg-sky-100 text-sky-800";
+		return game.won ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+	}
 </script>
 
 <svelte:head>
 	<title>Game History - 4096</title>
-	<meta name="description" content="Browse and replay your completed 4096 games." />
+	<meta
+		name="description"
+		content="Browse and replay your 4096 games, including your active run."
+	/>
 </svelte:head>
 
 <main class="mx-auto w-full max-w-lg px-6 pt-10 pb-28 text-foreground">
 	<h1 class="text-3xl font-bold text-primary">Game History</h1>
 	<p class="mb-4 text-sm text-muted-foreground">
-		Completed games only — replay wins and losses move by move.
+		Active and finished games — continue your current run or replay moves so far.
 	</p>
 
 	{#if !data.user}
@@ -63,7 +82,7 @@
 	{:else}
 		<div class="mb-4 flex flex-wrap gap-2">
 			<div class="flex flex-1 gap-1 rounded-md bg-muted p-1">
-				{#each [{ key: "all", label: "All" }, { key: "won", label: "Wins" }, { key: "lost", label: "Losses" }] as option (option.key)}
+				{#each [{ key: "all", label: "All" }, { key: "active", label: "Active" }, { key: "won", label: "Wins" }, { key: "lost", label: "Losses" }] as option (option.key)}
 					<a
 						href={historyHref({ filter: option.key })}
 						class="flex-1 rounded px-2 py-1.5 text-center text-sm font-semibold transition-colors {data.filter ===
@@ -93,9 +112,9 @@
 
 		{#if data.games.length === 0}
 			<div class="rounded-lg border border-dashed px-6 py-12 text-center">
-				<p class="mb-1 font-semibold text-foreground">No completed games yet</p>
+				<p class="mb-1 font-semibold text-foreground">No games yet</p>
 				<p class="mb-4 text-sm text-muted-foreground">
-					Finish a game (win or lose) and it will show up here for replay.
+					Play a game and it will show up here — including your active run.
 				</p>
 				<Button href="/game" class="justify-center">Play a game</Button>
 			</div>
@@ -106,11 +125,11 @@
 						class="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 text-card-foreground"
 					>
 						<div
-							class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold {game.won
-								? 'bg-green-100 text-green-700'
-								: 'bg-red-100 text-red-700'}"
+							class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[10px] font-bold {statusClass(
+								game
+							)}"
 						>
-							{game.won ? "WIN" : "LOSS"}
+							{statusLabel(game)}
 						</div>
 						<div class="min-w-0 flex-1">
 							<div class="flex items-baseline gap-2">
@@ -118,22 +137,29 @@
 								<span class="text-xs text-muted-foreground">{game.moveCount} moves</span>
 							</div>
 							<div class="truncate text-xs text-muted-foreground">
-								{formatDate(game.completedOn ?? game.updatedOn)}
+								{formatDate(game.updatedOn)}
 							</div>
 						</div>
-						{#if game.hasReplay}
-							<Button href="/replay/{game.id}" class="gap-1" aria-label="Replay game">
-								<PlayIcon size={16} />
-								Replay
-							</Button>
-						{:else}
-							<span
-								class="text-xs text-muted-foreground/70"
-								title="Move list unavailable for this game"
-							>
-								No replay
-							</span>
-						{/if}
+						<div class="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
+							{#if game.status === "active"}
+								<Button href="/game" variant="secondary" class="gap-1" aria-label="Continue game">
+									Continue
+								</Button>
+							{/if}
+							{#if game.hasReplay}
+								<Button href="/replay/{game.id}" class="gap-1" aria-label="Replay game">
+									<PlayIcon size={16} />
+									Replay
+								</Button>
+							{:else if game.status !== "active"}
+								<span
+									class="text-xs text-muted-foreground/70"
+									title="Move list unavailable for this game"
+								>
+									No replay
+								</span>
+							{/if}
+						</div>
 					</li>
 				{/each}
 			</ul>

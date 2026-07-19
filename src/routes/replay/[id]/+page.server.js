@@ -1,6 +1,6 @@
 import { error, redirect } from "@sveltejs/kit";
 import { USER_LEVELS } from "$lib/constants";
-import { gameHasReplay, getCompletedGameById } from "$lib/server/game";
+import { gameHasReplay, gameHistoryStatus, getOwnedGameById } from "$lib/server/game";
 import { requireLoginProfile } from "$lib/server/user";
 
 /** @type {import("./$types").PageServerLoad} */
@@ -11,7 +11,7 @@ export function load({ params }) {
 		redirect(302, "/stripe");
 	}
 
-	const game = getCompletedGameById(params.id, user.id);
+	const game = getOwnedGameById(params.id, user.id);
 	if (!game) {
 		error(404, "Game not found");
 	}
@@ -33,6 +33,7 @@ export function load({ params }) {
 			score: game.score ?? 0,
 			won: game.won,
 			complete: game.complete,
+			status: gameHistoryStatus(game.complete),
 			moveCount: game.moveCount,
 			seed: game.seed,
 			moves: game.moves,

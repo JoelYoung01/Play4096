@@ -189,11 +189,10 @@
 	}
 
 	/**
-	 * Finalize the current run for history, then start a fresh game.
+	 * Finalize the current run, then start a fresh game.
 	 *
-	 * History only lists complete === true. Winning does not set complete (players
-	 * can keep playing), so New Game must mark the abandoned run complete or it
-	 * disappears from /replay.
+	 * Winning does not set complete (Keep Playing). New Game marks the abandoned
+	 * run finished so only one active game remains and history shows a clean end.
 	 */
 	async function handleNewGame() {
 		const previous = gameState.currentGame;
