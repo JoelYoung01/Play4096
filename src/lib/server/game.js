@@ -20,10 +20,11 @@ export const gameHasReplaySql = /** @type {import("drizzle-orm").SQL} */ (
 );
 
 /**
- * Recompute `user_profile.best_score` from completed classic games.
+ * Recompute `user_profile.best_score` from classic games (active or finished).
  *
  * Profile best is a cache for personal UI only — all-time leaderboard aggregates
  * from `game` rows. Only replayable games count (seed + matching move history).
+ * Incomplete runs count: score only increases within a game.
  * Never trust a client-submitted score here (that path used to allow inflated
  * highs without a matching game).
  *
@@ -45,12 +46,7 @@ export async function syncBestScoreFromGames(userId) {
 		})
 		.from(table.game)
 		.where(
-			and(
-				eq(table.game.playerId, userId),
-				eq(table.game.complete, true),
-				sql`${table.game.score} is not null`,
-				gameHasReplaySql
-			)
+			and(eq(table.game.playerId, userId), sql`${table.game.score} is not null`, gameHasReplaySql)
 		)
 		.get();
 
@@ -104,9 +100,9 @@ export function gameHasReplay(game) {
 /**
  * Mark every other in-progress game for this user as complete.
  *
- * A player should only have one current (incomplete) run. Older incomplete rows
- * (e.g. abandoned after Keep Playing → New Game) would otherwise never appear
- * in history, which requires complete === true.
+ * A player should only have one active (`complete !== true`) run. Older incomplete
+ * rows (e.g. abandoned after Keep Playing → New Game) are finalized so history
+ * shows them as finished rather than competing "active" sessions.
  *
  * Performance: one UPDATE by player_id; usually matches 0 rows.
  *
@@ -235,14 +231,22 @@ export function getCurrentGame(userId) {
 }
 
 /**
- * List completed games for history (Pro feature).
+ * Derived history status from the `complete` flag.
+ * No separate DB status column: `complete === false` means active; true means finished
+ * (including abandoned prior runs finalized by New Game / abandonOtherInProgressGames).
  *
- * Incomplete (current) games are out of scope: there is at most one active run
- * per user (`getCurrentGame`), resumed from `/game`. History is for finished
- * sessions (win or loss); listing mid-run rows would duplicate that surface and
- * offer awkward partial replays that end before game over. When a player starts
- * a new game, `abandonOtherInProgressGames` / New Game finalization marks the
- * prior run complete so it appears here.
+ * @param {boolean} complete
+ * @returns {import("$lib/types").GameHistoryStatus}
+ */
+export function gameHistoryStatus(complete) {
+	return complete ? "finished" : "active";
+}
+
+/**
+ * List games for history (Pro feature) — active and finished.
+ *
+ * Status is derived (`active` | `finished`) from `complete`; we do not store a
+ * separate status enum unless abandoned needs to differ from finished later.
  *
  * @param {string} userId
  * @param {{
@@ -253,23 +257,21 @@ export function getCurrentGame(userId) {
  * }} [options]
  * @returns {import("$lib/types").GameHistoryEntry[]}
  */
-export function getCompletedGames(userId, options = {}) {
+export function getGameHistory(userId, options = {}) {
 	const sort = options.sort ?? "date";
 	const filter = options.filter ?? "all";
 	const limit = options.limit ?? 50;
 	const offset = options.offset ?? 0;
 
-	/** @type {import("drizzle-orm").SQL | undefined} */
-	let filterClause;
-	if (filter === "won") {
-		filterClause = eq(table.game.won, true);
+	/** @type {import("drizzle-orm").SQL[]} */
+	const conditions = [eq(table.game.playerId, userId)];
+	if (filter === "active") {
+		conditions.push(not(eq(table.game.complete, true)));
+	} else if (filter === "won") {
+		conditions.push(eq(table.game.won, true));
 	} else if (filter === "lost") {
-		filterClause = and(eq(table.game.won, false), eq(table.game.complete, true));
+		conditions.push(eq(table.game.won, false), eq(table.game.complete, true));
 	}
-
-	const whereClause = filterClause
-		? and(eq(table.game.playerId, userId), eq(table.game.complete, true), filterClause)
-		: and(eq(table.game.playerId, userId), eq(table.game.complete, true));
 
 	/** @type {import("drizzle-orm").SQL[]} */
 	let orderBy;
@@ -278,11 +280,8 @@ export function getCompletedGames(userId, options = {}) {
 	} else if (sort === "moves") {
 		orderBy = [desc(table.game.moveCount), desc(table.game.updatedOn)];
 	} else {
-		// Prefer completedOn when present, fall back to updatedOn
-		orderBy = [
-			desc(sql`coalesce(${table.game.completedOn}, ${table.game.updatedOn})`),
-			desc(table.game.updatedOn),
-		];
+		// Last activity — works for active runs and finished ones alike
+		orderBy = [desc(table.game.updatedOn)];
 	}
 
 	const rows = db
@@ -299,7 +298,7 @@ export function getCompletedGames(userId, options = {}) {
 			moves: table.game.moves,
 		})
 		.from(table.game)
-		.where(whereClause)
+		.where(and(...conditions))
 		.orderBy(...orderBy)
 		.limit(limit)
 		.offset(offset)
@@ -310,6 +309,7 @@ export function getCompletedGames(userId, options = {}) {
 		score: row.score ?? 0,
 		won: row.won,
 		complete: row.complete,
+		status: gameHistoryStatus(row.complete),
 		moveCount: row.moveCount,
 		createdOn: row.createdOn,
 		updatedOn: row.updatedOn,
@@ -323,19 +323,35 @@ export function getCompletedGames(userId, options = {}) {
 }
 
 /**
- * Get a completed game owned by the user (for replay)
+ * @deprecated Use {@link getGameHistory}
+ * @param {string} userId
+ * @param {Parameters<typeof getGameHistory>[1]} [options]
+ */
+export function getCompletedGames(userId, options = {}) {
+	return getGameHistory(userId, options);
+}
+
+/**
+ * Get a game owned by the user (for replay of finished or in-progress runs)
  *
  * @param {string} gameId
  * @param {string} userId
  */
-export function getCompletedGameById(gameId, userId) {
+export function getOwnedGameById(gameId, userId) {
 	const game = db
 		.select()
 		.from(table.game)
-		.where(
-			and(eq(table.game.id, gameId), eq(table.game.playerId, userId), eq(table.game.complete, true))
-		)
+		.where(and(eq(table.game.id, gameId), eq(table.game.playerId, userId)))
 		.get();
 
 	return game ?? null;
+}
+
+/**
+ * @deprecated Use {@link getOwnedGameById}
+ * @param {string} gameId
+ * @param {string} userId
+ */
+export function getCompletedGameById(gameId, userId) {
+	return getOwnedGameById(gameId, userId);
 }

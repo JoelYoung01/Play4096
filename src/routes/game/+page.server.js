@@ -48,7 +48,7 @@ export const actions = {
 			return fail(401, { message: "Not logged in." });
 		}
 
-		// Recompute personal best from completed games (ignore any client-submitted score).
+		// Recompute personal best from ranked games (ignore any client-submitted score).
 		const bestScore = await syncBestScoreFromGames(locals.user.id);
 
 		return { success: true, bestScore: bestScore ?? 0 };

@@ -20,7 +20,7 @@ export async function load({ data, fetch }) {
 		localGame = loadGame();
 
 		if (user) {
-			// Authoritative personal best comes from completed games on the server.
+			// Authoritative personal best comes from ranked games on the server.
 			// Resync (and overwrite inflated localStorage leftovers from old bugs).
 			const res = await fetch("/game?/saveScore", {
 				method: "POST",

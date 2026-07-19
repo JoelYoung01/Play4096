@@ -113,23 +113,38 @@
 
 <svelte:head>
 	<title>Replay - 4096</title>
-	<meta name="description" content="Watch a move-by-move replay of a completed 4096 game." />
+	<meta name="description" content="Watch a move-by-move replay of a 4096 game." />
 </svelte:head>
 
 <main class="mx-auto w-full max-w-lg px-4 pt-6 pb-28 text-foreground">
-	<div class="mb-3 flex items-center gap-2">
+	<div class="mb-3 flex flex-wrap items-center gap-2">
 		<Button href="/replay" variant="ghost" size="sm" class="gap-1">
 			<ChevronLeftIcon size={16} />
 			History
 		</Button>
 		<span class="text-sm text-muted-foreground">·</span>
-		<Badge variant={data.replay.won ? "secondary" : "destructive"}>
-			{data.replay.won ? "Win" : "Loss"}
-		</Badge>
+		{#if data.replay.status === "active"}
+			<Badge variant="outline">Active</Badge>
+			{#if data.replay.won}
+				<Badge variant="secondary">Won</Badge>
+			{/if}
+		{:else}
+			<Badge variant={data.replay.won ? "secondary" : "destructive"}>
+				{data.replay.won ? "Win" : "Loss"}
+			</Badge>
+		{/if}
 		<span class="text-sm font-semibold text-foreground">
 			{data.replay.score.toLocaleString()} pts
 		</span>
+		{#if data.replay.status === "active"}
+			<Button href="/game" variant="secondary" size="sm" class="ms-auto">Continue</Button>
+		{/if}
 	</div>
+	{#if data.replay.status === "active"}
+		<p class="mb-3 text-xs text-muted-foreground">
+			In-progress replay — playback covers moves recorded so far.
+		</p>
+	{/if}
 
 	{#if replayGame}
 		<div class="mb-2 flex items-center justify-between text-sm text-muted-foreground">

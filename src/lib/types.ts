@@ -91,11 +91,16 @@ export interface GameSaveData {
   moves?: number[] | null;
 }
 
+/** Derived from `complete` — not a separate DB column */
+export type GameHistoryStatus = "active" | "finished";
+
 export interface GameHistoryEntry {
   id: string;
   score: number;
   won: boolean;
   complete: boolean;
+  /** `active` when incomplete; `finished` when complete (including abandoned) */
+  status: GameHistoryStatus;
   moveCount: number;
   createdOn: Date;
   updatedOn: Date;
@@ -104,7 +109,7 @@ export interface GameHistoryEntry {
 }
 
 export type GameHistorySort = "date" | "score" | "moves";
-export type GameHistoryFilter = "all" | "won" | "lost";
+export type GameHistoryFilter = "all" | "active" | "won" | "lost";
 
 
 /** Snapshot payload used when setting a checkpoint */

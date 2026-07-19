@@ -6,24 +6,20 @@ import * as table from "$lib/server/db/schema";
 import { gameHasReplaySql } from "$lib/server/game";
 
 /**
- * Score attribution instant for a finished classic game.
- * Prefer completedOn; fall back to updatedOn for older/abandoned rows.
- */
-const gameScoreAt = sql`coalesce(${table.game.completedOn}, ${table.game.updatedOn})`;
-
-/**
- * Best completed classic score per Pro user.
- * Optional half-open time window [start, end). Omit both for all-time.
+ * Best classic score per Pro user (finished or still-active runs).
+ * Optional half-open time window [start, end) on `updatedOn`. Omit both for all-time.
  *
- * Source of truth: completed, replayable `game` rows (not denormalized profile
- * best_score). Games without seed+moves cannot be verified and do not rank.
+ * Source of truth: replayable `game` rows (not denormalized profile best_score).
+ * Games without seed+moves cannot be verified and do not rank.
  *
- * In-progress rows (`complete !== true`) are intentionally excluded — including
- * "won but Keep Playing" runs. Ranking live autosaves would:
- * - let unfinished (and still climbing) scores occupy the board
- * - thrash ranks on every ~1s save
- * - break period attribution, which keys off a finished run (`completedOn`)
- * Current games already have their own path via `getCurrentGame` / `/game`.
+ * Incomplete runs are included: classic score only increases, so a live high is a
+ * lower bound on the eventual score for that row. Period boards use `updatedOn`
+ * (last activity) so an active game counts in the window where it was last played —
+ * not `completedOn`, which is unset until win/finalize and would hide live scores.
+ *
+ * `completedOn` is kept on the row for history ("when finished / first won") and is
+ * not a duplicate of `updatedOn`: after a win with Keep Playing, `completedOn` freezes
+ * while `updatedOn` keeps advancing on each save.
  *
  * @param {Date} [start]
  * @param {Date} [end]
@@ -33,13 +29,12 @@ function getClassicBestByUser(start, end) {
 	/** @type {import("drizzle-orm").SQL[]} */
 	const conditions = [
 		eq(table.user.level, USER_LEVELS.PRO),
-		eq(table.game.complete, true),
 		sql`${table.game.score} is not null`,
 		gameHasReplaySql,
 	];
 
 	if (start != null && end != null) {
-		conditions.push(gte(gameScoreAt, start.getTime()), lt(gameScoreAt, end.getTime()));
+		conditions.push(gte(table.game.updatedOn, start), lt(table.game.updatedOn, end));
 	}
 
 	const rows = db
@@ -76,7 +71,7 @@ function getClassicBestByUser(start, end) {
 }
 
 /**
- * All-time classic leaderboard from completed games (max score per Pro user).
+ * All-time classic leaderboard (max score per Pro user, including active runs).
  * @param {number} [limit]
  */
 export function getAllTimeLeaderboard(limit = 10) {
@@ -84,7 +79,7 @@ export function getAllTimeLeaderboard(limit = 10) {
 }
 
 /**
- * 1-based rank of a user on the all-time classic leaderboard, or null if no completed score.
+ * 1-based rank of a user on the all-time classic leaderboard, or null if no ranked score.
  * @param {string} userId
  * @returns {{ rank: number; bestScore: number } | null}
  */

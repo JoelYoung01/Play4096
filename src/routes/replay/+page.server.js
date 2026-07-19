@@ -1,5 +1,5 @@
 import { USER_LEVELS } from "$lib/constants";
-import { getCompletedGames } from "$lib/server/game";
+import { getGameHistory } from "$lib/server/game";
 import { getUserProfile } from "$lib/server/user";
 
 /** @type {import("./$types").PageServerLoad} */
@@ -19,9 +19,14 @@ export function load({ locals, url }) {
 	const sort =
 		sortParam === "score" || sortParam === "moves" || sortParam === "date" ? sortParam : "date";
 	const filter =
-		filterParam === "won" || filterParam === "lost" || filterParam === "all" ? filterParam : "all";
+		filterParam === "won" ||
+		filterParam === "lost" ||
+		filterParam === "active" ||
+		filterParam === "all"
+			? filterParam
+			: "all";
 
-	const games = isPro && user ? getCompletedGames(user.id, { sort, filter }) : [];
+	const games = isPro && user ? getGameHistory(user.id, { sort, filter }) : [];
 
 	return {
 		user,
