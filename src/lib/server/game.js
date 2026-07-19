@@ -23,9 +23,10 @@ export const gameHasReplaySql = /** @type {import("drizzle-orm").SQL} */ (
  * Classic ranking eligibility for leaderboard / personal-best cache.
  *
  * Active (`complete !== true`) runs always qualify: score only increases within
- * a run, and live autosaves may lack moves after checkpoint restore, board
- * transforms, or legacy mid-game saves. Finished runs still need
- * {@link gameHasReplaySql} so permanent ranks stay verifiable.
+ * a run, and live autosaves may lack moves after legacy mid-game saves or older
+ * checkpoint restores. Finished runs still need {@link gameHasReplaySql} so
+ * permanent ranks stay verifiable. Rotate/mirror are recorded as moves so those
+ * runs stay replayable.
  *
  * @type {import("drizzle-orm").SQL}
  */

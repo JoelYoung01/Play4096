@@ -21,7 +21,7 @@ export const game = sqliteTable("game", {
 	/** false = active run; true = finished (including abandoned prior runs) */
 	complete: integer("complete", { mode: "boolean" }).notNull(),
 	board: text("board", { mode: "json" }).$type<number[][]>().notNull(),
-	/** Recorded move directions (see DIRECTIONS) for Pro replay — null when not replayable */
+	/** Recorded move directions + board transforms (see DIRECTIONS / BOARD_TRANSFORMS) for Pro replay — null when not replayable */
 	moves: text("moves", { mode: "json" }).$type<number[] | null>(),
 	seed: integer("seed"),
 	rngState: integer("rng_state"),

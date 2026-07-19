@@ -54,16 +54,16 @@
 	}
 
 	/**
-	 * Apply the next recorded direction and queue animation events
+	 * Apply the next recorded action (slide or board transform) and queue animation events
 	 * @returns {boolean} Whether a move was applied
 	 */
 	function stepForward() {
 		if (!replayGame || atEnd || pendingEvents.length > 0 || !animationIdle) return false;
 
-		const direction = data.replay.moves[moveIndex];
-		const events = replayGame.moveTiles(direction);
+		const action = data.replay.moves[moveIndex];
+		const events = replayGame.applyRecordedAction(action);
 		if (events.length === 0) {
-			// Corrupted / desynced move — stop playback
+			// Corrupted / desynced / unknown action — stop playback
 			playing = false;
 			return false;
 		}

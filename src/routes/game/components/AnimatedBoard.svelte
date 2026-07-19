@@ -140,7 +140,7 @@
 		}
 	});
 
-	// Sync after cheat transforms (rotate/mirror) when idle
+	// Sync after board transforms (rotate/mirror) when idle
 	$effect(() => {
 		if (!game || animating || pendingEvents.length > 0) return;
 

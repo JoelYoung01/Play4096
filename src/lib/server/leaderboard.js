@@ -11,9 +11,9 @@ import { gameRanksOnClassicSql } from "$lib/server/game";
  *
  * Source of truth: `game` rows (not denormalized profile best_score).
  *
- * Active runs always count (score only increases; moves may be null after
- * checkpoint restore / transforms / legacy saves). Finished runs must still be
- * replayable so permanent ranks stay verifiable.
+ * Active runs always count (score only increases; moves may be null for legacy
+ * saves / older checkpoint restores). Rotate/mirror are recorded as moves.
+ * Finished runs must still be replayable so permanent ranks stay verifiable.
  *
  * Period boards use `updatedOn` (last activity) so an active game counts in the
  * window where it was last played — not `completedOn`, which is unset until

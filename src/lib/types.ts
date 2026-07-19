@@ -25,6 +25,8 @@ export interface GameEvent {
   gameLost?: boolean;
   gameWon?: boolean;
   snapshot?: number[][];
+  /** When true with snapshot, animator rebuilds tiles immediately (board transforms). */
+  resync?: boolean;
 }
 
 export interface VisualTile {
@@ -72,7 +74,7 @@ export interface GameState {
   rngState?: number;
   moveCount?: number;
   undoCooldownRemaining?: number;
-  /** Recorded move directions; null when replay was invalidated (e.g. cheat) */
+  /** Recorded slide directions and board transforms; null when recording was invalidated */
   moves?: number[] | null;
 }
 
@@ -87,7 +89,7 @@ export interface GameSaveData {
   rngState?: number;
   moveCount?: number;
   undoCooldownRemaining?: number;
-  /** Recorded move directions; null when replay was invalidated (e.g. cheat) */
+  /** Recorded slide directions and board transforms; null when recording was invalidated */
   moves?: number[] | null;
 }
 

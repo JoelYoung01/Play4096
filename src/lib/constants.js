@@ -35,9 +35,27 @@ export const EVENT_TYPES = {
 	SNAPSHOT: 30,
 };
 
+/** Slide directions recorded in `game.moves` for replay */
 export const DIRECTIONS = {
 	LEFT: 10,
 	RIGHT: 20,
 	UP: 30,
 	DOWN: 40,
 };
+
+/**
+ * Board transforms recorded in `game.moves` alongside slide directions.
+ * Values stay outside the DIRECTIONS range so older replay clients can detect unknowns.
+ */
+export const BOARD_TRANSFORMS = {
+	ROTATE_CW: 50,
+	ROTATE_CCW: 60,
+	MIRROR_H: 70,
+	MIRROR_V: 80,
+};
+
+/** @type {ReadonlySet<number>} */
+export const SLIDE_DIRECTION_VALUES = new Set(Object.values(DIRECTIONS));
+
+/** @type {ReadonlySet<number>} */
+export const BOARD_TRANSFORM_VALUES = new Set(Object.values(BOARD_TRANSFORMS));

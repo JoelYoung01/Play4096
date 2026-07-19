@@ -110,7 +110,10 @@ export class TileAnimator {
 	 * @param {import("./types").GameEvent} event
 	 */
 	processEvent(event) {
-		if (event.start && event.end) {
+		if (event.resync && event.snapshot) {
+			// Instant board replace for recorded transforms (rotate / mirror).
+			this.syncFromBoard(event.snapshot);
+		} else if (event.start && event.end) {
 			this.#processMove(event);
 			this.#ensureAnimationRunning();
 		} else if (event.end && event.newTileValue !== undefined) {
