@@ -25,6 +25,8 @@ export interface GameEvent {
   gameLost?: boolean;
   gameWon?: boolean;
   snapshot?: number[][];
+  /** When true with snapshot, animator rebuilds tiles immediately (board transforms). */
+  resync?: boolean;
 }
 
 export interface VisualTile {
@@ -72,7 +74,7 @@ export interface GameState {
   rngState?: number;
   moveCount?: number;
   undoCooldownRemaining?: number;
-  /** Recorded move directions; null when replay was invalidated (e.g. cheat) */
+  /** Recorded slide directions and board transforms; null when recording was invalidated */
   moves?: number[] | null;
 }
 
@@ -87,7 +89,7 @@ export interface GameSaveData {
   rngState?: number;
   moveCount?: number;
   undoCooldownRemaining?: number;
-  /** Recorded move directions; null when replay was invalidated (e.g. cheat) */
+  /** Recorded slide directions and board transforms; null when recording was invalidated */
   moves?: number[] | null;
 }
 
@@ -122,6 +124,8 @@ export interface CheckpointSaveData {
   moveCount?: number;
   undoCooldownRemaining?: number;
   won?: boolean;
+  /** Move directions at checkpoint time (null when recording was invalidated) */
+  moves?: number[] | null;
 }
 
 /** Active checkpoint metadata returned to the client */
@@ -144,6 +148,6 @@ export interface CheckpointRestoreState {
   undoCooldownRemaining: number;
   won: boolean;
   complete: boolean;
-  /** Always null after restore — direction history is not captured in checkpoints */
+  /** Restored move history when the checkpoint stored it; null for legacy checkpoints */
   moves?: number[] | null;
 }

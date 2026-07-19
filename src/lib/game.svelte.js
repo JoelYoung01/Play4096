@@ -5,6 +5,9 @@ import {
 	DEFAULT_STARTING_TILES,
 	DEFAULT_WIN_TILE,
 	DIRECTIONS,
+	BOARD_TRANSFORMS,
+	BOARD_TRANSFORM_VALUES,
+	SLIDE_DIRECTION_VALUES,
 	EVENT_TYPES,
 	TWO_TO_FOUR_RATIO,
 	UNDO_COOLDOWN_MOVES,
@@ -208,7 +211,7 @@ export class Game {
 	}
 
 	/**
-	 * Undo the last successful move, if allowed.
+	 * Undo the last successful move or board transform, if allowed.
 	 * After undoing, undo stays disabled until UNDO_COOLDOWN_MOVES new moves.
 	 * @returns {boolean} Whether an undo was applied
 	 */
@@ -234,11 +237,109 @@ export class Game {
 	}
 
 	/**
-	 * Stop recording moves so this game cannot be replayed from seed+directions
-	 * (used after board transforms that bypass moveTiles).
+	 * Capture undo state before a successful slide or board transform.
+	 * @returns {import("./types").GameUndoSnapshot}
 	 */
-	invalidateMoveRecording() {
-		this.moves = null;
+	#captureUndoSnapshot() {
+		return {
+			board: this.board.map((row) => [...row]),
+			score: this.score,
+			gameOver: this.gameOver,
+			won: this.won,
+			canContinue: this.canContinue,
+			rngState: this.rng.state,
+			moveCount: this.moveCount,
+		};
+	}
+
+	/**
+	 * Commit a recorded action (slide direction or board transform) into history.
+	 * @param {number} action
+	 * @param {import("./types").GameUndoSnapshot} undoSnapshot
+	 */
+	#commitRecordedAction(action, undoSnapshot) {
+		this.#previousState = undoSnapshot;
+		this.hasUndoSnapshot = true;
+		this.moveCount += 1;
+		if (this.moves) {
+			this.moves = [...this.moves, action];
+		}
+		if (this.undoCooldownRemaining > 0) {
+			this.undoCooldownRemaining -= 1;
+		}
+	}
+
+	/**
+	 * Apply a recorded slide or board-transform action (used by replay).
+	 * @param {number} action
+	 * @returns {import("./types").GameEvent[]}
+	 */
+	applyRecordedAction(action) {
+		if (SLIDE_DIRECTION_VALUES.has(action)) {
+			return this.moveTiles(action);
+		}
+		if (BOARD_TRANSFORM_VALUES.has(action)) {
+			return this.applyBoardTransform(action);
+		}
+		return [];
+	}
+
+	/**
+	 * Apply a board transform without spawning tiles, recording it for replay/undo.
+	 * @param {number} transform One of {@link BOARD_TRANSFORMS}
+	 * @returns {import("./types").GameEvent[]}
+	 */
+	applyBoardTransform(transform) {
+		if (this.gameOver) return [];
+		if (!BOARD_TRANSFORM_VALUES.has(transform)) return [];
+
+		const undoSnapshot = this.#captureUndoSnapshot();
+		this.#mutateBoardTransform(transform);
+		this.#commitRecordedAction(transform, undoSnapshot);
+
+		return [{ resync: true, snapshot: this.board.map((row) => [...row]) }];
+	}
+
+	/**
+	 * Mutate `this.board` for a single transform action (no recording / undo).
+	 * @param {number} transform
+	 */
+	#mutateBoardTransform(transform) {
+		const n = this.boardSize;
+		const src = this.board;
+		const next = Array(n)
+			.fill(null)
+			.map(() => Array(n).fill(0));
+
+		if (transform === BOARD_TRANSFORMS.ROTATE_CW) {
+			for (let i = 0; i < n; i++) {
+				for (let j = 0; j < n; j++) {
+					next[j][n - 1 - i] = src[i][j];
+				}
+			}
+		} else if (transform === BOARD_TRANSFORMS.ROTATE_CCW) {
+			for (let i = 0; i < n; i++) {
+				for (let j = 0; j < n; j++) {
+					next[n - 1 - j][i] = src[i][j];
+				}
+			}
+		} else if (transform === BOARD_TRANSFORMS.MIRROR_H) {
+			for (let i = 0; i < n; i++) {
+				for (let j = 0; j < n; j++) {
+					next[i][n - 1 - j] = src[i][j];
+				}
+			}
+		} else if (transform === BOARD_TRANSFORMS.MIRROR_V) {
+			for (let i = 0; i < n; i++) {
+				for (let j = 0; j < n; j++) {
+					next[n - 1 - i][j] = src[i][j];
+				}
+			}
+		} else {
+			return;
+		}
+
+		this.board = next;
 	}
 
 	/**
@@ -548,62 +649,38 @@ export class Game {
 	}
 
 	/**
-	 * Rotate the board by a given factor
+	 * Rotate the board clockwise by 90° × factor (records one CW or CCW action when factor is 1 or 3).
 	 * @param {number} factor Factor to rotate the board clockwise by (0-3)
+	 * @returns {import("./types").GameEvent[]}
 	 */
 	rotateBoard(factor) {
-		if (factor <= 0) return;
+		const turns = ((factor % 4) + 4) % 4;
+		if (turns === 0) return [];
+		if (turns === 1) return this.applyBoardTransform(BOARD_TRANSFORMS.ROTATE_CW);
+		if (turns === 3) return this.applyBoardTransform(BOARD_TRANSFORMS.ROTATE_CCW);
 
-		this.invalidateMoveRecording();
-
-		const newBoard = Array(this.boardSize)
-			.fill(null)
-			.map(() => Array(this.boardSize).fill(0));
-
-		for (let i = 0; i < this.boardSize; i++) {
-			for (let j = 0; j < this.boardSize; j++) {
-				newBoard[j][this.boardSize - 1 - i] = this.board[i][j];
-			}
+		// 180° — record as two CW turns so replay stays a sequence of atomic actions
+		const events = [];
+		for (let i = 0; i < turns; i++) {
+			events.push(...this.applyBoardTransform(BOARD_TRANSFORMS.ROTATE_CW));
 		}
-		this.board = newBoard;
-
-		this.rotateBoard(factor - 1);
+		return events;
 	}
 
 	/**
-	 * Mirror the board horizontally
+	 * Mirror the board horizontally (left ↔ right).
+	 * @returns {import("./types").GameEvent[]}
 	 */
 	mirrorBoardHorizontally() {
-		this.invalidateMoveRecording();
-
-		const newBoard = Array(this.boardSize)
-			.fill(null)
-			.map(() => Array(this.boardSize).fill(0));
-
-		for (let i = 0; i < this.boardSize; i++) {
-			for (let j = 0; j < this.boardSize; j++) {
-				newBoard[i][j] = this.board[i][this.boardSize - 1 - j];
-			}
-		}
-		this.board = newBoard;
+		return this.applyBoardTransform(BOARD_TRANSFORMS.MIRROR_H);
 	}
 
 	/**
-	 * Mirror the board vertically
+	 * Mirror the board vertically (top ↔ bottom).
+	 * @returns {import("./types").GameEvent[]}
 	 */
 	mirrorBoardVertically() {
-		this.invalidateMoveRecording();
-
-		const newBoard = Array(this.boardSize)
-			.fill(null)
-			.map(() => Array(this.boardSize).fill(0));
-
-		for (let i = 0; i < this.boardSize; i++) {
-			for (let j = 0; j < this.boardSize; j++) {
-				newBoard[i][j] = this.board[this.boardSize - 1 - i][j];
-			}
-		}
-		this.board = newBoard;
+		return this.applyBoardTransform(BOARD_TRANSFORMS.MIRROR_V);
 	}
 
 	/**

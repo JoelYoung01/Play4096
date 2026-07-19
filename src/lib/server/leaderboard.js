@@ -3,19 +3,21 @@ import { CHALLENGE_RUN_STATUS, CHALLENGE_TYPES } from "$lib/challenges.js";
 import { USER_LEVELS } from "$lib/constants";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { gameHasReplaySql } from "$lib/server/game";
+import { gameRanksOnClassicSql } from "$lib/server/game";
 
 /**
  * Best classic score per Pro user (finished or still-active runs).
  * Optional half-open time window [start, end) on `updatedOn`. Omit both for all-time.
  *
- * Source of truth: replayable `game` rows (not denormalized profile best_score).
- * Games without seed+moves cannot be verified and do not rank.
+ * Source of truth: `game` rows (not denormalized profile best_score).
  *
- * Incomplete runs are included: classic score only increases, so a live high is a
- * lower bound on the eventual score for that row. Period boards use `updatedOn`
- * (last activity) so an active game counts in the window where it was last played —
- * not `completedOn`, which is unset until win/finalize and would hide live scores.
+ * Active runs always count (score only increases; moves may be null for legacy
+ * saves / older checkpoint restores). Rotate/mirror are recorded as moves.
+ * Finished runs must still be replayable so permanent ranks stay verifiable.
+ *
+ * Period boards use `updatedOn` (last activity) so an active game counts in the
+ * window where it was last played — not `completedOn`, which is unset until
+ * win/finalize and would hide live scores.
  *
  * `completedOn` is kept on the row for history ("when finished / first won") and is
  * not a duplicate of `updatedOn`: after a win with Keep Playing, `completedOn` freezes
@@ -30,7 +32,7 @@ function getClassicBestByUser(start, end) {
 	const conditions = [
 		eq(table.user.level, USER_LEVELS.PRO),
 		sql`${table.game.score} is not null`,
-		gameHasReplaySql,
+		gameRanksOnClassicSql,
 	];
 
 	if (start != null && end != null) {

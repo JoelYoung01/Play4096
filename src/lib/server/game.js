@@ -1,12 +1,12 @@
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
-import { and, desc, eq, ne, not, sql } from "drizzle-orm";
+import { and, desc, eq, ne, not, or, sql } from "drizzle-orm";
 import assert from "node:assert";
 
 /**
  * SQL predicate matching {@link gameHasReplay}: seed + non-empty moves whose
- * length equals move_count. Use for leaderboard / best-score queries so
- * unverifiable (cheat / checkpoint / legacy) scores cannot rank.
+ * length equals move_count. Finished classic scores must pass this to keep a
+ * permanent leaderboard rank.
  *
  * @type {import("drizzle-orm").SQL}
  */
@@ -20,13 +20,27 @@ export const gameHasReplaySql = /** @type {import("drizzle-orm").SQL} */ (
 );
 
 /**
+ * Classic ranking eligibility for leaderboard / personal-best cache.
+ *
+ * Active (`complete !== true`) runs always qualify: score only increases within
+ * a run, and live autosaves may lack moves after legacy mid-game saves or older
+ * checkpoint restores. Finished runs still need {@link gameHasReplaySql} so
+ * permanent ranks stay verifiable. Rotate/mirror are recorded as moves so those
+ * runs stay replayable.
+ *
+ * @type {import("drizzle-orm").SQL}
+ */
+export const gameRanksOnClassicSql = /** @type {import("drizzle-orm").SQL} */ (
+	or(not(eq(table.game.complete, true)), gameHasReplaySql)
+);
+
+/**
  * Recompute `user_profile.best_score` from classic games (active or finished).
  *
  * Profile best is a cache for personal UI only — all-time leaderboard aggregates
- * from `game` rows. Only replayable games count (seed + matching move history).
- * Incomplete runs count: score only increases within a game.
- * Never trust a client-submitted score here (that path used to allow inflated
- * highs without a matching game).
+ * from `game` rows. Active runs count even without replay data; finished runs
+ * must be replayable. Never trust a client-submitted score here (that path used
+ * to allow inflated highs without a matching game).
  *
  * @param {string} userId
  * @returns {Promise<number | null>} The recomputed best score, or null if none
@@ -46,7 +60,11 @@ export async function syncBestScoreFromGames(userId) {
 		})
 		.from(table.game)
 		.where(
-			and(eq(table.game.playerId, userId), sql`${table.game.score} is not null`, gameHasReplaySql)
+			and(
+				eq(table.game.playerId, userId),
+				sql`${table.game.score} is not null`,
+				gameRanksOnClassicSql
+			)
 		)
 		.get();
 

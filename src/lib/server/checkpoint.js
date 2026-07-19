@@ -91,7 +91,7 @@ export async function setCheckpoint(userId, snapshot) {
 	assert(Array.isArray(snapshot.board), "board is required");
 	assert(typeof snapshot.score === "number", "score is required");
 
-	requireOwnedGame(snapshot.gameId, userId);
+	const existingGame = requireOwnedGame(snapshot.gameId, userId);
 
 	await db
 		.update(table.gameCheckpoint)
@@ -103,6 +103,23 @@ export async function setCheckpoint(userId, snapshot) {
 				eq(table.gameCheckpoint.isActive, true)
 			)
 		);
+
+	/** @type {number[] | null} */
+	let moves = null;
+	if (snapshot.moves === null) {
+		moves = null;
+	} else if (Array.isArray(snapshot.moves)) {
+		moves = snapshot.moves;
+	} else {
+		// Older clients omit moves — fall back to the game row when lengths match.
+		const existingMoves = existingGame.moves;
+		if (
+			Array.isArray(existingMoves) &&
+			existingMoves.length === (snapshot.moveCount ?? existingGame.moveCount)
+		) {
+			moves = existingMoves;
+		}
+	}
 
 	const createdOn = new Date();
 	const inserted = db
@@ -120,6 +137,7 @@ export async function setCheckpoint(userId, snapshot) {
 			moveCount: snapshot.moveCount ?? 0,
 			undoCooldownRemaining: snapshot.undoCooldownRemaining ?? 0,
 			won: snapshot.won ?? false,
+			moves,
 		})
 		.returning()
 		.get();
@@ -163,7 +181,9 @@ export async function restoreCheckpoint(userId, gameId) {
 	}
 
 	// Restore into the same game (not a new slot). Always reopen as incomplete so play can continue.
-	// Invalidate recorded moves — checkpoints do not capture the direction history needed for replay.
+	// Prefer stored moves so the run stays replayable; legacy checkpoints may still be null.
+	const moves = Array.isArray(checkpoint.moves) ? checkpoint.moves : null;
+
 	await db
 		.update(table.game)
 		.set({
@@ -175,7 +195,7 @@ export async function restoreCheckpoint(userId, gameId) {
 			rngState: checkpoint.rngState,
 			moveCount: checkpoint.moveCount,
 			undoCooldownRemaining: checkpoint.undoCooldownRemaining,
-			moves: null,
+			moves,
 			updatedOn: new Date(),
 		})
 		.where(eq(table.game.id, gameId));
@@ -190,6 +210,6 @@ export async function restoreCheckpoint(userId, gameId) {
 		undoCooldownRemaining: checkpoint.undoCooldownRemaining,
 		won: checkpoint.won,
 		complete: false,
-		moves: null,
+		moves,
 	};
 }

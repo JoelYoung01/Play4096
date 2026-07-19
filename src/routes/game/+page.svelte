@@ -309,6 +309,7 @@
 					moveCount: snapshot.moveCount,
 					undoCooldownRemaining: snapshot.undoCooldownRemaining,
 					won: snapshot.won,
+					moves: snapshot.moves,
 				}),
 			});
 			const result = await response.json();
