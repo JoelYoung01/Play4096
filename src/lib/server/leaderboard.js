@@ -18,6 +18,13 @@ const gameScoreAt = sql`coalesce(${table.game.completedOn}, ${table.game.updated
  * Source of truth: completed, replayable `game` rows (not denormalized profile
  * best_score). Games without seed+moves cannot be verified and do not rank.
  *
+ * In-progress rows (`complete !== true`) are intentionally excluded — including
+ * "won but Keep Playing" runs. Ranking live autosaves would:
+ * - let unfinished (and still climbing) scores occupy the board
+ * - thrash ranks on every ~1s save
+ * - break period attribution, which keys off a finished run (`completedOn`)
+ * Current games already have their own path via `getCurrentGame` / `/game`.
+ *
  * @param {Date} [start]
  * @param {Date} [end]
  * @returns {{ id: string; username: string; displayName: string | null; bestScore: number }[]}

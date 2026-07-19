@@ -235,7 +235,14 @@ export function getCurrentGame(userId) {
 }
 
 /**
- * List completed games for history (Pro feature)
+ * List completed games for history (Pro feature).
+ *
+ * Incomplete (current) games are out of scope: there is at most one active run
+ * per user (`getCurrentGame`), resumed from `/game`. History is for finished
+ * sessions (win or loss); listing mid-run rows would duplicate that surface and
+ * offer awkward partial replays that end before game over. When a player starts
+ * a new game, `abandonOtherInProgressGames` / New Game finalization marks the
+ * prior run complete so it appears here.
  *
  * @param {string} userId
  * @param {{

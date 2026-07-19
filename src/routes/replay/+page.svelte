@@ -39,7 +39,8 @@
 <main class="mx-auto w-full max-w-lg px-6 pt-10 pb-28 text-foreground">
 	<h1 class="text-3xl font-bold text-primary">Game History</h1>
 	<p class="mb-4 text-sm text-muted-foreground">
-		Completed games only — replay wins and losses move by move.
+		Finished games only — your current run lives on the Play page; history is
+		for completed wins and losses you can replay move by move.
 	</p>
 
 	{#if !data.user}
