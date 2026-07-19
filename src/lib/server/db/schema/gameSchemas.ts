@@ -52,4 +52,6 @@ export const gameCheckpoint = sqliteTable("game_checkpoint", {
 	moveCount: integer("move_count").notNull().default(0),
 	undoCooldownRemaining: integer("undo_cooldown_remaining").notNull().default(0),
 	won: integer("won", { mode: "boolean" }).notNull().default(false),
+	/** Move directions at checkpoint time — restored so the run stays replayable */
+	moves: text("moves", { mode: "json" }).$type<number[] | null>(),
 });

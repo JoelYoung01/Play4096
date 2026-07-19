@@ -122,6 +122,8 @@ export interface CheckpointSaveData {
   moveCount?: number;
   undoCooldownRemaining?: number;
   won?: boolean;
+  /** Move directions at checkpoint time (null when recording was invalidated) */
+  moves?: number[] | null;
 }
 
 /** Active checkpoint metadata returned to the client */
@@ -144,6 +146,6 @@ export interface CheckpointRestoreState {
   undoCooldownRemaining: number;
   won: boolean;
   complete: boolean;
-  /** Always null after restore — direction history is not captured in checkpoints */
+  /** Restored move history when the checkpoint stored it; null for legacy checkpoints */
   moves?: number[] | null;
 }

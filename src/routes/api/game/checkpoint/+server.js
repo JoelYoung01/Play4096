@@ -55,6 +55,7 @@ export async function POST({ request, locals }) {
 			moveCount: body.moveCount,
 			undoCooldownRemaining: body.undoCooldownRemaining,
 			won: body.won,
+			moves: body.moves,
 		});
 		return json({ success: true, checkpoint });
 	} catch (error) {
