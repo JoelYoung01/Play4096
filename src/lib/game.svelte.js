@@ -26,54 +26,76 @@ export function getTileBackground(value, theme = defaultTheme) {
 }
 
 /**
- * Get the color for a tile using current theme
+ * Relative luminance of a hex color (0–1), per WCAG 2.
+ * @param {string} hex
+ * @returns {number}
+ */
+function relativeLuminance(hex) {
+	hex = hex.replace(/^#/, "");
+	if (hex.length === 3) {
+		hex = hex
+			.split("")
+			.map((x) => x + x)
+			.join("");
+	}
+	const num = parseInt(hex, 16);
+	const channels = [(num >> 16) & 255, (num >> 8) & 255, num & 255].map((v) => {
+		v /= 255;
+		return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+	});
+	return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+/**
+ * WCAG contrast ratio between two hex colors.
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+function contrastRatio(a, b) {
+	const l1 = relativeLuminance(a);
+	const l2 = relativeLuminance(b);
+	const lighter = Math.max(l1, l2);
+	const darker = Math.min(l1, l2);
+	return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Classic keeps its historical luminance-threshold ink choice.
+ * @param {string} bg
+ * @param {typeof defaultTheme} theme
+ * @returns {string}
+ */
+function classicTileColor(bg, theme) {
+	return relativeLuminance(bg) < theme.luminanceThreshold ? theme.textDark : theme.textLight;
+}
+
+/**
+ * Pick the higher-contrast ink (textLight vs textDark) for WCAG readability.
+ * @param {string} bg
+ * @param {typeof defaultTheme} theme
+ * @returns {string}
+ */
+function accessibleTileColor(bg, theme) {
+	const a = theme.textLight;
+	const b = theme.textDark;
+	return contrastRatio(bg, a) >= contrastRatio(bg, b) ? a : b;
+}
+
+/**
+ * Get the number color for a tile using current theme.
+ * Classic is unchanged (luminance threshold). Other themes pick dark/light
+ * ink by WCAG contrast against the tile background.
  * @param {number} value
  * @param {typeof defaultTheme} theme
  * @returns {string}
  */
 export function getTileColor(value, theme = defaultTheme) {
-	// Get the background color for this tile
 	const bg = getTileBackground(value, theme);
-
-	/**
-	 * Helper to parse hex color to RGB
-	 * @param {string} hex
-	 * @returns {{r: number, g: number, b: number}}
-	 */
-	function hexToRgb(hex) {
-		hex = hex.replace(/^#/, "");
-		if (hex.length === 3) {
-			hex = hex
-				.split("")
-				.map((x) => x + x)
-				.join("");
-		}
-		const num = parseInt(hex, 16);
-		return {
-			r: (num >> 16) & 255,
-			g: (num >> 8) & 255,
-			b: num & 255,
-		};
+	if (theme.id === "classic") {
+		return classicTileColor(bg, theme);
 	}
-
-	/**
-	 * Helper to calculate luminance
-	 * @param {{r: number, g: number, b: number}} rgb
-	 * @returns {number}
-	 */
-	function luminance({ r, g, b }) {
-		const a = [r, g, b].map(function (v) {
-			v /= 255;
-			return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-		});
-		return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
-	}
-
-	const rgb = hexToRgb(bg);
-	const lum = luminance(rgb);
-
-	// If background is dark, use light text; else, use dark text
-	return lum < theme.luminanceThreshold ? theme.textDark : theme.textLight;
+	return accessibleTileColor(bg, theme);
 }
 
 /**
