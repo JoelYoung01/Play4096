@@ -108,6 +108,8 @@ export interface GameHistoryEntry {
   updatedOn: Date;
   completedOn: Date | null;
   hasReplay: boolean;
+  /** Set when hasReplay is false; explains why move-by-move replay isn't available */
+  replayUnavailableReason: string | null;
 }
 
 export type GameHistorySort = "date" | "score" | "moves";
