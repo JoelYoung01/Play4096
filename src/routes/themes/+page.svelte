@@ -7,13 +7,9 @@
 
 	let { data, form } = $props();
 
-	let selectedId = $state(data.themeId);
+	let selectedId = $derived(data.themeId);
 	let saving = $state(false);
 	let errorMessage = $state("");
-
-	$effect(() => {
-		selectedId = data.themeId;
-	});
 
 	let isPro = $derived(!!data.isPro);
 
