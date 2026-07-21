@@ -4,21 +4,17 @@
 	import ThemePreview from "$lib/components/ThemePreview.svelte";
 	import { saveThemeId } from "$lib/localStorage.svelte";
 	import { CrownIcon } from "@lucide/svelte";
-	import { getTheme } from "$lib/assets/themes";
 
 	let { data, form } = $props();
 
 	let selectedId = $state(data.themeId);
-	let previewId = $state(data.themeId);
 	let saving = $state(false);
 	let errorMessage = $state("");
 
 	$effect(() => {
 		selectedId = data.themeId;
-		previewId = data.themeId;
 	});
 
-	let previewTheme = $derived(getTheme(previewId));
 	let isPro = $derived(!!data.isPro);
 
 	/** @type {import('./$types').SubmitFunction} */
@@ -32,7 +28,6 @@
 			if (result.type === "success" && result.data?.theme?.success) {
 				const id = result.data.theme.themeId;
 				selectedId = id;
-				previewId = id;
 				saveThemeId(id);
 				await invalidateAll();
 			} else if (result.type === "failure") {
@@ -59,16 +54,6 @@
 		<p class="mb-4 text-sm text-red-600">{errorMessage || form?.theme?.message}</p>
 	{/if}
 
-	<div class="mb-6">
-		<p class="mb-2 text-sm font-semibold opacity-70">Preview</p>
-		<div class="mx-auto max-w-[220px]">
-			<ThemePreview theme={previewTheme} selected />
-		</div>
-		<p class="mt-2 text-center text-sm font-medium" style:color={previewTheme.primary}>
-			{previewTheme.name}
-		</p>
-	</div>
-
 	<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 		{#each data.previewThemes as theme (theme.id)}
 			{@const locked = theme.pro && !isPro}
@@ -80,10 +65,6 @@
 					style:background={theme.background}
 					style:color={theme.textLight ?? theme.text}
 					style:border={`2px solid ${active ? theme.primary : theme.emptyTile}`}
-					onmouseenter={() => (previewId = theme.id)}
-					onmouseleave={() => (previewId = selectedId)}
-					onfocus={() => (previewId = theme.id)}
-					onblur={() => (previewId = selectedId)}
 				>
 					<div class="pointer-events-none">
 						<ThemePreview {theme} selected={active} />
@@ -106,10 +87,6 @@
 						style:background={theme.background}
 						style:color={theme.textLight ?? theme.text}
 						style:border={`2px solid ${active ? theme.primary : theme.emptyTile}`}
-						onmouseenter={() => (previewId = theme.id)}
-						onmouseleave={() => (previewId = selectedId)}
-						onfocus={() => (previewId = theme.id)}
-						onblur={() => (previewId = selectedId)}
 					>
 						<div class="pointer-events-none">
 							<ThemePreview {theme} selected={active} />
