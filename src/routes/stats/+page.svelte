@@ -1,9 +1,10 @@
 <script>
+	import { browser } from "$app/environment";
 	import { page } from "$app/state";
 	import { defaultTheme } from "$lib/assets/themes.js";
-	import { TILE_BORDER_RADIUS } from "$lib/boardConstants.js";
+	import { BOARD_GAP, BOARD_PADDING, TILE_BORDER_RADIUS } from "$lib/boardConstants.js";
 	import { formatChallengeElapsedMs } from "$lib/challenges.js";
-	import { USER_LEVELS } from "$lib/constants";
+	import { DEFAULT_BOARD_SIZE, USER_LEVELS } from "$lib/constants";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { getTileBackground, getTileColor } from "$lib/game.svelte.js";
 
@@ -11,14 +12,52 @@
 
 	let theme = $derived(page.data.theme || defaultTheme);
 
+	/** Game page `.game-container` chrome used to derive live board cell size. */
+	const GAME_CONTAINER_MAX_WIDTH = 500;
+	const GAME_CONTAINER_PADDING_X = 40;
+
 	/**
-	 * Font size for a standalone stats tile preview.
+	 * Board cell size for the current viewport — same geometry as AnimatedBoard
+	 * inside `.game-container` (max-width 500px, 20px horizontal padding).
+	 * @param {number} viewportWidth
+	 */
+	function boardCellSize(viewportWidth) {
+		const boardWidth = Math.min(GAME_CONTAINER_MAX_WIDTH, viewportWidth) - GAME_CONTAINER_PADDING_X;
+		return (
+			(boardWidth - BOARD_PADDING * 2 - BOARD_GAP * (DEFAULT_BOARD_SIZE - 1)) / DEFAULT_BOARD_SIZE
+		);
+	}
+
+	/** Mirrors AnimatedBoard's `window.innerWidth <= 600` breakpoint. */
+	let isMobileViewport = $state(browser ? window.innerWidth <= 600 : true);
+	/** Keep the stats tile pixel-identical to a live board cell. */
+	let statsTileSize = $state(browser ? boardCellSize(window.innerWidth) : 75);
+
+	$effect(() => {
+		if (!browser) return;
+		const mq = window.matchMedia("(max-width: 600px)");
+		const sync = () => {
+			isMobileViewport = mq.matches;
+			statsTileSize = boardCellSize(window.innerWidth);
+		};
+		sync();
+		mq.addEventListener("change", sync);
+		window.addEventListener("resize", sync);
+		return () => {
+			mq.removeEventListener("change", sync);
+			window.removeEventListener("resize", sync);
+		};
+	});
+
+	/**
+	 * Exact font-size formula from AnimatedBoard / BasicBoard.
 	 * @param {number} value
 	 */
-	function highestTileFontSize(value) {
-		const digits = String(value).length;
-		const rem = Math.max(1.35 - (digits - 1) * 0.18, 0.7);
-		return `${rem}rem`;
+	function getTileFontSize(value) {
+		const baseSize = isMobileViewport ? 2.5 : (theme.textScale ?? 3);
+		const digits = value.toString().length;
+		const fontSize = Math.max(baseSize - (digits - 1) * 0.3, 1);
+		return `${fontSize}rem`;
 	}
 
 	/**
@@ -120,14 +159,16 @@
 					</p>
 					{#if stats.highestTile > 0}
 						<div
-							class="mt-2 flex size-16 items-center justify-center font-bold tabular-nums shadow-sm sm:size-[4.5rem]"
+							class="stats-tile mt-2"
+							style:width={`${statsTileSize}px`}
+							style:height={`${statsTileSize}px`}
 							style:background={getTileBackground(stats.highestTile, theme)}
 							style:color={getTileColor(stats.highestTile, theme)}
 							style:border-radius={`${TILE_BORDER_RADIUS}px`}
-							style:font-size={highestTileFontSize(stats.highestTile)}
-							aria-label={`Highest tile ${stats.highestTile.toLocaleString()}`}
+							style:font-size={getTileFontSize(stats.highestTile)}
+							aria-label={`Highest tile ${stats.highestTile}`}
 						>
-							{stats.highestTile.toLocaleString()}
+							{stats.highestTile}
 						</div>
 					{:else}
 						<p class="mt-1 text-2xl font-bold tabular-nums">—</p>
@@ -281,3 +322,19 @@
 		</section>
 	{/if}
 </main>
+
+<style>
+	/* Match AnimatedBoard / BasicBoard `.tile` text rendering */
+	.stats-tile {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 800;
+		text-align: center;
+		padding: 0.2em;
+		line-height: 1;
+		flex: 0 0 auto;
+		overflow: hidden;
+		box-sizing: border-box;
+	}
+</style>
