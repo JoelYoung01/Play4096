@@ -12,6 +12,7 @@
 		MailIcon,
 		LockIcon,
 		PaletteIcon,
+		ChartColumnIcon,
 	} from "@lucide/svelte";
 	import { USER_LEVELS } from "$lib/constants";
 	import { gameState } from "../game/state.svelte";
@@ -118,6 +119,12 @@
 				<PaletteIcon size={18} />
 			</div>
 			<div class="flex-5/6 text-start">Themes</div>
+		</Button>
+		<Button class="flex w-60 gap-2" href="/stats">
+			<div class="flex flex-1/6 items-center justify-end">
+				<ChartColumnIcon size={18} />
+			</div>
+			<div class="flex-5/6 text-start">Play Stats</div>
 		</Button>
 		{#if data.userProfile.level !== USER_LEVELS.PRO}
 			<Button class="flex w-60 gap-2" href="/stripe" variant="secondary">

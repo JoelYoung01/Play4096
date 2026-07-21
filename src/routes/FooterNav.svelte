@@ -7,6 +7,7 @@
 		HistoryIcon,
 		UserIcon,
 		TargetIcon,
+		ChartColumnIcon,
 	} from "@lucide/svelte";
 
 	const navItems = [
@@ -27,6 +28,10 @@
 			href: "/leaderboard",
 		},
 		{
+			icon: ChartColumnIcon,
+			href: "/stats",
+		},
+		{
 			icon: HistoryIcon,
 			href: "/replay",
 		},
@@ -44,18 +49,18 @@
 </script>
 
 <nav
-	class="fixed bottom-1 left-1/2 z-50 flex -translate-x-1/2 justify-between gap-2 rounded-full bg-secondary p-1 text-secondary-foreground shadow-lg ring-1 ring-border/50 sm:bottom-10"
+	class="fixed bottom-1 left-1/2 z-50 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 justify-between gap-1 rounded-full bg-secondary p-1 text-secondary-foreground shadow-lg ring-1 ring-border/50 sm:bottom-10 sm:gap-2"
 >
 	{#each navItems as navItem, index (index)}
 		{@const IconComponent = navItem.icon}
 		<a
 			href={navItem.href}
-			class="rounded-full p-2 transition-colors {activeNavItem === navItem
+			class="rounded-full p-1.5 transition-colors sm:p-2 {activeNavItem === navItem
 				? 'bg-primary text-primary-foreground'
 				: 'bg-background text-foreground hover:bg-muted'}"
 			aria-current={activeNavItem === navItem ? "page" : undefined}
 		>
-			<IconComponent />
+			<IconComponent class="size-5 sm:size-6" />
 		</a>
 	{/each}
 </nav>
