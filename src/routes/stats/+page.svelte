@@ -1,9 +1,25 @@
 <script>
+	import { page } from "$app/state";
+	import { defaultTheme } from "$lib/assets/themes.js";
+	import { TILE_BORDER_RADIUS } from "$lib/boardConstants.js";
 	import { formatChallengeElapsedMs } from "$lib/challenges.js";
 	import { USER_LEVELS } from "$lib/constants";
 	import { Button } from "$lib/components/ui/button/index.js";
+	import { getTileBackground, getTileColor } from "$lib/game.svelte.js";
 
 	let { data } = $props();
+
+	let theme = $derived(page.data.theme || defaultTheme);
+
+	/**
+	 * Font size for a standalone stats tile preview.
+	 * @param {number} value
+	 */
+	function highestTileFontSize(value) {
+		const digits = String(value).length;
+		const rem = Math.max(1.35 - (digits - 1) * 0.18, 0.7);
+		return `${rem}rem`;
+	}
 
 	/**
 	 * @param {number | null | undefined} value
@@ -102,9 +118,20 @@
 					<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
 						Highest tile
 					</p>
-					<p class="mt-1 text-2xl font-bold tabular-nums">
-						{formatNumber(stats.highestTile || null, { fallback: "—" })}
-					</p>
+					{#if stats.highestTile > 0}
+						<div
+							class="mt-2 flex size-16 items-center justify-center font-bold tabular-nums shadow-sm sm:size-[4.5rem]"
+							style:background={getTileBackground(stats.highestTile, theme)}
+							style:color={getTileColor(stats.highestTile, theme)}
+							style:border-radius={`${TILE_BORDER_RADIUS}px`}
+							style:font-size={highestTileFontSize(stats.highestTile)}
+							aria-label={`Highest tile ${stats.highestTile.toLocaleString()}`}
+						>
+							{stats.highestTile.toLocaleString()}
+						</div>
+					{:else}
+						<p class="mt-1 text-2xl font-bold tabular-nums">—</p>
+					{/if}
 				</div>
 				<div class="rounded-xl bg-muted/60 p-4 ring-1 ring-border/40">
 					<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -151,7 +178,7 @@
 					</p>
 					<p class="mt-0.5 text-[11px] text-muted-foreground">
 						{stats.completedGames} finished{#if stats.activeGames > 0}
-							{" · "}{stats.activeGames} active{/if}
+							<span aria-hidden="true"> · </span>{stats.activeGames} active{/if}
 					</p>
 				</div>
 				<div class="rounded-xl bg-muted/60 p-4 ring-1 ring-border/40">
