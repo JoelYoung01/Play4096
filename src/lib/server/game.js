@@ -116,6 +116,33 @@ export function gameHasReplay(game) {
 }
 
 /**
+ * Human-readable explanation when {@link gameHasReplay} is false.
+ * @param {{ seed: number | null, moves: number[] | null, moveCount: number }} game
+ * @returns {string | null}
+ */
+export function replayUnavailableReason(game) {
+	if (gameHasReplay(game)) return null;
+
+	if (game.seed == null) {
+		return "This game has no seed, so it can't be reconstructed move-by-move.";
+	}
+
+	if (game.moves == null) {
+		return "Move history wasn't saved for this run. That usually means a legacy mid-game save, an older checkpoint restore, or a board rotate/mirror before those actions were recorded for replay.";
+	}
+
+	if (!Array.isArray(game.moves) || game.moves.length === 0) {
+		return "No moves were saved for this game, so there's nothing to replay.";
+	}
+
+	if (game.moves.length !== game.moveCount) {
+		return "The saved move list doesn't match the move count, so replay wouldn't be reliable.";
+	}
+
+	return "Move history isn't available for this game.";
+}
+
+/**
  * Mark every other in-progress game for this user as complete.
  *
  * A player should only have one active (`complete !== true`) run. Older incomplete
@@ -322,22 +349,26 @@ export function getGameHistory(userId, options = {}) {
 		.offset(offset)
 		.all();
 
-	return rows.map((row) => ({
-		id: row.id,
-		score: row.score ?? 0,
-		won: row.won,
-		complete: row.complete,
-		status: gameHistoryStatus(row.complete),
-		moveCount: row.moveCount,
-		createdOn: row.createdOn,
-		updatedOn: row.updatedOn,
-		completedOn: row.completedOn,
-		hasReplay: gameHasReplay({
+	return rows.map((row) => {
+		const replayFields = {
 			seed: row.seed,
 			moves: row.moves,
 			moveCount: row.moveCount,
-		}),
-	}));
+		};
+		return {
+			id: row.id,
+			score: row.score ?? 0,
+			won: row.won,
+			complete: row.complete,
+			status: gameHistoryStatus(row.complete),
+			moveCount: row.moveCount,
+			createdOn: row.createdOn,
+			updatedOn: row.updatedOn,
+			completedOn: row.completedOn,
+			hasReplay: gameHasReplay(replayFields),
+			replayUnavailableReason: replayUnavailableReason(replayFields),
+		};
+	});
 }
 
 /**

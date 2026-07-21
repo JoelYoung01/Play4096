@@ -1,7 +1,8 @@
 <script>
 	import { USER_LEVELS } from "$lib/constants";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import { PlayIcon } from "@lucide/svelte";
+	import * as Dialog from "$lib/components/ui/dialog/index.js";
+	import { CircleHelpIcon, PlayIcon } from "@lucide/svelte";
 
 	let { data } = $props();
 
@@ -152,12 +153,24 @@
 									Replay
 								</Button>
 							{:else if game.status !== "active"}
-								<span
-									class="text-xs text-muted-foreground/70"
-									title="Move list unavailable for this game"
-								>
-									No replay
-								</span>
+								<Dialog.Root>
+									<Dialog.Trigger
+										class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+										aria-label="Why can't this game be replayed?"
+										title="Why no replay?"
+									>
+										<CircleHelpIcon size={18} />
+									</Dialog.Trigger>
+									<Dialog.Content class="sm:max-w-sm">
+										<Dialog.Header>
+											<Dialog.Title>No replay available</Dialog.Title>
+											<Dialog.Description>
+												{game.replayUnavailableReason ??
+													"Move history isn't available for this game."}
+											</Dialog.Description>
+										</Dialog.Header>
+									</Dialog.Content>
+								</Dialog.Root>
 							{/if}
 						</div>
 					</li>
