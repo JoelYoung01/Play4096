@@ -2,7 +2,7 @@
 	import { page } from "$app/state";
 	import { CHALLENGE_RUN_STATUS, formatChallengeTypeLabel } from "$lib/challenges.js";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import { CrownIcon, ChevronLeftIcon, ChevronRightIcon } from "@lucide/svelte";
+	import { CrownIcon, ChevronLeftIcon, ChevronRightIcon, CheckIcon, XIcon } from "@lucide/svelte";
 
 	let { data } = $props();
 
@@ -21,23 +21,56 @@
 	/**
 	 * Background for a calendar day cell. Status colors fill the whole day
 	 * so cleared/failed days stay readable on the brand primary (today).
+	 * Won / lost colors come from the active theme so they stay distinct from
+	 * `primary` (today) for common color-vision deficiencies.
 	 * @param {{ status: string | null; isToday: boolean }} day
 	 */
 	function dayBackground(day) {
-		if (day.status === CHALLENGE_RUN_STATUS.WON) return "#16a34a";
-		if (day.status === CHALLENGE_RUN_STATUS.LOST) return "#dc2626";
+		if (day.status === CHALLENGE_RUN_STATUS.WON) return page.data.theme?.challengeWon;
+		if (day.status === CHALLENGE_RUN_STATUS.LOST) return page.data.theme?.challengeLost;
 		if (day.isToday) return page.data.theme?.primary;
 		return page.data.theme?.boardBackground;
 	}
 
 	/**
+	 * Relative luminance of a hex color (0–1).
+	 * @param {string} hex
+	 */
+	function luminance(hex) {
+		const h = hex.replace("#", "");
+		const r = parseInt(h.substring(0, 2), 16) / 255;
+		const g = parseInt(h.substring(2, 4), 16) / 255;
+		const b = parseInt(h.substring(4, 6), 16) / 255;
+		const toLinear = (/** @type {number} */ c) =>
+			c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+		return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+	}
+
+	/**
+	 * Ink color for a calendar day. Status fills pick contrasting theme text;
+	 * today / open days keep the established light-on-board look.
 	 * @param {{ status: string | null; isToday: boolean }} day
 	 */
 	function dayColor(day) {
 		if (day.status === CHALLENGE_RUN_STATUS.WON || day.status === CHALLENGE_RUN_STATUS.LOST) {
-			return "#ffffff";
+			const bg = dayBackground(day);
+			if (!bg) return "#ffffff";
+			// theme.textLight = dark ink (for light tiles); textDark = light ink
+			const lightInk = page.data.theme?.textDark ?? "#f9f6f2";
+			const darkInk = page.data.theme?.textLight ?? "#776e65";
+			return luminance(bg) > 0.45 ? darkInk : lightInk;
 		}
 		return page.data.theme?.textDark;
+	}
+
+	/**
+	 * @param {string | undefined} bg
+	 */
+	function statusInk(bg) {
+		if (!bg) return "#ffffff";
+		const lightInk = page.data.theme?.textDark ?? "#f9f6f2";
+		const darkInk = page.data.theme?.textLight ?? "#776e65";
+		return luminance(bg) > 0.45 ? darkInk : lightInk;
 	}
 </script>
 
@@ -155,13 +188,18 @@
 						href="/challenges/{day.id}"
 						class="day {statusClass(
 							day.status
-						)} flex aspect-square flex-col items-center justify-center rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+						)} flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
 						class:today={day.isToday}
 						style:background-color={dayBackground(day)}
 						style:color={dayColor(day)}
-						aria-label={`${day.dateStr}${day.status === CHALLENGE_RUN_STATUS.WON ? ", cleared" : day.status === CHALLENGE_RUN_STATUS.LOST ? ", failed" : ""}`}
+						aria-label={`${day.dateStr}${day.isToday ? ", today" : ""}${day.status === CHALLENGE_RUN_STATUS.WON ? ", cleared" : day.status === CHALLENGE_RUN_STATUS.LOST ? ", failed" : ""}`}
 					>
 						<span>{day.day}</span>
+						{#if day.status === CHALLENGE_RUN_STATUS.WON}
+							<CheckIcon size={11} strokeWidth={3} aria-hidden="true" />
+						{:else if day.status === CHALLENGE_RUN_STATUS.LOST}
+							<XIcon size={11} strokeWidth={3} aria-hidden="true" />
+						{/if}
 					</a>
 				{/if}
 			{/each}
@@ -169,10 +207,32 @@
 
 		<div class="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
 			<span class="inline-flex items-center gap-1.5">
-				<span class="swatch won-swatch"></span> Cleared
+				<span
+					class="swatch"
+					style:background-color={page.data.theme?.primary}
+					style:box-shadow="0 0 0 2px color-mix(in srgb, {page.data.theme?.primary ?? '#000'} 70%, transparent)"
+				></span>
+				Today
 			</span>
 			<span class="inline-flex items-center gap-1.5">
-				<span class="swatch lost-swatch"></span> Failed
+				<span
+					class="swatch"
+					style:background-color={page.data.theme?.challengeWon}
+					style:color={statusInk(page.data.theme?.challengeWon)}
+				>
+					<CheckIcon size={8} strokeWidth={3} aria-hidden="true" />
+				</span>
+				Cleared
+			</span>
+			<span class="inline-flex items-center gap-1.5">
+				<span
+					class="swatch"
+					style:background-color={page.data.theme?.challengeLost}
+					style:color={statusInk(page.data.theme?.challengeLost)}
+				>
+					<XIcon size={8} strokeWidth={3} aria-hidden="true" />
+				</span>
+				Failed
 			</span>
 			{#if !data.isPro}
 				<span class="inline-flex items-center gap-1">
@@ -188,18 +248,15 @@
 		width: 12px;
 		height: 12px;
 		border-radius: 4px;
-		display: inline-block;
-	}
-
-	.won-swatch {
-		background: #16a34a;
-	}
-
-	.lost-swatch {
-		background: #dc2626;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
 	}
 
 	.day.today {
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 55%, transparent);
+		box-shadow:
+			0 0 0 2px var(--background),
+			0 0 0 4px color-mix(in srgb, var(--primary) 85%, var(--foreground));
 	}
 </style>
