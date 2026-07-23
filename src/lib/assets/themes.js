@@ -16,6 +16,11 @@
  * @property {number} luminanceThreshold
  * @property {number} movementSpeed
  * @property {Record<number, string>} tiles
+ * Calendar day fills for cleared / failed runs. Chosen per theme so they stay
+ * distinct from `primary` (today) under common color-vision deficiencies —
+ * e.g. classic orange today vs green cleared was hard to tell apart.
+ * @property {string} challengeWon
+ * @property {string} challengeLost
  */
 
 /** Shared tile ramp used by Classic / Light / Soft */
@@ -60,6 +65,9 @@ export const classicTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.7,
 	movementSpeed: 50,
+	// Blue vs orange reads clearly for red–green color vision deficiency
+	challengeWon: "#1d4ed8",
+	challengeLost: "#9f1239",
 	tiles: { ...classicTiles },
 };
 
@@ -80,6 +88,8 @@ export const darkTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.45,
 	movementSpeed: 50,
+	challengeWon: "#3b82f6",
+	challengeLost: "#e11d48",
 	tiles: {
 		2: "#4a4a55",
 		4: "#5c5348",
@@ -122,6 +132,9 @@ export const lightTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.65,
 	movementSpeed: 50,
+	// Primary is already blue — amber cleared stays distinct from today
+	challengeWon: "#c2410c",
+	challengeLost: "#9f1239",
 	tiles: {
 		2: "#f7f9fc",
 		4: "#e8eef5",
@@ -164,6 +177,8 @@ export const highContrastTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.5,
 	movementSpeed: 50,
+	challengeWon: "#00e5ff",
+	challengeLost: "#ff0066",
 	tiles: {
 		2: "#ffffff",
 		4: "#eeeeee",
@@ -207,6 +222,8 @@ export const softTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.65,
 	movementSpeed: 50,
+	challengeWon: "#1d4ed8",
+	challengeLost: "#9f1239",
 	tiles: {
 		2: "#f0ebe6",
 		4: "#e4dbd2",
@@ -250,6 +267,9 @@ export const coralTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.6,
 	movementSpeed: 50,
+	// Blue cleared vs coral today; purple lost stays off the coral primary
+	challengeWon: "#1d4ed8",
+	challengeLost: "#7e22ce",
 	tiles: {
 		2: "#fff0eb",
 		4: "#ffe0d6",
