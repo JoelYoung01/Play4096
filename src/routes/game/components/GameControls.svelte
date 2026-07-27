@@ -232,6 +232,18 @@
 	);
 
 	let canRestoreCheckpoint = $derived(isPro && gameState.hasCheckpoint && !checkpointBusy);
+
+	/** Highest tile on the board for the win overlay stats */
+	let winHighestTile = $derived.by(() => {
+		if (!game) return 0;
+		let max = 0;
+		for (const row of game.board) {
+			for (const cell of row) {
+				if (cell > max) max = cell;
+			}
+		}
+		return max;
+	});
 </script>
 
 <!-- Header -->
@@ -430,7 +442,33 @@
 	<div class="overlay win">
 		<div class="overlay-content">
 			<h2>You Won!</h2>
-			<p>Score: {game.score.toLocaleString()}</p>
+			<p class="win-message">You reached {game.winTile.toLocaleString()}!</p>
+			<div class="win-stats" role="group" aria-label="Game stats">
+				<div
+					class="win-stat"
+					style:background-color={page.data.theme?.boardBackground}
+					style:color={page.data.theme?.textDark}
+				>
+					<span class="win-stat-label">Score</span>
+					<span class="win-stat-value">{game.score.toLocaleString()}</span>
+				</div>
+				<div
+					class="win-stat"
+					style:background-color={page.data.theme?.boardBackground}
+					style:color={page.data.theme?.textDark}
+				>
+					<span class="win-stat-label">Moves</span>
+					<span class="win-stat-value">{game.moveCount.toLocaleString()}</span>
+				</div>
+				<div
+					class="win-stat"
+					style:background-color={page.data.theme?.boardBackground}
+					style:color={page.data.theme?.textDark}
+				>
+					<span class="win-stat-label">Highest</span>
+					<span class="win-stat-value">{winHighestTile.toLocaleString()}</span>
+				</div>
+			</div>
 			<Button class="m-1" onclick={continueGame}>Keep Playing</Button>
 			<Button class="m-1" variant="secondary" onclick={newGame}>New Game</Button>
 		</div>
@@ -467,11 +505,12 @@
 		padding: 40px;
 		border-radius: 12px;
 		text-align: center;
-		max-width: 400px;
+		max-width: 420px;
+		width: calc(100% - 2rem);
 	}
 
 	.overlay-content h2 {
-		margin: 0 0 20px 0;
+		margin: 0 0 12px 0;
 		font-size: 2rem;
 	}
 
@@ -479,5 +518,43 @@
 		margin: 0 0 30px 0;
 		color: var(--muted-foreground);
 		font-size: 1.2rem;
+	}
+
+	.win-message {
+		margin-bottom: 20px;
+		font-size: 1.05rem;
+	}
+
+	.win-stats {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.5rem;
+		margin: 0 0 1.5rem;
+	}
+
+	.win-stat {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.15rem;
+		padding: 0.65rem 0.5rem;
+		border-radius: 0.5rem;
+		min-width: 0;
+	}
+
+	.win-stat-label {
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		opacity: 0.8;
+	}
+
+	.win-stat-value {
+		font-size: 1.15rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		line-height: 1.2;
 	}
 </style>
