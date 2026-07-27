@@ -14,6 +14,7 @@ import { getTheme } from "./assets/themes";
  *   moveCount?: number;
  *   undoCooldownRemaining?: number;
  *   moves?: number[] | null;
+ *   createdOn?: number | null;
  * }} game
  */
 export function saveGame({
@@ -25,6 +26,7 @@ export function saveGame({
 	moveCount,
 	undoCooldownRemaining,
 	moves,
+	createdOn,
 }) {
 	if (!browser) return;
 	localStorage.setItem(
@@ -38,6 +40,7 @@ export function saveGame({
 			moveCount,
 			undoCooldownRemaining,
 			moves: moves ?? null,
+			createdOn: createdOn ?? null,
 			lastUpdated: Date.now(),
 		})
 	);

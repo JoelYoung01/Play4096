@@ -76,6 +76,8 @@ export interface GameState {
   undoCooldownRemaining?: number;
   /** Recorded slide directions and board transforms; null when recording was invalidated */
   moves?: number[] | null;
+  /** Wall-clock start time (ms since epoch). Used for win-dialog duration. */
+  createdOn?: number | null;
 }
 
 export interface GameSaveData {
@@ -91,6 +93,8 @@ export interface GameSaveData {
   undoCooldownRemaining?: number;
   /** Recorded slide directions and board transforms; null when recording was invalidated */
   moves?: number[] | null;
+  /** Client wall-clock start (ms); ignored by server insert (DB stamps its own) */
+  createdOn?: number | null;
 }
 
 /** Derived from `complete` — not a separate DB column */
@@ -152,4 +156,6 @@ export interface CheckpointRestoreState {
   complete: boolean;
   /** Restored move history when the checkpoint stored it; null for legacy checkpoints */
   moves?: number[] | null;
+  /** Original game start time (ms since epoch), preserved across checkpoint restore */
+  createdOn?: number | null;
 }

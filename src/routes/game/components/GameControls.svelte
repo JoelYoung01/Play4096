@@ -1,6 +1,7 @@
 <script>
 	import { page } from "$app/state";
 	import { USER_LEVELS } from "$lib/constants.js";
+	import { formatWinDuration } from "$lib/formatTime.js";
 	import { Game } from "$lib/game.svelte.js";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
@@ -70,6 +71,8 @@
 
 	let showGameOver = $state(false);
 	let showWin = $state(false);
+	/** Frozen wall-clock duration when the win overlay opens */
+	let winElapsedMs = $state(/** @type {number | null} */ (null));
 	let openMenu = $state(false);
 	/** True while waiting for move animations to finish before applying undo */
 	let undoQueued = $state(false);
@@ -95,9 +98,12 @@
 
 		if (!game.won || game.canContinue) {
 			showWin = false;
+			winElapsedMs = null;
 		} else if (animationIdle) {
 			const timeout = setTimeout(() => {
 				showWin = true;
+				winElapsedMs =
+					typeof game.createdOn === "number" ? Math.max(0, Date.now() - game.createdOn) : null;
 			}, GAME_WIN_DELAY);
 			return () => clearTimeout(timeout);
 		}
@@ -136,6 +142,7 @@
 	function newGame() {
 		showGameOver = false;
 		showWin = false;
+		winElapsedMs = null;
 		undoQueued = false;
 		restoreQueued = false;
 		if (onNewGame) {
@@ -150,6 +157,7 @@
 		if (!game) return;
 		game.canContinue = true;
 		showWin = false;
+		winElapsedMs = null;
 	}
 
 	function rotateBoard() {
@@ -201,6 +209,7 @@
 			await onRestoreCheckpoint?.();
 			showGameOver = false;
 			showWin = false;
+			winElapsedMs = null;
 		} finally {
 			checkpointBusy = false;
 		}
@@ -465,6 +474,14 @@
 					style:background-color={page.data.theme?.boardBackground}
 					style:color={page.data.theme?.textDark}
 				>
+					<span class="win-stat-label">Time</span>
+					<span class="win-stat-value">{formatWinDuration(winElapsedMs)}</span>
+				</div>
+				<div
+					class="win-stat"
+					style:background-color={page.data.theme?.boardBackground}
+					style:color={page.data.theme?.textDark}
+				>
 					<span class="win-stat-label">Highest</span>
 					<span class="win-stat-value">{winHighestTile.toLocaleString()}</span>
 				</div>
@@ -527,7 +544,7 @@
 
 	.win-stats {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.5rem;
 		margin: 0 0 1.5rem;
 	}

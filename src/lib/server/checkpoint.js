@@ -156,7 +156,7 @@ export async function restoreCheckpoint(userId, gameId) {
 	requireProUser(userId);
 	assert(gameId, "gameId is required");
 
-	requireOwnedGame(gameId, userId);
+	const existingGame = requireOwnedGame(gameId, userId);
 
 	const checkpoint = db
 		.select()
@@ -211,5 +211,6 @@ export async function restoreCheckpoint(userId, gameId) {
 		won: checkpoint.won,
 		complete: false,
 		moves,
+		createdOn: existingGame.createdOn instanceof Date ? existingGame.createdOn.getTime() : null,
 	};
 }
