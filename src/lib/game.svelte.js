@@ -126,6 +126,21 @@ function resolveRecordedMoves(initialState) {
 }
 
 /**
+ * Resolve wall-clock start time for a Game.
+ * Fresh games stamp now; resumed games keep a persisted timestamp when present.
+ * @param {import("./types").GameState | null | undefined} initialState
+ * @returns {number | null}
+ */
+function resolveCreatedOn(initialState) {
+	if (!initialState) return Date.now();
+	const createdOn = initialState.createdOn;
+	if (typeof createdOn === "number" && Number.isFinite(createdOn) && createdOn > 0) {
+		return createdOn;
+	}
+	return null;
+}
+
+/**
  * Game Class
  *
  * Encapsulates the game state and logic
@@ -170,6 +185,13 @@ export class Game {
 		 * @type {number[] | null}
 		 */
 		this.moves = $state(resolveRecordedMoves(initialState));
+
+		/**
+		 * Wall-clock start (ms since epoch). New games stamp Date.now();
+		 * resumed games use persisted/server createdOn when available.
+		 * @type {number | null}
+		 */
+		this.createdOn = $state(resolveCreatedOn(initialState));
 
 		const resolvedSeed = seed ?? initialState?.seed ?? generateSeed();
 		/** @type {number} */
@@ -723,6 +745,7 @@ export class Game {
 			moveCount: this.moveCount,
 			undoCooldownRemaining: this.undoCooldownRemaining,
 			moves: this.moves,
+			createdOn: this.createdOn,
 		};
 	}
 }

@@ -24,6 +24,7 @@ export function load({ locals }) {
 				moveCount: dbGame.moveCount ?? 0,
 				undoCooldownRemaining: dbGame.undoCooldownRemaining ?? 0,
 				moves: dbGame.moves ?? null,
+				createdOn: dbGame.createdOn instanceof Date ? dbGame.createdOn.getTime() : null,
 				lastUpdated: dbGame.updatedOn.getTime(),
 			};
 

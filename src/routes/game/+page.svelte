@@ -42,6 +42,20 @@
 	}
 
 	/**
+	 * Prefer an explicit createdOn; otherwise borrow from the other copy.
+	 * @param {import("$lib/types").GameState & { lastUpdated?: number } | null | undefined} primary
+	 * @param {import("$lib/types").GameState & { lastUpdated?: number } | null | undefined} fallback
+	 */
+	function withCreatedOnFallback(primary, fallback) {
+		if (!primary) return primary;
+		if (typeof primary.createdOn === "number") return primary;
+		if (typeof fallback?.createdOn === "number") {
+			return { ...primary, createdOn: fallback.createdOn };
+		}
+		return primary;
+	}
+
+	/**
 	 * Try to load game from local or server storage.
 	 *
 	 * When boards diverge, prefer the newer timestamp and only prompt
@@ -52,7 +66,9 @@
 
 		if (data.localGame && data.dbGame) {
 			if (isSameGame(data.localGame, data.dbGame)) {
-				gameState.currentGame = createGameFromState(data.dbGame);
+				gameState.currentGame = createGameFromState(
+					withCreatedOnFallback(data.dbGame, data.localGame)
+				);
 				return;
 			}
 
@@ -62,10 +78,15 @@
 			if (typeof localUpdated === "number" && typeof dbUpdated === "number") {
 				if (localUpdated >= dbUpdated) {
 					// Local is ahead (common after a missed flush) — keep it and push.
-					gameState.currentGame = createGameFromState(data.localGame, data.dbGame.id);
+					gameState.currentGame = createGameFromState(
+						withCreatedOnFallback(data.localGame, data.dbGame),
+						data.dbGame.id
+					);
 					queueMicrotask(() => flushSaveToServer());
 				} else {
-					gameState.currentGame = createGameFromState(data.dbGame);
+					gameState.currentGame = createGameFromState(
+						withCreatedOnFallback(data.dbGame, data.localGame)
+					);
 				}
 				return;
 			}
@@ -87,10 +108,15 @@
 	 */
 	function resolveConflict(source) {
 		if (source === "local") {
-			gameState.currentGame = createGameFromState(data.localGame, data.dbGame?.id);
+			gameState.currentGame = createGameFromState(
+				withCreatedOnFallback(data.localGame, data.dbGame),
+				data.dbGame?.id
+			);
 			queueMicrotask(() => flushSaveToServer());
 		} else if (source === "server") {
-			gameState.currentGame = createGameFromState(data.dbGame);
+			gameState.currentGame = createGameFromState(
+				withCreatedOnFallback(data.dbGame, data.localGame)
+			);
 		}
 		conflict = false;
 	}
