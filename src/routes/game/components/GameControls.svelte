@@ -5,46 +5,21 @@
 	import { formatWinDuration } from "$lib/formatTime.js";
 	import { Game } from "$lib/game.svelte.js";
 	import { saveBestWinStats } from "$lib/localStorage.svelte.js";
+	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 	import { gameState } from "../state.svelte.js";
 	import {
 		BookmarkIcon,
 		BookmarkPlusIcon,
 		CrownIcon,
 		LoaderCircleIcon,
-		MenuIcon,
 		MoveHorizontalIcon,
 		MoveVerticalIcon,
 		PlusIcon,
 		RotateCcwIcon,
 		RotateCwIcon,
 		Undo2Icon,
-		XIcon,
 	} from "@lucide/svelte";
-	import { cubicOut } from "svelte/easing";
-
-	/**
-	 * Custom transition that combines scale and rotation
-	 * @param {HTMLElement} node
-	 * @param {{ duration?: number; start?: number; delay?: number; rotateDegrees?: number }} params
-	 */
-	function scaleRotate(node, params = {}) {
-		const { duration = 200, start = 0.8, delay = 0, rotateDegrees = 45 } = params;
-		return {
-			delay,
-			duration,
-			easing: cubicOut,
-			/**
-			 * @param {number} t
-			 */
-			css: (t) => {
-				const scaleValue = start + (1 - start) * t;
-				const rotate = rotateDegrees * (1 - t);
-				return `transform: scale(${scaleValue}) rotate(${rotate}deg); opacity: ${t};`;
-			},
-		};
-	}
 
 	let game = $derived(gameState.currentGame);
 	let isPro = $derived(page.data.user?.level === USER_LEVELS.PRO);
@@ -77,12 +52,15 @@
 	let winElapsedMs = $state(/** @type {number | null} */ (null));
 	/** Which of this win's stats are personal bests, frozen when the overlay opens */
 	let winNewBest = $state({ score: false, moves: false, time: false });
-	let openMenu = $state(false);
+	/** Confirmation dialog before ending a run in progress for a new game */
+	let confirmNewGame = $state(false);
 	/** True while waiting for move animations to finish before applying undo */
 	let undoQueued = $state(false);
 	/** True while waiting for animations before restoring a checkpoint */
 	let restoreQueued = $state(false);
 	let checkpointBusy = $state(false);
+	/** Which checkpoint op is in flight, so only that button shows a spinner @type {"set" | "restore" | null} */
+	let checkpointAction = $state(null);
 
 	$effect(() => {
 		if (!game) return;
@@ -188,6 +166,20 @@
 		gameState.currentGame = new Game();
 	}
 
+	/** Confirm before ending a run in progress; start right away when nothing is lost */
+	function requestNewGame() {
+		if (!game || game.moveCount === 0 || game.gameOver) {
+			newGame();
+			return;
+		}
+		confirmNewGame = true;
+	}
+
+	function confirmStartNewGame() {
+		confirmNewGame = false;
+		newGame();
+	}
+
 	function continueGame() {
 		if (!game) return;
 		game.canContinue = true;
@@ -227,19 +219,20 @@
 
 	async function runSetCheckpoint() {
 		if (!isPro || !game || checkpointBusy) return;
-		openMenu = false;
 		checkpointBusy = true;
+		checkpointAction = "set";
 		try {
 			await onSetCheckpoint?.();
 		} finally {
 			checkpointBusy = false;
+			checkpointAction = null;
 		}
 	}
 
 	async function runRestoreCheckpoint() {
 		if (!isPro || !game || !gameState.hasCheckpoint || checkpointBusy) return;
-		openMenu = false;
 		checkpointBusy = true;
+		checkpointAction = "restore";
 		try {
 			await onRestoreCheckpoint?.();
 			showGameOver = false;
@@ -247,6 +240,7 @@
 			winElapsedMs = null;
 		} finally {
 			checkpointBusy = false;
+			checkpointAction = null;
 		}
 	}
 
@@ -276,6 +270,26 @@
 	);
 
 	let canRestoreCheckpoint = $derived(isPro && gameState.hasCheckpoint && !checkpointBusy);
+
+	let setCheckpointBusy = $derived(checkpointBusy && checkpointAction === "set");
+	let restoreCheckpointBusy = $derived(
+		restoreQueued || (checkpointBusy && checkpointAction === "restore")
+	);
+
+	let setCheckpointTitle = $derived(
+		setCheckpointBusy
+			? "Saving checkpoint…"
+			: game?.gameOver
+				? "Checkpoints can only be set during an active game"
+				: "Set a checkpoint for this run"
+	);
+	let restoreCheckpointTitle = $derived(
+		restoreCheckpointBusy
+			? "Restoring checkpoint…"
+			: gameState.hasCheckpoint
+				? "Restore your last checkpoint"
+				: "No checkpoint set"
+	);
 </script>
 
 <!-- Header -->
@@ -312,79 +326,56 @@
 </div>
 
 <div class="mb-2 flex items-center gap-1">
-	<DropdownMenu.Root bind:open={openMenu}>
-		<DropdownMenu.Trigger
-			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80"
-			aria-label="Game menu"
-		>
-			<div class="relative h-[18px] w-[18px]">
-				{#if openMenu}
-					<div
-						class="absolute inset-0"
-						in:scaleRotate={{ duration: 200, start: 0.8, delay: 100, rotateDegrees: -45 }}
-						out:scaleRotate={{ duration: 150, start: 0.8, rotateDegrees: -45 }}
-					>
-						<XIcon size={18} />
-					</div>
-				{:else}
-					<div
-						class="absolute inset-0"
-						in:scaleRotate={{ duration: 200, start: 0.8, delay: 100 }}
-						out:scaleRotate={{ duration: 150, start: 0.8 }}
-					>
-						<MenuIcon size={18} />
-					</div>
-				{/if}
-			</div>
-		</DropdownMenu.Trigger>
-		<DropdownMenu.Content class="w-56">
-			<DropdownMenu.Item onSelect={newGame}>
-				<PlusIcon size={18} />
-				New Game
-			</DropdownMenu.Item>
-			{#if isPro}
-				<DropdownMenu.Item
-					onSelect={() => void runSetCheckpoint()}
-					disabled={!game || game.gameOver || checkpointBusy}
-					title={game?.gameOver
-						? "Checkpoints can only be set during an active game"
-						: "Save a restore point for this run"}
-				>
-					{#if checkpointBusy}
-						<LoaderCircleIcon class="animate-spin" size={18} />
-					{:else}
-						<BookmarkPlusIcon size={18} />
-					{/if}
-					Set Checkpoint
-				</DropdownMenu.Item>
-				<DropdownMenu.Item
-					onSelect={handleRestoreCheckpoint}
-					disabled={!canRestoreCheckpoint && !restoreQueued}
-					title={gameState.hasCheckpoint ? "Restore to your last checkpoint" : "No checkpoint set"}
-				>
-					{#if restoreQueued || checkpointBusy}
-						<LoaderCircleIcon class="animate-spin" size={18} />
-					{:else}
-						<BookmarkIcon size={18} />
-					{/if}
-					Restore Checkpoint
-				</DropdownMenu.Item>
-			{:else}
-				<Button
-					href={isLoggedIn ? "/stripe" : "/login"}
-					variant="ghost"
-					class="w-full justify-start gap-2 px-2"
-					onclick={() => {
-						openMenu = false;
-					}}
-				>
-					<CrownIcon size={18} />
-					Checkpoints (Pro)
-				</Button>
-			{/if}
-		</DropdownMenu.Content>
-	</DropdownMenu.Root>
+	<button
+		class="controls-btn bg-primary text-primary-foreground hover:bg-primary/80"
+		onclick={requestNewGame}
+		title="New game"
+		aria-label="New game"
+		aria-haspopup="dialog"
+	>
+		<PlusIcon size={18} />
+	</button>
 	<div class="flex-1"></div>
+	{#if isPro}
+		<button
+			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+			onclick={() => void runSetCheckpoint()}
+			disabled={!game || game.gameOver || checkpointBusy}
+			title={setCheckpointTitle}
+			aria-label={setCheckpointTitle}
+			aria-busy={setCheckpointBusy}
+		>
+			{#if setCheckpointBusy}
+				<LoaderCircleIcon class="animate-spin" size={18} />
+			{:else}
+				<BookmarkPlusIcon size={18} />
+			{/if}
+		</button>
+		<button
+			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+			onclick={handleRestoreCheckpoint}
+			disabled={!canRestoreCheckpoint && !restoreQueued}
+			title={restoreCheckpointTitle}
+			aria-label={restoreCheckpointTitle}
+			aria-busy={restoreCheckpointBusy}
+		>
+			{#if restoreCheckpointBusy}
+				<LoaderCircleIcon class="animate-spin" size={18} />
+			{:else}
+				<BookmarkIcon size={18} />
+			{/if}
+		</button>
+	{:else}
+		<a
+			href={isLoggedIn ? "/stripe" : "/login"}
+			class="controls-btn relative flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/80"
+			title="Checkpoints (Pro)"
+			aria-label="Checkpoints (Pro)"
+		>
+			<BookmarkPlusIcon size={18} />
+			<span class="pro-badge"><CrownIcon size={10} /></span>
+		</a>
+	{/if}
 	<button
 		class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
 		onclick={handleUndo}
@@ -446,7 +437,7 @@
 					onclick={handleRestoreCheckpoint}
 					disabled={checkpointBusy || restoreQueued}
 				>
-					{#if restoreQueued || checkpointBusy}
+					{#if restoreCheckpointBusy}
 						Restoring…
 					{:else}
 						Restore Checkpoint
@@ -515,6 +506,22 @@
 	</div>
 {/if}
 
+<AlertDialog.Root bind:open={confirmNewGame}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Start a new game?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This ends your current run{game ? ` at ${game.score.toLocaleString()} points` : ""} and starts
+				a fresh board.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmStartNewGame}>New Game</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
 <style lang="postcss">
 	@reference "../../../app.css";
 
@@ -524,6 +531,10 @@
 
 	.cooldown-badge {
 		@apply absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-black/70 px-1 text-[10px] leading-none font-bold text-white;
+	}
+
+	.pro-badge {
+		@apply absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-amber-950;
 	}
 
 	.overlay {
