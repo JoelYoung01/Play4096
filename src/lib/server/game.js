@@ -92,6 +92,56 @@ export async function saveScore(_score, userId) {
 }
 
 /**
+ * Coerce a SQLite aggregate result to a finite number, or null.
+ * @param {unknown} value
+ * @returns {number | null}
+ */
+function aggregateNumber(value) {
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value === "string" && value !== "" && Number.isFinite(Number(value))) {
+		return Number(value);
+	}
+	return null;
+}
+
+/**
+ * Personal bests across won classic games, used by the win overlay's
+ * "New Best!" badges.
+ *
+ * - Fastest win is exact: `completedOn` freezes on the first win while
+ *   `updatedOn` keeps moving (Keep Playing).
+ * - Least moves uses the run's stored `moveCount`, which keeps growing after a
+ *   Keep Playing win — an upper bound on moves-at-win. Exact at-win values from
+ *   this device live in localStorage; the client compares against the lower of
+ *   the two.
+ *
+ * @param {string} userId
+ * @returns {{ leastMovesToWin: number | null, fastestWinMs: number | null }}
+ */
+export function getBestWinStats(userId) {
+	// Timestamps are stored as unix seconds (drizzle `mode: "timestamp"`).
+	const winSeconds = sql`coalesce(${table.game.completedOn}, ${table.game.updatedOn}) - ${table.game.createdOn}`;
+
+	const row = db
+		.select({
+			leastMovesToWin: sql`min(${table.game.moveCount})`,
+			// Per-game negative durations (clock skew / bad data) are ignored, matching stats
+			fastestWinSeconds: sql`min(case when ${winSeconds} >= 0 then ${winSeconds} end)`,
+		})
+		.from(table.game)
+		.where(and(eq(table.game.playerId, userId), eq(table.game.won, true)))
+		.get();
+
+	const leastMovesToWin = aggregateNumber(row?.leastMovesToWin);
+	const fastestWinSeconds = aggregateNumber(row?.fastestWinSeconds);
+
+	return {
+		leastMovesToWin,
+		fastestWinMs: fastestWinSeconds == null ? null : fastestWinSeconds * 1000,
+	};
+}
+
+/**
  * Normalize moves for persistence
  * @param {number[] | null | undefined} moves
  * @returns {number[] | null}

@@ -1,11 +1,17 @@
 import { browser } from "$app/environment";
 import { deserialize } from "$app/forms";
-import { loadBestScore, loadGame, saveBestScore } from "$lib/localStorage.svelte";
+import {
+	loadBestScore,
+	loadBestWinStats,
+	loadGame,
+	lowestOf,
+	saveBestScore,
+} from "$lib/localStorage.svelte";
 import { general, gameState } from "./state.svelte.js";
 
 /** @type {import("./$types").PageLoad} */
 export async function load({ data, fetch }) {
-	let { user, dbGame } = data;
+	let { user, dbGame, checkpoint, winBests } = data;
 	let bestScore = user?.bestScore ?? 0;
 	let localGame = null;
 
@@ -18,6 +24,20 @@ export async function load({ data, fetch }) {
 	if (browser) {
 		// Load game from local storage
 		localGame = loadGame();
+
+		// Previous best win stats: lowest of session, this device (exact at-win
+		// values) and the account's won games (server) for the "New Best!" badges.
+		const localWinStats = loadBestWinStats();
+		gameState.bestWinMoves = lowestOf(
+			gameState.bestWinMoves,
+			localWinStats.moves,
+			winBests?.leastMovesToWin
+		);
+		gameState.bestWinTimeMs = lowestOf(
+			gameState.bestWinTimeMs,
+			localWinStats.timeMs,
+			winBests?.fastestWinMs
+		);
 
 		if (user) {
 			// Authoritative personal best comes from ranked games on the server.
@@ -50,5 +70,6 @@ export async function load({ data, fetch }) {
 		dbGame,
 		localGame,
 		bestScore,
+		checkpoint,
 	};
 }

@@ -1,48 +1,25 @@
 <script>
+	import { untrack } from "svelte";
 	import { page } from "$app/state";
-	import { USER_LEVELS } from "$lib/constants.js";
+	import { CHECKPOINT_COOLDOWN_MOVES, USER_LEVELS } from "$lib/constants.js";
 	import { formatWinDuration } from "$lib/formatTime.js";
 	import { Game } from "$lib/game.svelte.js";
+	import { saveBestWinStats } from "$lib/localStorage.svelte.js";
+	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 	import { gameState } from "../state.svelte.js";
 	import {
 		BookmarkIcon,
 		BookmarkPlusIcon,
 		CrownIcon,
 		LoaderCircleIcon,
-		MenuIcon,
 		MoveHorizontalIcon,
 		MoveVerticalIcon,
 		PlusIcon,
 		RotateCcwIcon,
 		RotateCwIcon,
 		Undo2Icon,
-		XIcon,
 	} from "@lucide/svelte";
-	import { cubicOut } from "svelte/easing";
-
-	/**
-	 * Custom transition that combines scale and rotation
-	 * @param {HTMLElement} node
-	 * @param {{ duration?: number; start?: number; delay?: number; rotateDegrees?: number }} params
-	 */
-	function scaleRotate(node, params = {}) {
-		const { duration = 200, start = 0.8, delay = 0, rotateDegrees = 45 } = params;
-		return {
-			delay,
-			duration,
-			easing: cubicOut,
-			/**
-			 * @param {number} t
-			 */
-			css: (t) => {
-				const scaleValue = start + (1 - start) * t;
-				const rotate = rotateDegrees * (1 - t);
-				return `transform: scale(${scaleValue}) rotate(${rotate}deg); opacity: ${t};`;
-			},
-		};
-	}
 
 	let game = $derived(gameState.currentGame);
 	let isPro = $derived(page.data.user?.level === USER_LEVELS.PRO);
@@ -73,12 +50,17 @@
 	let showWin = $state(false);
 	/** Frozen wall-clock duration when the win overlay opens */
 	let winElapsedMs = $state(/** @type {number | null} */ (null));
-	let openMenu = $state(false);
+	/** Which of this win's stats are personal bests, frozen when the overlay opens */
+	let winNewBest = $state({ score: false, moves: false, time: false });
+	/** Confirmation dialog before ending a run in progress for a new game */
+	let confirmNewGame = $state(false);
 	/** True while waiting for move animations to finish before applying undo */
 	let undoQueued = $state(false);
 	/** True while waiting for animations before restoring a checkpoint */
 	let restoreQueued = $state(false);
 	let checkpointBusy = $state(false);
+	/** Which checkpoint op is in flight, so only that button shows a spinner @type {"set" | "restore" | null} */
+	let checkpointAction = $state(null);
 
 	$effect(() => {
 		if (!game) return;
@@ -93,17 +75,48 @@
 		}
 	});
 
+	/**
+	 * Freeze this win's stats, flag the ones beating the previous bests, then
+	 * fold the run into session + device bests for future comparisons.
+	 */
+	function captureWinStats() {
+		if (!game) return;
+
+		const score = game.score;
+		const moves = game.moveCount;
+		const elapsedMs =
+			typeof game.createdOn === "number" ? Math.max(0, Date.now() - game.createdOn) : null;
+
+		winElapsedMs = elapsedMs;
+		winNewBest = {
+			// bestScore is raised live while playing, so a new best shows up as a tie
+			score: score >= gameState.bestScore,
+			moves: gameState.bestWinMoves == null || moves < gameState.bestWinMoves,
+			time:
+				elapsedMs != null &&
+				(gameState.bestWinTimeMs == null || elapsedMs < gameState.bestWinTimeMs),
+		};
+
+		if (score > gameState.bestScore) gameState.bestScore = score;
+		if (winNewBest.moves) gameState.bestWinMoves = moves;
+		if (winNewBest.time) gameState.bestWinTimeMs = elapsedMs;
+		saveBestWinStats({ moves, timeMs: elapsedMs });
+	}
+
 	$effect(() => {
 		if (!game) return;
 
 		if (!game.won || game.canContinue) {
 			showWin = false;
 			winElapsedMs = null;
+			winNewBest = { score: false, moves: false, time: false };
 		} else if (animationIdle) {
+			// Already open — moves made behind the overlay must not reset frozen stats
+			if (untrack(() => showWin)) return;
+
 			const timeout = setTimeout(() => {
 				showWin = true;
-				winElapsedMs =
-					typeof game.createdOn === "number" ? Math.max(0, Date.now() - game.createdOn) : null;
+				captureWinStats();
 			}, GAME_WIN_DELAY);
 			return () => clearTimeout(timeout);
 		}
@@ -150,7 +163,22 @@
 			return;
 		}
 		gameState.hasCheckpoint = false;
+		gameState.checkpointMoveCount = null;
 		gameState.currentGame = new Game();
+	}
+
+	/** Confirm before ending a run in progress; start right away when nothing is lost */
+	function requestNewGame() {
+		if (!game || game.moveCount === 0 || game.gameOver) {
+			newGame();
+			return;
+		}
+		confirmNewGame = true;
+	}
+
+	function confirmStartNewGame() {
+		confirmNewGame = false;
+		newGame();
 	}
 
 	function continueGame() {
@@ -191,20 +219,21 @@
 	}
 
 	async function runSetCheckpoint() {
-		if (!isPro || !game || checkpointBusy) return;
-		openMenu = false;
+		if (!isPro || !game || checkpointBusy || checkpointCooldownRemaining > 0) return;
 		checkpointBusy = true;
+		checkpointAction = "set";
 		try {
 			await onSetCheckpoint?.();
 		} finally {
 			checkpointBusy = false;
+			checkpointAction = null;
 		}
 	}
 
 	async function runRestoreCheckpoint() {
 		if (!isPro || !game || !gameState.hasCheckpoint || checkpointBusy) return;
-		openMenu = false;
 		checkpointBusy = true;
+		checkpointAction = "restore";
 		try {
 			await onRestoreCheckpoint?.();
 			showGameOver = false;
@@ -212,6 +241,7 @@
 			winElapsedMs = null;
 		} finally {
 			checkpointBusy = false;
+			checkpointAction = null;
 		}
 	}
 
@@ -242,17 +272,36 @@
 
 	let canRestoreCheckpoint = $derived(isPro && gameState.hasCheckpoint && !checkpointBusy);
 
-	/** Highest tile on the board for the win overlay stats */
-	let winHighestTile = $derived.by(() => {
-		if (!game) return 0;
-		let max = 0;
-		for (const row of game.board) {
-			for (const cell of row) {
-				if (cell > max) max = cell;
-			}
-		}
-		return max;
+	// Checkpoints recharge with board progress: the next one unlocks
+	// CHECKPOINT_COOLDOWN_MOVES moves past the active checkpoint. Anchoring to the
+	// checkpoint's move count means undo/restore can't shortcut the wait.
+	let checkpointCooldownRemaining = $derived.by(() => {
+		if (!game || !gameState.hasCheckpoint || gameState.checkpointMoveCount == null) return 0;
+		const movesSince = game.moveCount - gameState.checkpointMoveCount;
+		return Math.min(CHECKPOINT_COOLDOWN_MOVES, Math.max(0, CHECKPOINT_COOLDOWN_MOVES - movesSince));
 	});
+
+	let setCheckpointBusy = $derived(checkpointBusy && checkpointAction === "set");
+	let restoreCheckpointBusy = $derived(
+		restoreQueued || (checkpointBusy && checkpointAction === "restore")
+	);
+
+	let setCheckpointTitle = $derived(
+		setCheckpointBusy
+			? "Saving checkpoint…"
+			: game?.gameOver
+				? "Checkpoints can only be set during an active game"
+				: checkpointCooldownRemaining > 0
+					? `Checkpoint available in ${checkpointCooldownRemaining} move${checkpointCooldownRemaining === 1 ? "" : "s"}`
+					: "Set a checkpoint for this run"
+	);
+	let restoreCheckpointTitle = $derived(
+		restoreCheckpointBusy
+			? "Restoring checkpoint…"
+			: gameState.hasCheckpoint
+				? "Restore your last checkpoint"
+				: "No checkpoint set"
+	);
 </script>
 
 <!-- Header -->
@@ -289,79 +338,59 @@
 </div>
 
 <div class="mb-2 flex items-center gap-1">
-	<DropdownMenu.Root bind:open={openMenu}>
-		<DropdownMenu.Trigger
-			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80"
-			aria-label="Game menu"
-		>
-			<div class="relative h-[18px] w-[18px]">
-				{#if openMenu}
-					<div
-						class="absolute inset-0"
-						in:scaleRotate={{ duration: 200, start: 0.8, delay: 100, rotateDegrees: -45 }}
-						out:scaleRotate={{ duration: 150, start: 0.8, rotateDegrees: -45 }}
-					>
-						<XIcon size={18} />
-					</div>
-				{:else}
-					<div
-						class="absolute inset-0"
-						in:scaleRotate={{ duration: 200, start: 0.8, delay: 100 }}
-						out:scaleRotate={{ duration: 150, start: 0.8 }}
-					>
-						<MenuIcon size={18} />
-					</div>
-				{/if}
-			</div>
-		</DropdownMenu.Trigger>
-		<DropdownMenu.Content class="w-56">
-			<DropdownMenu.Item onSelect={newGame}>
-				<PlusIcon size={18} />
-				New Game
-			</DropdownMenu.Item>
-			{#if isPro}
-				<DropdownMenu.Item
-					onSelect={() => void runSetCheckpoint()}
-					disabled={!game || game.gameOver || checkpointBusy}
-					title={game?.gameOver
-						? "Checkpoints can only be set during an active game"
-						: "Save a restore point for this run"}
-				>
-					{#if checkpointBusy}
-						<LoaderCircleIcon class="animate-spin" size={18} />
-					{:else}
-						<BookmarkPlusIcon size={18} />
-					{/if}
-					Set Checkpoint
-				</DropdownMenu.Item>
-				<DropdownMenu.Item
-					onSelect={handleRestoreCheckpoint}
-					disabled={!canRestoreCheckpoint && !restoreQueued}
-					title={gameState.hasCheckpoint ? "Restore to your last checkpoint" : "No checkpoint set"}
-				>
-					{#if restoreQueued || checkpointBusy}
-						<LoaderCircleIcon class="animate-spin" size={18} />
-					{:else}
-						<BookmarkIcon size={18} />
-					{/if}
-					Restore Checkpoint
-				</DropdownMenu.Item>
-			{:else}
-				<Button
-					href={isLoggedIn ? "/stripe" : "/login"}
-					variant="ghost"
-					class="w-full justify-start gap-2 px-2"
-					onclick={() => {
-						openMenu = false;
-					}}
-				>
-					<CrownIcon size={18} />
-					Checkpoints (Pro)
-				</Button>
-			{/if}
-		</DropdownMenu.Content>
-	</DropdownMenu.Root>
+	<button
+		class="controls-btn bg-primary text-primary-foreground hover:bg-primary/80"
+		onclick={requestNewGame}
+		title="New game"
+		aria-label="New game"
+		aria-haspopup="dialog"
+	>
+		<PlusIcon size={18} />
+	</button>
 	<div class="flex-1"></div>
+	{#if isPro}
+		<button
+			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+			onclick={() => void runSetCheckpoint()}
+			disabled={!game || game.gameOver || checkpointBusy || checkpointCooldownRemaining > 0}
+			title={setCheckpointTitle}
+			aria-label={setCheckpointTitle}
+			aria-busy={setCheckpointBusy}
+		>
+			{#if setCheckpointBusy}
+				<LoaderCircleIcon class="animate-spin" size={18} />
+			{:else}
+				<BookmarkPlusIcon size={18} />
+			{/if}
+			{#if checkpointCooldownRemaining > 0 && !setCheckpointBusy}
+				<span class="cooldown-badge">{checkpointCooldownRemaining}</span>
+			{/if}
+		</button>
+		<button
+			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+			onclick={handleRestoreCheckpoint}
+			disabled={!canRestoreCheckpoint && !restoreQueued}
+			title={restoreCheckpointTitle}
+			aria-label={restoreCheckpointTitle}
+			aria-busy={restoreCheckpointBusy}
+		>
+			{#if restoreCheckpointBusy}
+				<LoaderCircleIcon class="animate-spin" size={18} />
+			{:else}
+				<BookmarkIcon size={18} />
+			{/if}
+		</button>
+	{:else}
+		<a
+			href={isLoggedIn ? "/stripe" : "/login"}
+			class="controls-btn relative flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/80"
+			title="Checkpoints (Pro)"
+			aria-label="Checkpoints (Pro)"
+		>
+			<BookmarkPlusIcon size={18} />
+			<span class="pro-badge"><CrownIcon size={10} /></span>
+		</a>
+	{/if}
 	<button
 		class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
 		onclick={handleUndo}
@@ -423,7 +452,7 @@
 					onclick={handleRestoreCheckpoint}
 					disabled={checkpointBusy || restoreQueued}
 				>
-					{#if restoreQueued || checkpointBusy}
+					{#if restoreCheckpointBusy}
 						Restoring…
 					{:else}
 						Restore Checkpoint
@@ -451,13 +480,15 @@
 	<div class="overlay win">
 		<div class="overlay-content">
 			<h2>You Won!</h2>
-			<p class="win-message">You reached {game.winTile.toLocaleString()}!</p>
 			<div class="win-stats" role="group" aria-label="Game stats">
 				<div
 					class="win-stat"
 					style:background-color={page.data.theme?.boardBackground}
 					style:color={page.data.theme?.textDark}
 				>
+					{#if winNewBest.score}
+						<span class="win-stat-badge">New Best!</span>
+					{/if}
 					<span class="win-stat-label">Score</span>
 					<span class="win-stat-value">{game.score.toLocaleString()}</span>
 				</div>
@@ -466,6 +497,9 @@
 					style:background-color={page.data.theme?.boardBackground}
 					style:color={page.data.theme?.textDark}
 				>
+					{#if winNewBest.moves}
+						<span class="win-stat-badge">New Best!</span>
+					{/if}
 					<span class="win-stat-label">Moves</span>
 					<span class="win-stat-value">{game.moveCount.toLocaleString()}</span>
 				</div>
@@ -474,16 +508,11 @@
 					style:background-color={page.data.theme?.boardBackground}
 					style:color={page.data.theme?.textDark}
 				>
+					{#if winNewBest.time}
+						<span class="win-stat-badge">New Best!</span>
+					{/if}
 					<span class="win-stat-label">Time</span>
 					<span class="win-stat-value">{formatWinDuration(winElapsedMs)}</span>
-				</div>
-				<div
-					class="win-stat"
-					style:background-color={page.data.theme?.boardBackground}
-					style:color={page.data.theme?.textDark}
-				>
-					<span class="win-stat-label">Highest</span>
-					<span class="win-stat-value">{winHighestTile.toLocaleString()}</span>
 				</div>
 			</div>
 			<Button class="m-1" onclick={continueGame}>Keep Playing</Button>
@@ -491,6 +520,22 @@
 		</div>
 	</div>
 {/if}
+
+<AlertDialog.Root bind:open={confirmNewGame}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Start a new game?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This ends your current run{game ? ` at ${game.score.toLocaleString()} points` : ""} and starts
+				a fresh board.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmStartNewGame}>New Game</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <style lang="postcss">
 	@reference "../../../app.css";
@@ -501,6 +546,10 @@
 
 	.cooldown-badge {
 		@apply absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-black/70 px-1 text-[10px] leading-none font-bold text-white;
+	}
+
+	.pro-badge {
+		@apply absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-amber-950;
 	}
 
 	.overlay {
@@ -537,19 +586,15 @@
 		font-size: 1.2rem;
 	}
 
-	.win-message {
-		margin-bottom: 20px;
-		font-size: 1.05rem;
-	}
-
 	.win-stats {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 0.5rem;
-		margin: 0 0 1.5rem;
+		margin: 1.25rem 0 1.5rem;
 	}
 
 	.win-stat {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -558,6 +603,41 @@
 		padding: 0.65rem 0.5rem;
 		border-radius: 0.5rem;
 		min-width: 0;
+	}
+
+	.win-stat-badge {
+		position: absolute;
+		top: -0.55rem;
+		left: 50%;
+		transform: translateX(-50%);
+		padding: 0.16rem 0.45rem;
+		border-radius: 999px;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #451a03;
+		font-size: 0.58rem;
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		white-space: nowrap;
+		box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+		animation: win-badge-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms both;
+	}
+
+	@keyframes win-badge-pop {
+		from {
+			opacity: 0;
+			transform: translateX(-50%) scale(0.5);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(-50%) scale(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.win-stat-badge {
+			animation: none;
+		}
 	}
 
 	.win-stat-label {

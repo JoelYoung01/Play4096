@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import { and, desc, eq } from "drizzle-orm";
 
-import { USER_LEVELS } from "$lib/constants";
+import { CHECKPOINT_COOLDOWN_MOVES, USER_LEVELS } from "$lib/constants";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { getUser } from "$lib/server/user";
@@ -92,6 +92,26 @@ export async function setCheckpoint(userId, snapshot) {
 	assert(typeof snapshot.score === "number", "score is required");
 
 	const existingGame = requireOwnedGame(snapshot.gameId, userId);
+
+	// Checkpoints recharge with board progress: the next one unlocks
+	// CHECKPOINT_COOLDOWN_MOVES moves past the active checkpoint. Anchoring to
+	// the checkpoint's move count means undo/restore can't shortcut the wait.
+	const activeCheckpoint = getActiveCheckpoint(userId, snapshot.gameId);
+	if (activeCheckpoint) {
+		const movesSince =
+			(snapshot.moveCount ?? existingGame.moveCount ?? 0) - activeCheckpoint.moveCount;
+		if (movesSince < CHECKPOINT_COOLDOWN_MOVES) {
+			const remaining = Math.min(CHECKPOINT_COOLDOWN_MOVES, CHECKPOINT_COOLDOWN_MOVES - movesSince);
+			const error = new Error(
+				`Checkpoint available in ${remaining} move${remaining === 1 ? "" : "s"}`
+			);
+			// @ts-ignore attach status for API handlers
+			error.status = 429;
+			// @ts-ignore
+			error.code = "CHECKPOINT_COOLDOWN";
+			throw error;
+		}
+	}
 
 	await db
 		.update(table.gameCheckpoint)

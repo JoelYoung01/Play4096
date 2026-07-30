@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from "svelte";
 	import { page } from "$app/state";
+	import { toast } from "svelte-sonner";
 
 	import { Game, isSameGame } from "$lib/game.svelte.js";
 	import { DIRECTIONS } from "$lib/constants.js";
@@ -119,6 +120,17 @@
 			);
 		}
 		conflict = false;
+		syncCheckpointFromData();
+	}
+
+	/**
+	 * Apply the server's active checkpoint when it belongs to the loaded game
+	 */
+	function syncCheckpointFromData() {
+		const checkpoint = data.checkpoint;
+		const applies = !!checkpoint && gameState.currentGame?.id === checkpoint.gameId;
+		gameState.hasCheckpoint = applies;
+		gameState.checkpointMoveCount = applies && checkpoint ? checkpoint.moveCount : null;
 	}
 
 	/**
@@ -236,6 +248,7 @@
 
 		pendingEvents.splice(0, pendingEvents.length);
 		gameState.hasCheckpoint = false;
+		gameState.checkpointMoveCount = null;
 		gameState.currentGame = new Game();
 	}
 
@@ -318,6 +331,9 @@
 		const gameId = await ensurePersistedGameId();
 		if (!gameId) {
 			console.error("Unable to set checkpoint: game is not saved");
+			toast.error("Couldn't set checkpoint", {
+				description: "The game hasn't synced to the server yet. Try again in a moment.",
+			});
 			return;
 		}
 
@@ -343,8 +359,15 @@
 				throw new Error(result.error || "Failed to set checkpoint");
 			}
 			gameState.hasCheckpoint = true;
+			gameState.checkpointMoveCount = result.checkpoint?.moveCount ?? snapshot.moveCount;
+			toast.success("Checkpoint saved", {
+				description: `Score ${snapshot.score.toLocaleString()} · move ${snapshot.moveCount.toLocaleString()}`,
+			});
 		} catch (error) {
 			console.error("Failed to set checkpoint:", error);
+			toast.error("Couldn't set checkpoint", {
+				description: error instanceof Error ? error.message : "Please try again.",
+			});
 		}
 	}
 
@@ -371,10 +394,14 @@
 				initialState: result.game,
 			});
 			gameState.hasCheckpoint = true;
+			gameState.checkpointMoveCount = result.game.moveCount ?? null;
 			localSaveGame(gameState.currentGame.json());
 			queueMicrotask(() => flushSaveToServer());
 		} catch (error) {
 			console.error("Failed to restore checkpoint:", error);
+			toast.error("Couldn't restore checkpoint", {
+				description: error instanceof Error ? error.message : "Please try again.",
+			});
 		}
 	}
 
@@ -439,8 +466,8 @@
 
 	// Setup listeners on mount
 	onMount(() => {
-		gameState.hasCheckpoint = !!data.hasCheckpoint;
 		tryLoadGame();
+		syncCheckpointFromData();
 
 		window.addEventListener("keydown", handleKeydown);
 		document.addEventListener("visibilitychange", handleVisibilityChange);
