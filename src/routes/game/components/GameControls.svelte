@@ -9,7 +9,6 @@
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { gameState } from "../state.svelte.js";
 	import {
-		BookmarkIcon,
 		BookmarkPlusIcon,
 		CrownIcon,
 		LoaderCircleIcon,
@@ -20,6 +19,7 @@
 		RotateCwIcon,
 		Undo2Icon,
 	} from "@lucide/svelte";
+	import BookmarkUndoIcon from "./BookmarkUndoIcon.svelte";
 
 	let game = $derived(gameState.currentGame);
 	let isPro = $derived(page.data.user?.level === USER_LEVELS.PRO);
@@ -54,6 +54,8 @@
 	let winNewBest = $state({ score: false, moves: false, time: false });
 	/** Confirmation dialog before ending a run in progress for a new game */
 	let confirmNewGame = $state(false);
+	/** Confirmation dialog before restoring the active checkpoint */
+	let confirmRestoreCheckpoint = $state(false);
 	/** True while waiting for move animations to finish before applying undo */
 	let undoQueued = $state(false);
 	/** True while waiting for animations before restoring a checkpoint */
@@ -158,6 +160,7 @@
 		winElapsedMs = null;
 		undoQueued = false;
 		restoreQueued = false;
+		confirmRestoreCheckpoint = false;
 		if (onNewGame) {
 			void onNewGame();
 			return;
@@ -245,6 +248,17 @@
 		}
 	}
 
+	/** Ask before discarding progress since the checkpoint */
+	function requestRestoreCheckpoint() {
+		if (!isPro || !gameState.hasCheckpoint || checkpointBusy || restoreQueued) return;
+		confirmRestoreCheckpoint = true;
+	}
+
+	function confirmRestoreCheckpointAction() {
+		confirmRestoreCheckpoint = false;
+		handleRestoreCheckpoint();
+	}
+
 	function handleRestoreCheckpoint() {
 		if (!isPro || !gameState.hasCheckpoint || checkpointBusy || restoreQueued) return;
 
@@ -281,6 +295,12 @@
 		return Math.min(CHECKPOINT_COOLDOWN_MOVES, Math.max(0, CHECKPOINT_COOLDOWN_MOVES - movesSince));
 	});
 
+	/** How many board moves restoring the checkpoint will rewind */
+	let checkpointMovesBack = $derived.by(() => {
+		if (!game || gameState.checkpointMoveCount == null) return 0;
+		return Math.max(0, game.moveCount - gameState.checkpointMoveCount);
+	});
+
 	let setCheckpointBusy = $derived(checkpointBusy && checkpointAction === "set");
 	let restoreCheckpointBusy = $derived(
 		restoreQueued || (checkpointBusy && checkpointAction === "restore")
@@ -299,7 +319,9 @@
 		restoreCheckpointBusy
 			? "Restoring checkpoint…"
 			: gameState.hasCheckpoint
-				? "Restore your last checkpoint"
+				? checkpointMovesBack === 0
+					? "Restore your last checkpoint"
+					: `Restore checkpoint (${checkpointMovesBack} move${checkpointMovesBack === 1 ? "" : "s"} back)`
 				: "No checkpoint set"
 	);
 </script>
@@ -368,16 +390,17 @@
 		</button>
 		<button
 			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
-			onclick={handleRestoreCheckpoint}
+			onclick={requestRestoreCheckpoint}
 			disabled={!canRestoreCheckpoint && !restoreQueued}
 			title={restoreCheckpointTitle}
 			aria-label={restoreCheckpointTitle}
 			aria-busy={restoreCheckpointBusy}
+			aria-haspopup="dialog"
 		>
 			{#if restoreCheckpointBusy}
 				<LoaderCircleIcon class="animate-spin" size={18} />
 			{:else}
-				<BookmarkIcon size={18} />
+				<BookmarkUndoIcon size={18} />
 			{/if}
 		</button>
 	{:else}
@@ -449,8 +472,9 @@
 				<Button
 					class="m-1"
 					variant={game.canUndo ? "secondary" : "default"}
-					onclick={handleRestoreCheckpoint}
+					onclick={requestRestoreCheckpoint}
 					disabled={checkpointBusy || restoreQueued}
+					aria-haspopup="dialog"
 				>
 					{#if restoreCheckpointBusy}
 						Restoring…
@@ -533,6 +557,27 @@
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
 			<AlertDialog.Action onclick={confirmStartNewGame}>New Game</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={confirmRestoreCheckpoint}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Restore checkpoint?</AlertDialog.Title>
+			<AlertDialog.Description>
+				{#if checkpointMovesBack === 0}
+					This restores your board to the saved checkpoint.
+				{:else}
+					This goes back {checkpointMovesBack.toLocaleString()} move{checkpointMovesBack === 1
+						? ""
+						: "s"} and restores your board to the saved checkpoint.
+				{/if}
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmRestoreCheckpointAction}>Restore</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>
