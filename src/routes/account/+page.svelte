@@ -3,7 +3,7 @@
 	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 	import { Badge } from "$lib/components/ui/badge/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import { clearBestScore, clearGame } from "$lib/localStorage.svelte";
+	import { clearBestScore, clearBestWinStats, clearGame } from "$lib/localStorage.svelte";
 	import {
 		LogOutIcon,
 		PencilIcon,
@@ -27,8 +27,11 @@
 	function clearUserData() {
 		clearGame();
 		clearBestScore();
+		clearBestWinStats();
 
 		gameState.bestScore = 0;
+		gameState.bestWinMoves = null;
+		gameState.bestWinTimeMs = null;
 		gameState.currentGame = null;
 	}
 

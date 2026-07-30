@@ -1,6 +1,6 @@
 import { USER_LEVELS } from "$lib/constants.js";
 import { getActiveCheckpoint } from "$lib/server/checkpoint";
-import { getCurrentGame, syncBestScoreFromGames } from "$lib/server/game";
+import { getBestWinStats, getCurrentGame, syncBestScoreFromGames } from "$lib/server/game";
 import { getUserProfile } from "$lib/server/user.js";
 import { fail } from "@sveltejs/kit";
 
@@ -9,9 +9,12 @@ export function load({ locals }) {
 	let user = null;
 	let dbGame = null;
 	let hasCheckpoint = false;
+	/** @type {{ leastMovesToWin: number | null, fastestWinMs: number | null } | null} */
+	let winBests = null;
 
 	if (locals.user) {
 		user = getUserProfile(locals.user.id);
+		winBests = getBestWinStats(locals.user.id);
 		dbGame = getCurrentGame(locals.user.id);
 		if (dbGame) {
 			const gameId = dbGame.id;
@@ -39,6 +42,7 @@ export function load({ locals }) {
 		/** @type {import("$lib/types").GameState & { lastUpdated: number } | null} */
 		dbGame,
 		hasCheckpoint,
+		winBests,
 	};
 }
 

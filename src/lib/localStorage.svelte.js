@@ -1,6 +1,7 @@
 import { browser } from "$app/environment";
 import {
 	LOCAL_STORAGE_BEST_SCORE,
+	LOCAL_STORAGE_BEST_WIN,
 	LOCAL_STORAGE_CURRENT_GAME,
 	LOCAL_STORAGE_THEME,
 } from "./constants";
@@ -87,6 +88,61 @@ export function loadBestScore() {
 export function clearBestScore() {
 	if (!browser) return;
 	localStorage.removeItem(LOCAL_STORAGE_BEST_SCORE);
+}
+
+/**
+ * Lowest of the given values, ignoring nulls (lower is better for win stats).
+ * @param {...(number | null | undefined)} values
+ * @returns {number | null}
+ */
+export function lowestOf(...values) {
+	/** @type {number | null} */
+	let lowest = null;
+	for (const value of values) {
+		if (typeof value !== "number" || !Number.isFinite(value) || value < 0) continue;
+		if (lowest == null || value < lowest) lowest = value;
+	}
+	return lowest;
+}
+
+/**
+ * Best win stats achieved on this device (exact at-win values).
+ * @returns {{ moves: number | null, timeMs: number | null }}
+ */
+export function loadBestWinStats() {
+	if (!browser) return { moves: null, timeMs: null };
+	try {
+		const raw = localStorage.getItem(LOCAL_STORAGE_BEST_WIN);
+		if (!raw) return { moves: null, timeMs: null };
+		const parsed = JSON.parse(raw);
+		return {
+			moves: lowestOf(parsed?.moves),
+			timeMs: lowestOf(parsed?.timeMs),
+		};
+	} catch {
+		return { moves: null, timeMs: null };
+	}
+}
+
+/**
+ * Record a win's stats, keeping the best (lowest) of stored and provided values.
+ * @param {{ moves?: number | null, timeMs?: number | null }} stats
+ */
+export function saveBestWinStats({ moves = null, timeMs = null } = {}) {
+	if (!browser) return;
+	const current = loadBestWinStats();
+	localStorage.setItem(
+		LOCAL_STORAGE_BEST_WIN,
+		JSON.stringify({
+			moves: lowestOf(current.moves, moves),
+			timeMs: lowestOf(current.timeMs, timeMs),
+		})
+	);
+}
+
+export function clearBestWinStats() {
+	if (!browser) return;
+	localStorage.removeItem(LOCAL_STORAGE_BEST_WIN);
 }
 
 /**

@@ -1,8 +1,10 @@
 <script>
+	import { untrack } from "svelte";
 	import { page } from "$app/state";
 	import { USER_LEVELS } from "$lib/constants.js";
 	import { formatWinDuration } from "$lib/formatTime.js";
 	import { Game } from "$lib/game.svelte.js";
+	import { saveBestWinStats } from "$lib/localStorage.svelte.js";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 	import { gameState } from "../state.svelte.js";
@@ -73,6 +75,8 @@
 	let showWin = $state(false);
 	/** Frozen wall-clock duration when the win overlay opens */
 	let winElapsedMs = $state(/** @type {number | null} */ (null));
+	/** Which of this win's stats are personal bests, frozen when the overlay opens */
+	let winNewBest = $state({ score: false, moves: false, time: false });
 	let openMenu = $state(false);
 	/** True while waiting for move animations to finish before applying undo */
 	let undoQueued = $state(false);
@@ -93,17 +97,48 @@
 		}
 	});
 
+	/**
+	 * Freeze this win's stats, flag the ones beating the previous bests, then
+	 * fold the run into session + device bests for future comparisons.
+	 */
+	function captureWinStats() {
+		if (!game) return;
+
+		const score = game.score;
+		const moves = game.moveCount;
+		const elapsedMs =
+			typeof game.createdOn === "number" ? Math.max(0, Date.now() - game.createdOn) : null;
+
+		winElapsedMs = elapsedMs;
+		winNewBest = {
+			// bestScore is raised live while playing, so a new best shows up as a tie
+			score: score >= gameState.bestScore,
+			moves: gameState.bestWinMoves == null || moves < gameState.bestWinMoves,
+			time:
+				elapsedMs != null &&
+				(gameState.bestWinTimeMs == null || elapsedMs < gameState.bestWinTimeMs),
+		};
+
+		if (score > gameState.bestScore) gameState.bestScore = score;
+		if (winNewBest.moves) gameState.bestWinMoves = moves;
+		if (winNewBest.time) gameState.bestWinTimeMs = elapsedMs;
+		saveBestWinStats({ moves, timeMs: elapsedMs });
+	}
+
 	$effect(() => {
 		if (!game) return;
 
 		if (!game.won || game.canContinue) {
 			showWin = false;
 			winElapsedMs = null;
+			winNewBest = { score: false, moves: false, time: false };
 		} else if (animationIdle) {
+			// Already open — moves made behind the overlay must not reset frozen stats
+			if (untrack(() => showWin)) return;
+
 			const timeout = setTimeout(() => {
 				showWin = true;
-				winElapsedMs =
-					typeof game.createdOn === "number" ? Math.max(0, Date.now() - game.createdOn) : null;
+				captureWinStats();
 			}, GAME_WIN_DELAY);
 			return () => clearTimeout(timeout);
 		}
@@ -241,18 +276,6 @@
 	);
 
 	let canRestoreCheckpoint = $derived(isPro && gameState.hasCheckpoint && !checkpointBusy);
-
-	/** Highest tile on the board for the win overlay stats */
-	let winHighestTile = $derived.by(() => {
-		if (!game) return 0;
-		let max = 0;
-		for (const row of game.board) {
-			for (const cell of row) {
-				if (cell > max) max = cell;
-			}
-		}
-		return max;
-	});
 </script>
 
 <!-- Header -->
@@ -451,13 +474,15 @@
 	<div class="overlay win">
 		<div class="overlay-content">
 			<h2>You Won!</h2>
-			<p class="win-message">You reached {game.winTile.toLocaleString()}!</p>
 			<div class="win-stats" role="group" aria-label="Game stats">
 				<div
 					class="win-stat"
 					style:background-color={page.data.theme?.boardBackground}
 					style:color={page.data.theme?.textDark}
 				>
+					{#if winNewBest.score}
+						<span class="win-stat-badge">New Best!</span>
+					{/if}
 					<span class="win-stat-label">Score</span>
 					<span class="win-stat-value">{game.score.toLocaleString()}</span>
 				</div>
@@ -466,6 +491,9 @@
 					style:background-color={page.data.theme?.boardBackground}
 					style:color={page.data.theme?.textDark}
 				>
+					{#if winNewBest.moves}
+						<span class="win-stat-badge">New Best!</span>
+					{/if}
 					<span class="win-stat-label">Moves</span>
 					<span class="win-stat-value">{game.moveCount.toLocaleString()}</span>
 				</div>
@@ -474,16 +502,11 @@
 					style:background-color={page.data.theme?.boardBackground}
 					style:color={page.data.theme?.textDark}
 				>
+					{#if winNewBest.time}
+						<span class="win-stat-badge">New Best!</span>
+					{/if}
 					<span class="win-stat-label">Time</span>
 					<span class="win-stat-value">{formatWinDuration(winElapsedMs)}</span>
-				</div>
-				<div
-					class="win-stat"
-					style:background-color={page.data.theme?.boardBackground}
-					style:color={page.data.theme?.textDark}
-				>
-					<span class="win-stat-label">Highest</span>
-					<span class="win-stat-value">{winHighestTile.toLocaleString()}</span>
 				</div>
 			</div>
 			<Button class="m-1" onclick={continueGame}>Keep Playing</Button>
@@ -537,19 +560,15 @@
 		font-size: 1.2rem;
 	}
 
-	.win-message {
-		margin-bottom: 20px;
-		font-size: 1.05rem;
-	}
-
 	.win-stats {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 0.5rem;
-		margin: 0 0 1.5rem;
+		margin: 1.25rem 0 1.5rem;
 	}
 
 	.win-stat {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -558,6 +577,41 @@
 		padding: 0.65rem 0.5rem;
 		border-radius: 0.5rem;
 		min-width: 0;
+	}
+
+	.win-stat-badge {
+		position: absolute;
+		top: -0.55rem;
+		left: 50%;
+		transform: translateX(-50%);
+		padding: 0.16rem 0.45rem;
+		border-radius: 999px;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #451a03;
+		font-size: 0.58rem;
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		white-space: nowrap;
+		box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+		animation: win-badge-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms both;
+	}
+
+	@keyframes win-badge-pop {
+		from {
+			opacity: 0;
+			transform: translateX(-50%) scale(0.5);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(-50%) scale(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.win-stat-badge {
+			animation: none;
+		}
 	}
 
 	.win-stat-label {

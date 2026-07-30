@@ -13,6 +13,8 @@ export const TILE_MERGE_DURATION = 100;
 export const TILE_MOVE_DURATION_MS = 12;
 export const LOCAL_STORAGE_CURRENT_GAME = "play-4096.currentGame";
 export const LOCAL_STORAGE_BEST_SCORE = "play-4096.bestScore";
+/** Best win stats (fewest moves / fastest time) recorded on this device */
+export const LOCAL_STORAGE_BEST_WIN = "play-4096.bestWin";
 export const LOCAL_STORAGE_THEME = "play-4096.theme";
 export const THEME_COOKIE_NAME = "play-4096.theme";
 export const DEFAULT_WIN_TILE = 4096;
