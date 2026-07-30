@@ -13,6 +13,9 @@ export const gameState = $state({
 
 	/** Whether the current game has an active restorable checkpoint */
 	hasCheckpoint: false,
+
+	/** Move count when the active checkpoint was set — drives the set-checkpoint cooldown @type {number | null} */
+	checkpointMoveCount: null,
 });
 
 export const general = $state({

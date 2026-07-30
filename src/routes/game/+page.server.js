@@ -8,7 +8,8 @@ import { fail } from "@sveltejs/kit";
 export function load({ locals }) {
 	let user = null;
 	let dbGame = null;
-	let hasCheckpoint = false;
+	/** @type {import("$lib/types").CheckpointInfo | null} */
+	let checkpoint = null;
 	/** @type {{ leastMovesToWin: number | null, fastestWinMs: number | null } | null} */
 	let winBests = null;
 
@@ -32,7 +33,7 @@ export function load({ locals }) {
 			};
 
 			if (user?.level === USER_LEVELS.PRO) {
-				hasCheckpoint = !!getActiveCheckpoint(locals.user.id, gameId);
+				checkpoint = getActiveCheckpoint(locals.user.id, gameId);
 			}
 		}
 	}
@@ -41,7 +42,7 @@ export function load({ locals }) {
 		user,
 		/** @type {import("$lib/types").GameState & { lastUpdated: number } | null} */
 		dbGame,
-		hasCheckpoint,
+		checkpoint,
 		winBests,
 	};
 }

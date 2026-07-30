@@ -1,7 +1,7 @@
 <script>
 	import { untrack } from "svelte";
 	import { page } from "$app/state";
-	import { USER_LEVELS } from "$lib/constants.js";
+	import { CHECKPOINT_COOLDOWN_MOVES, USER_LEVELS } from "$lib/constants.js";
 	import { formatWinDuration } from "$lib/formatTime.js";
 	import { Game } from "$lib/game.svelte.js";
 	import { saveBestWinStats } from "$lib/localStorage.svelte.js";
@@ -163,6 +163,7 @@
 			return;
 		}
 		gameState.hasCheckpoint = false;
+		gameState.checkpointMoveCount = null;
 		gameState.currentGame = new Game();
 	}
 
@@ -218,7 +219,7 @@
 	}
 
 	async function runSetCheckpoint() {
-		if (!isPro || !game || checkpointBusy) return;
+		if (!isPro || !game || checkpointBusy || checkpointCooldownRemaining > 0) return;
 		checkpointBusy = true;
 		checkpointAction = "set";
 		try {
@@ -271,6 +272,15 @@
 
 	let canRestoreCheckpoint = $derived(isPro && gameState.hasCheckpoint && !checkpointBusy);
 
+	// Checkpoints recharge with board progress: the next one unlocks
+	// CHECKPOINT_COOLDOWN_MOVES moves past the active checkpoint. Anchoring to the
+	// checkpoint's move count means undo/restore can't shortcut the wait.
+	let checkpointCooldownRemaining = $derived.by(() => {
+		if (!game || !gameState.hasCheckpoint || gameState.checkpointMoveCount == null) return 0;
+		const movesSince = game.moveCount - gameState.checkpointMoveCount;
+		return Math.min(CHECKPOINT_COOLDOWN_MOVES, Math.max(0, CHECKPOINT_COOLDOWN_MOVES - movesSince));
+	});
+
 	let setCheckpointBusy = $derived(checkpointBusy && checkpointAction === "set");
 	let restoreCheckpointBusy = $derived(
 		restoreQueued || (checkpointBusy && checkpointAction === "restore")
@@ -281,7 +291,9 @@
 			? "Saving checkpoint…"
 			: game?.gameOver
 				? "Checkpoints can only be set during an active game"
-				: "Set a checkpoint for this run"
+				: checkpointCooldownRemaining > 0
+					? `Checkpoint available in ${checkpointCooldownRemaining} move${checkpointCooldownRemaining === 1 ? "" : "s"}`
+					: "Set a checkpoint for this run"
 	);
 	let restoreCheckpointTitle = $derived(
 		restoreCheckpointBusy
@@ -340,7 +352,7 @@
 		<button
 			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
 			onclick={() => void runSetCheckpoint()}
-			disabled={!game || game.gameOver || checkpointBusy}
+			disabled={!game || game.gameOver || checkpointBusy || checkpointCooldownRemaining > 0}
 			title={setCheckpointTitle}
 			aria-label={setCheckpointTitle}
 			aria-busy={setCheckpointBusy}
@@ -349,6 +361,9 @@
 				<LoaderCircleIcon class="animate-spin" size={18} />
 			{:else}
 				<BookmarkPlusIcon size={18} />
+			{/if}
+			{#if checkpointCooldownRemaining > 0 && !setCheckpointBusy}
+				<span class="cooldown-badge">{checkpointCooldownRemaining}</span>
 			{/if}
 		</button>
 		<button

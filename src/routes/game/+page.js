@@ -11,7 +11,7 @@ import { general, gameState } from "./state.svelte.js";
 
 /** @type {import("./$types").PageLoad} */
 export async function load({ data, fetch }) {
-	let { user, dbGame, winBests } = data;
+	let { user, dbGame, checkpoint, winBests } = data;
 	let bestScore = user?.bestScore ?? 0;
 	let localGame = null;
 
@@ -70,5 +70,6 @@ export async function load({ data, fetch }) {
 		dbGame,
 		localGame,
 		bestScore,
+		checkpoint,
 	};
 }
