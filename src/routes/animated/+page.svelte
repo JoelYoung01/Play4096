@@ -4,6 +4,7 @@
 
 	import { DIRECTIONS } from "$lib/constants.js";
 	import { Game } from "$lib/game.svelte.js";
+	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 	import CanvasGameBoard from "./CanvasGameBoard.svelte";
 
 	const TOUCH_THRESHOLD = 5;
@@ -124,11 +125,28 @@
 		}
 	}
 
+	/** Confirmation dialog before ending a run in progress for a new game */
+	let confirmNewGame = $state(false);
+
 	/**
 	 * Create a new game
 	 */
 	function newGame() {
 		game = new Game();
+	}
+
+	/** Confirm before ending a run in progress; start right away when nothing is lost */
+	function requestNewGame() {
+		if (!game || game.moveCount === 0 || game.gameOver) {
+			newGame();
+			return;
+		}
+		confirmNewGame = true;
+	}
+
+	function confirmStartNewGame() {
+		confirmNewGame = false;
+		newGame();
 	}
 
 	/**
@@ -176,7 +194,7 @@
 
 	<!-- Game Controls -->
 	<div class="mb-4 text-center">
-		<button class="new-game-btn" onclick={newGame}>New Game</button>
+		<button class="new-game-btn" onclick={requestNewGame} aria-haspopup="dialog">New Game</button>
 	</div>
 
 	<!-- Game Board -->
@@ -190,6 +208,22 @@
 		</p>
 	</div>
 </div>
+
+<AlertDialog.Root bind:open={confirmNewGame}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Start a new game?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This ends your current run{game ? ` at ${game.score.toLocaleString()} points` : ""} and starts
+				a fresh board.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmStartNewGame}>New Game</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <style lang="postcss">
 	.game-container {

@@ -7,6 +7,7 @@
 	import { saveBestWinStats } from "$lib/localStorage.svelte.js";
 	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
+	import GameStats from "$lib/components/GameStats.svelte";
 	import { gameState } from "../state.svelte.js";
 	import {
 		BookmarkPlusIcon,
@@ -52,6 +53,10 @@
 	let winElapsedMs = $state(/** @type {number | null} */ (null));
 	/** Which of this win's stats are personal bests, frozen when the overlay opens */
 	let winNewBest = $state({ score: false, moves: false, time: false });
+	/** Frozen wall-clock duration when the game over overlay opens */
+	let gameOverElapsedMs = $state(/** @type {number | null} */ (null));
+	/** Whether the finished run's score is a personal best, frozen when the overlay opens */
+	let gameOverNewBestScore = $state(false);
 	/** Confirmation dialog before ending a run in progress for a new game */
 	let confirmNewGame = $state(false);
 	/** Confirmation dialog before restoring the active checkpoint */
@@ -69,13 +74,34 @@
 
 		if (!game.gameOver) {
 			showGameOver = false;
+			gameOverElapsedMs = null;
+			gameOverNewBestScore = false;
 		} else if (animationIdle) {
+			// Already open — don't reschedule or reset the frozen stats
+			if (untrack(() => showGameOver)) return;
+
 			const timeout = setTimeout(() => {
 				showGameOver = true;
+				captureGameOverStats();
 			}, GAME_OVER_DELAY);
 			return () => clearTimeout(timeout);
 		}
 	});
+
+	/**
+	 * Freeze the finished run's stats when the game over overlay opens.
+	 * Only score can be a personal best here — moves/time bests are win-only.
+	 */
+	function captureGameOverStats() {
+		if (!game) return;
+
+		const score = game.score;
+		gameOverElapsedMs =
+			typeof game.createdOn === "number" ? Math.max(0, Date.now() - game.createdOn) : null;
+		// bestScore is raised live while playing, so a new best shows up as a tie
+		gameOverNewBestScore = score > 0 && score >= gameState.bestScore;
+		if (score > gameState.bestScore) gameState.bestScore = score;
+	}
 
 	/**
 	 * Freeze this win's stats, flag the ones beating the previous bests, then
@@ -158,6 +184,8 @@
 		showGameOver = false;
 		showWin = false;
 		winElapsedMs = null;
+		gameOverElapsedMs = null;
+		gameOverNewBestScore = false;
 		undoQueued = false;
 		restoreQueued = false;
 		confirmRestoreCheckpoint = false;
@@ -464,7 +492,17 @@
 	<div class="overlay game-over">
 		<div class="overlay-content">
 			<h2>Game Over!</h2>
-			<p>Final Score: {game.score.toLocaleString()}</p>
+			<GameStats
+				stats={[
+					{
+						label: "Score",
+						value: game.score.toLocaleString(),
+						newBest: gameOverNewBestScore,
+					},
+					{ label: "Moves", value: game.moveCount.toLocaleString() },
+					{ label: "Time", value: formatWinDuration(gameOverElapsedMs) },
+				]}
+			/>
 			{#if game.canUndo}
 				<Button class="m-1" onclick={handleUndo}>Undo Last Move</Button>
 			{/if}
@@ -492,7 +530,7 @@
 				variant={game.canUndo || (isPro && gameState.hasCheckpoint) || !isPro
 					? "secondary"
 					: "default"}
-				onclick={newGame}
+				onclick={requestNewGame}
 			>
 				Try Again
 			</Button>
@@ -504,49 +542,24 @@
 	<div class="overlay win">
 		<div class="overlay-content">
 			<h2>You Won!</h2>
-			<div class="win-stats" role="group" aria-label="Game stats">
-				<div
-					class="win-stat"
-					style:background-color={page.data.theme?.boardBackground}
-					style:color={page.data.theme?.textDark}
-				>
-					{#if winNewBest.score}
-						<span class="win-stat-badge">New Best!</span>
-					{/if}
-					<span class="win-stat-label">Score</span>
-					<span class="win-stat-value">{game.score.toLocaleString()}</span>
-				</div>
-				<div
-					class="win-stat"
-					style:background-color={page.data.theme?.boardBackground}
-					style:color={page.data.theme?.textDark}
-				>
-					{#if winNewBest.moves}
-						<span class="win-stat-badge">New Best!</span>
-					{/if}
-					<span class="win-stat-label">Moves</span>
-					<span class="win-stat-value">{game.moveCount.toLocaleString()}</span>
-				</div>
-				<div
-					class="win-stat"
-					style:background-color={page.data.theme?.boardBackground}
-					style:color={page.data.theme?.textDark}
-				>
-					{#if winNewBest.time}
-						<span class="win-stat-badge">New Best!</span>
-					{/if}
-					<span class="win-stat-label">Time</span>
-					<span class="win-stat-value">{formatWinDuration(winElapsedMs)}</span>
-				</div>
-			</div>
+			<GameStats
+				stats={[
+					{ label: "Score", value: game.score.toLocaleString(), newBest: winNewBest.score },
+					{ label: "Moves", value: game.moveCount.toLocaleString(), newBest: winNewBest.moves },
+					{ label: "Time", value: formatWinDuration(winElapsedMs), newBest: winNewBest.time },
+				]}
+			/>
 			<Button class="m-1" onclick={continueGame}>Keep Playing</Button>
-			<Button class="m-1" variant="secondary" onclick={newGame}>New Game</Button>
+			<Button class="m-1" variant="secondary" onclick={requestNewGame} aria-haspopup="dialog">
+				New Game
+			</Button>
 		</div>
 	</div>
 {/if}
 
+<!-- z-[1100] keeps the confirm dialogs above the fixed end-game overlays (z-index 1000) -->
 <AlertDialog.Root bind:open={confirmNewGame}>
-	<AlertDialog.Content>
+	<AlertDialog.Content class="z-[1100]">
 		<AlertDialog.Header>
 			<AlertDialog.Title>Start a new game?</AlertDialog.Title>
 			<AlertDialog.Description>
@@ -562,7 +575,7 @@
 </AlertDialog.Root>
 
 <AlertDialog.Root bind:open={confirmRestoreCheckpoint}>
-	<AlertDialog.Content>
+	<AlertDialog.Content class="z-[1100]">
 		<AlertDialog.Header>
 			<AlertDialog.Title>Restore checkpoint?</AlertDialog.Title>
 			<AlertDialog.Description>
@@ -623,80 +636,5 @@
 	.overlay-content h2 {
 		margin: 0 0 12px 0;
 		font-size: 2rem;
-	}
-
-	.overlay-content p {
-		margin: 0 0 30px 0;
-		color: var(--muted-foreground);
-		font-size: 1.2rem;
-	}
-
-	.win-stats {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 0.5rem;
-		margin: 1.25rem 0 1.5rem;
-	}
-
-	.win-stat {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 0.15rem;
-		padding: 0.65rem 0.5rem;
-		border-radius: 0.5rem;
-		min-width: 0;
-	}
-
-	.win-stat-badge {
-		position: absolute;
-		top: -0.55rem;
-		left: 50%;
-		transform: translateX(-50%);
-		padding: 0.16rem 0.45rem;
-		border-radius: 999px;
-		background: linear-gradient(135deg, #fbbf24, #f59e0b);
-		color: #451a03;
-		font-size: 0.58rem;
-		font-weight: 800;
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-		white-space: nowrap;
-		box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
-		animation: win-badge-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms both;
-	}
-
-	@keyframes win-badge-pop {
-		from {
-			opacity: 0;
-			transform: translateX(-50%) scale(0.5);
-		}
-		to {
-			opacity: 1;
-			transform: translateX(-50%) scale(1);
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.win-stat-badge {
-			animation: none;
-		}
-	}
-
-	.win-stat-label {
-		font-size: 0.7rem;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		opacity: 0.8;
-	}
-
-	.win-stat-value {
-		font-size: 1.15rem;
-		font-weight: 700;
-		font-variant-numeric: tabular-nums;
-		line-height: 1.2;
 	}
 </style>
