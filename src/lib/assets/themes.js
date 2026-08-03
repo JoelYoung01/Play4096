@@ -1,4 +1,20 @@
 /**
+ * Color theme presets.
+ *
+ * Palette conventions (checked by `node scripts/theme-audit.js`):
+ * - Chrome neutrals are near-black / near-white — never pure #000/#fff — and
+ *   carry a low-saturation tint of the theme's accent. Each theme commits to
+ *   one temperature (warm or cool) for its neutrals; mixing both breaks
+ *   coherence. Tile ramps are game content and are exempt.
+ * - Chrome surfaces sit on distinct brightness steps (page → board well →
+ *   empty cells), keeping container deltas inside ~12% (dark UIs) / ~7%
+ *   (light UIs) HSB brightness.
+ * - Important elements get high contrast: `primary` and `destructive` are
+ *   tuned to ≥ 4.5:1 (WCAG AA) both as text on `background` and under their
+ *   picked ink; structural elements (borders, empty cells) stay low-contrast.
+ * - Dark themes set `shadows: false` — drop shadows don't read on dark
+ *   backgrounds, so elevation comes from lighter surfaces instead.
+ *
  * @typedef {Object} Theme
  * @property {string} id
  * @property {string} name
@@ -8,10 +24,14 @@
  * @property {string} background
  * @property {string} boardBackground
  * @property {string} emptyTile
- * @property {string} textLight
- * @property {string} textDark
+ * @property {string} textLight Dark ink, used on light surfaces/tiles
+ * @property {string} textDark Light ink, used on dark surfaces/tiles
  * @property {string} [text]
  * @property {string} unknownTile
+ * @property {string} [secondaryForeground] Explicit ink for secondary surfaces when neither text ink reaches AA contrast
+ * @property {string} [border] Border/input color when `emptyTile` sits too close to `background` to read as an edge
+ * @property {string} [destructive] Error/danger accent tuned for AA contrast against `background`
+ * @property {boolean} [shadows] false = flat depth (dark UIs); drop shadows are suppressed app-wide
  * @property {number} textScale
  * @property {number} luminanceThreshold
  * @property {number} movementSpeed
@@ -23,7 +43,60 @@
  * @property {string} challengeLost
  */
 
-/** Shared tile ramp used by Classic / Light / Soft */
+/**
+ * Relative luminance of a hex color (0–1), per WCAG 2.
+ * @param {string} hex
+ * @returns {number}
+ */
+export function relativeLuminance(hex) {
+	hex = hex.replace(/^#/, "");
+	if (hex.length === 3) {
+		hex = hex
+			.split("")
+			.map((x) => x + x)
+			.join("");
+	}
+	const num = parseInt(hex, 16);
+	const channels = [(num >> 16) & 255, (num >> 8) & 255, num & 255].map((v) => {
+		v /= 255;
+		return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+	});
+	return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+/**
+ * WCAG contrast ratio between two hex colors.
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+export function contrastRatio(a, b) {
+	const l1 = relativeLuminance(a);
+	const l2 = relativeLuminance(b);
+	const lighter = Math.max(l1, l2);
+	const darker = Math.min(l1, l2);
+	return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Readable ink (textLight vs textDark) for a theme-colored surface.
+ * Classic keeps its historical luminance-threshold pick — light ink on the
+ * board browns is part of the original 2048 look — while every other theme
+ * picks whichever ink has the higher WCAG contrast.
+ * @param {string} bg
+ * @param {Theme} theme
+ * @returns {string}
+ */
+export function getInkColor(bg, theme) {
+	if (theme.id === "classic") {
+		return relativeLuminance(bg) < theme.luminanceThreshold ? theme.textDark : theme.textLight;
+	}
+	return contrastRatio(bg, theme.textLight) >= contrastRatio(bg, theme.textDark)
+		? theme.textLight
+		: theme.textDark;
+}
+
+/** Classic tile ramp — preserved byte-for-byte; do not retune. */
 const classicTiles = {
 	2: "#eee4d9",
 	4: "#ece0c8",
@@ -48,13 +121,24 @@ const classicTiles = {
 	2097152: "#63A375",
 };
 
-/** @type {Theme} */
+/**
+ * The historical 2048 look. Tiles, board browns and inks are untouched; the
+ * warm neutrals (hue ≈ 30°, ~5% saturation on the page) already follow the
+ * palette conventions. Only the accents were retuned: primary and destructive
+ * deepened from their bright originals so buttons and headings clear AA, and
+ * secondary gets an explicit deep-sage ink (both theme inks are midtone-weak
+ * on the sage pill).
+ * @type {Theme}
+ */
 export const classicTheme = {
 	id: "classic",
 	name: "Classic",
 	pro: false,
-	primary: "#e88f4f",
+	// Deepened from #e88f4f: 4.6:1 as heading text on the cream page and
+	// 4.5:1 under its near-white ink as a button fill (was ~2.3:1).
+	primary: "#b8541a",
 	secondary: "#C2D4B0",
+	secondaryForeground: "#3e5641",
 	background: "#fbf8ef",
 	boardBackground: "#bbada0",
 	emptyTile: "#cdc1b4",
@@ -62,6 +146,9 @@ export const classicTheme = {
 	textDark: "#f9f6f2",
 	text: "#776e65",
 	unknownTile: "#5f5f5f",
+	// Deepened from the tile-64 red #e95937 (3.3:1) for AA error text.
+	destructive: "#c93d20",
+	shadows: true,
 	textScale: 3,
 	luminanceThreshold: 0.7,
 	movementSpeed: 50,
@@ -71,20 +158,30 @@ export const classicTheme = {
 	tiles: { ...classicTiles },
 };
 
-/** @type {Theme} */
+/**
+ * Warm near-black. Neutrals re-tinted from blue-grey toward the orange
+ * accent — cool neutrals under a warm accent (and a warm tile ramp) mixed
+ * temperatures. Surfaces climb ~7% brightness per step (page 11% → board
+ * 18% → empty cells 24%), inside the ≤12% container band for dark UIs.
+ * Flat depth: elevation reads through lighter surfaces, not shadows.
+ * @type {Theme}
+ */
 export const darkTheme = {
 	id: "dark",
 	name: "Dark",
 	pro: false,
 	primary: "#e88f4f",
 	secondary: "#3d5a45",
-	background: "#1a1a1e",
-	boardBackground: "#2a2a32",
-	emptyTile: "#3a3a45",
-	textLight: "#e8e4df",
-	textDark: "#1a1a1e",
+	background: "#1c1a18",
+	boardBackground: "#2d2a26",
+	emptyTile: "#3e3a34",
+	textLight: "#1c1a18",
+	textDark: "#e8e4df",
 	text: "#e8e4df",
 	unknownTile: "#6b6b78",
+	// Brighter than the shared red so error text holds ~5.5:1 on near-black.
+	destructive: "#f2643f",
+	shadows: false,
 	textScale: 3,
 	luminanceThreshold: 0.45,
 	movementSpeed: 50,
@@ -115,20 +212,32 @@ export const darkTheme = {
 	},
 };
 
-/** @type {Theme} */
+/**
+ * Cool, airy counterpart to Classic. The page is a near-white saturated ~2%
+ * toward the blue accent (pure #ffffff was too harsh), which also brings the
+ * board well inside the ≤7% brightness band. Primary deepened to hold white
+ * button text at AA, and `border` steps a shade past the empty-cell tone so
+ * container edges contrast with both the fill and the page.
+ * @type {Theme}
+ */
 export const lightTheme = {
 	id: "light",
 	name: "Light",
 	pro: false,
-	primary: "#4a90d9",
+	// Deepened from #4a90d9 (3.1:1) to 4.6:1 under near-white button text.
+	primary: "#2f74c0",
 	secondary: "#a8c5a0",
-	background: "#ffffff",
+	secondaryForeground: "#2b4226",
+	background: "#f7fafc",
 	boardBackground: "#dce3ea",
 	emptyTile: "#eef2f6",
+	border: "#c9d3dc",
 	textLight: "#4a5560",
-	textDark: "#ffffff",
+	textDark: "#f9fcfe",
 	text: "#2d3740",
 	unknownTile: "#8899aa",
+	destructive: "#c22f2f",
+	shadows: true,
 	textScale: 3,
 	luminanceThreshold: 0.65,
 	movementSpeed: 50,
@@ -160,20 +269,30 @@ export const lightTheme = {
 	},
 };
 
-/** @type {Theme} */
+/**
+ * Maximum-legibility palette. Chrome swaps pure #000/#fff for warm
+ * near-black / near-white — still ≈18:1 and gentler on halation — while the
+ * full-saturation neon tile ramp keeps its punch. `border` is lifted well
+ * clear of the background so inputs and container edges stay findable.
+ * Flat depth like Dark.
+ * @type {Theme}
+ */
 export const highContrastTheme = {
 	id: "high-contrast",
 	name: "High Contrast",
 	pro: true,
 	primary: "#ffcc00",
 	secondary: "#00e5ff",
-	background: "#000000",
-	boardBackground: "#111111",
-	emptyTile: "#222222",
-	textLight: "#ffffff",
-	textDark: "#000000",
-	text: "#ffffff",
+	background: "#0c0b09",
+	boardBackground: "#171412",
+	emptyTile: "#262220",
+	border: "#4a443c",
+	textLight: "#0c0b09",
+	textDark: "#f8f6f1",
+	text: "#f8f6f1",
 	unknownTile: "#888888",
+	destructive: "#ff4d42",
+	shadows: false,
 	textScale: 3,
 	luminanceThreshold: 0.5,
 	movementSpeed: 50,
@@ -204,21 +323,29 @@ export const highContrastTheme = {
 	},
 };
 
-/** Soft / muted palette — Pro exclusive */
-/** @type {Theme} */
+/**
+ * Muted warm greys — Pro exclusive. Ink and the clay primary deepened so
+ * text and buttons clear AA against the deliberately low-contrast surfaces
+ * without losing the hushed look; secondary gets an explicit deep-green ink.
+ * @type {Theme}
+ */
 export const softTheme = {
 	id: "soft",
 	name: "Soft",
 	pro: true,
-	primary: "#a67c6d",
+	// Deepened from #a67c6d (3.2:1 under ink) to 5.4:1 / 4.8:1 on the page.
+	primary: "#7e5a4c",
 	secondary: "#9aab9a",
+	secondaryForeground: "#2a3428",
 	background: "#e8e4df",
 	boardBackground: "#c4b8ae",
 	emptyTile: "#d4cbc3",
-	textLight: "#5c534c",
+	textLight: "#52493f",
 	textDark: "#f5f2ee",
-	text: "#5c534c",
+	text: "#52493f",
 	unknownTile: "#8a8078",
+	destructive: "#a83a1e",
+	shadows: true,
 	textScale: 3,
 	luminanceThreshold: 0.65,
 	movementSpeed: 50,
@@ -249,21 +376,29 @@ export const softTheme = {
 	},
 };
 
-/** Playful teal / coral alternate — Pro exclusive */
-/** @type {Theme} */
+/**
+ * Playful teal / coral alternate — Pro exclusive. Background eased off full
+ * brightness with a <5% coral tint, and primary deepened from the tile coral
+ * to a red that holds near-white button text at AA (the tiles keep the
+ * bright coral).
+ * @type {Theme}
+ */
 export const coralTheme = {
 	id: "coral",
 	name: "Coral",
 	pro: true,
-	primary: "#ff6b6b",
+	// Deepened from #ff6b6b (2.7:1 under ink) to 5.1:1 / 4.9:1 on the page.
+	primary: "#c73333",
 	secondary: "#4ecdc4",
-	background: "#fff5f0",
+	background: "#fbf3ef",
 	boardBackground: "#e8a090",
 	emptyTile: "#f0c8bc",
 	textLight: "#5a4038",
 	textDark: "#fff8f5",
 	text: "#5a4038",
 	unknownTile: "#8a6860",
+	destructive: "#c93d20",
+	shadows: true,
 	textScale: 3,
 	luminanceThreshold: 0.6,
 	movementSpeed: 50,
