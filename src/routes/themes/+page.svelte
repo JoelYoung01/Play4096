@@ -59,8 +59,8 @@
 					href="/stripe"
 					class="theme-card flex flex-col gap-2 rounded-lg p-3 text-left transition-opacity hover:opacity-90"
 					style:background={theme.background}
-					style:color={theme.textLight ?? theme.text}
-					style:border={`2px solid ${active ? theme.primary : theme.emptyTile}`}
+					style:color={theme.text ?? theme.textLight}
+					style:border={`2px solid ${active ? theme.primary : (theme.border ?? theme.emptyTile)}`}
 				>
 					<div class="pointer-events-none">
 						<ThemePreview {theme} selected={active} />
@@ -81,8 +81,8 @@
 						disabled={saving}
 						class="theme-card flex flex-col gap-2 rounded-lg p-3 text-left transition-transform hover:scale-[1.02] disabled:opacity-60"
 						style:background={theme.background}
-						style:color={theme.textLight ?? theme.text}
-						style:border={`2px solid ${active ? theme.primary : theme.emptyTile}`}
+						style:color={theme.text ?? theme.textLight}
+						style:border={`2px solid ${active ? theme.primary : (theme.border ?? theme.emptyTile)}`}
 					>
 						<div class="pointer-events-none">
 							<ThemePreview {theme} selected={active} />
