@@ -22,11 +22,7 @@
 
 <div class="game-stats" role="group" aria-label={label} style:--stat-columns={stats.length}>
 	{#each stats as stat (stat.label)}
-		<div
-			class="game-stat"
-			style:background-color={theme?.boardBackground}
-			style:color={boardInk}
-		>
+		<div class="game-stat" style:background-color={theme?.boardBackground} style:color={boardInk}>
 			{#if stat.newBest}
 				<span class="game-stat-badge">New Best!</span>
 			{/if}
