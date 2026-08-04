@@ -22,6 +22,8 @@
 		const theme = page.data.theme;
 		if (theme) {
 			applyThemeTokens(document.documentElement.style, theme);
+			// Flat-depth themes (dark UIs) suppress drop shadows app-wide
+			document.documentElement.dataset.shadows = theme.shadows === false ? "none" : "soft";
 		}
 	});
 </script>

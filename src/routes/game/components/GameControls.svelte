@@ -1,6 +1,7 @@
 <script>
 	import { untrack } from "svelte";
 	import { page } from "$app/state";
+	import { getInkColor } from "$lib/assets/themes.js";
 	import { CHECKPOINT_COOLDOWN_MOVES, USER_LEVELS } from "$lib/constants.js";
 	import { formatWinDuration } from "$lib/formatTime.js";
 	import { Game } from "$lib/game.svelte.js";
@@ -25,6 +26,10 @@
 	let game = $derived(gameState.currentGame);
 	let isPro = $derived(page.data.user?.level === USER_LEVELS.PRO);
 	let isLoggedIn = $derived(!!page.data.user);
+
+	let theme = $derived(page.data.theme);
+	// Readable ink for the board-colored score boxes
+	let boardInk = $derived(theme ? getInkColor(theme.boardBackground, theme) : "#f9f6f2");
 
 	/**
 	 * @typedef {Object} Props
@@ -365,8 +370,8 @@
 		<div class="flex gap-2">
 			<div
 				class="flex-1/2 overflow-hidden rounded-md py-2 text-center"
-				style:background-color={page.data.theme?.boardBackground}
-				style:color={page.data.theme?.textDark}
+				style:background-color={theme?.boardBackground}
+				style:color={boardInk}
 			>
 				<div class="text-center text-sm font-bold uppercase sm:text-lg">SCORE</div>
 				<div class="mt-1 text-sm font-bold sm:text-lg">
@@ -375,8 +380,8 @@
 			</div>
 			<div
 				class="flex-1/2 overflow-hidden rounded-md py-2 text-center"
-				style:background-color={page.data.theme?.boardBackground}
-				style:color={page.data.theme?.textDark}
+				style:background-color={theme?.boardBackground}
+				style:color={boardInk}
 			>
 				<div class="text-center text-sm font-bold uppercase sm:text-lg">BEST</div>
 				<div class="mt-1 text-sm font-bold sm:text-xl">

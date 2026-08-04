@@ -1,6 +1,7 @@
 <script>
 	import { Toaster as Sonner } from "svelte-sonner";
-	import { mode } from "mode-watcher";
+	import { page } from "$app/state";
+	import { isDarkTheme } from "$lib/themeTokens.js";
 	import Loader2Icon from "@lucide/svelte/icons/loader-2";
 	import CircleCheckIcon from "@lucide/svelte/icons/circle-check";
 	import OctagonXIcon from "@lucide/svelte/icons/octagon-x";
@@ -8,10 +9,18 @@
 	import TriangleAlertIcon from "@lucide/svelte/icons/triangle-alert";
 
 	let { ...restProps } = $props();
+
+	// Follow the selected game theme, not the OS scheme, so toasts stay
+	// coherent with the rest of the palette
+	let toasterTheme = $derived(
+		/** @type {"dark" | "light"} */ (
+			page.data.theme && isDarkTheme(page.data.theme) ? "dark" : "light"
+		)
+	);
 </script>
 
 <Sonner
-	theme={mode.current}
+	theme={toasterTheme}
 	class="toaster group"
 	style="--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border);"
 	{...restProps}

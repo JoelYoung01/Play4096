@@ -1,5 +1,5 @@
 import { browser } from "$app/environment";
-import { defaultTheme } from "./assets/themes";
+import { defaultTheme, getInkColor } from "./assets/themes";
 import {
 	DEFAULT_BOARD_SIZE,
 	DEFAULT_STARTING_TILES,
@@ -26,76 +26,15 @@ export function getTileBackground(value, theme = defaultTheme) {
 }
 
 /**
- * Relative luminance of a hex color (0–1), per WCAG 2.
- * @param {string} hex
- * @returns {number}
- */
-function relativeLuminance(hex) {
-	hex = hex.replace(/^#/, "");
-	if (hex.length === 3) {
-		hex = hex
-			.split("")
-			.map((x) => x + x)
-			.join("");
-	}
-	const num = parseInt(hex, 16);
-	const channels = [(num >> 16) & 255, (num >> 8) & 255, num & 255].map((v) => {
-		v /= 255;
-		return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-	});
-	return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
-}
-
-/**
- * WCAG contrast ratio between two hex colors.
- * @param {string} a
- * @param {string} b
- * @returns {number}
- */
-function contrastRatio(a, b) {
-	const l1 = relativeLuminance(a);
-	const l2 = relativeLuminance(b);
-	const lighter = Math.max(l1, l2);
-	const darker = Math.min(l1, l2);
-	return (lighter + 0.05) / (darker + 0.05);
-}
-
-/**
- * Classic keeps its historical luminance-threshold ink choice.
- * @param {string} bg
- * @param {typeof defaultTheme} theme
- * @returns {string}
- */
-function classicTileColor(bg, theme) {
-	return relativeLuminance(bg) < theme.luminanceThreshold ? theme.textDark : theme.textLight;
-}
-
-/**
- * Pick the higher-contrast ink (textLight vs textDark) for WCAG readability.
- * @param {string} bg
- * @param {typeof defaultTheme} theme
- * @returns {string}
- */
-function accessibleTileColor(bg, theme) {
-	const a = theme.textLight;
-	const b = theme.textDark;
-	return contrastRatio(bg, a) >= contrastRatio(bg, b) ? a : b;
-}
-
-/**
  * Get the number color for a tile using current theme.
  * Classic is unchanged (luminance threshold). Other themes pick dark/light
- * ink by WCAG contrast against the tile background.
+ * ink by WCAG contrast against the tile background. See getInkColor.
  * @param {number} value
  * @param {typeof defaultTheme} theme
  * @returns {string}
  */
 export function getTileColor(value, theme = defaultTheme) {
-	const bg = getTileBackground(value, theme);
-	if (theme.id === "classic") {
-		return classicTileColor(bg, theme);
-	}
-	return accessibleTileColor(bg, theme);
+	return getInkColor(getTileBackground(value, theme), theme);
 }
 
 /**

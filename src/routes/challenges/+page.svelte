@@ -1,5 +1,6 @@
 <script>
 	import { page } from "$app/state";
+	import { getInkColor } from "$lib/assets/themes.js";
 	import { CHALLENGE_RUN_STATUS, formatChallengeTypeLabel } from "$lib/challenges.js";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { CrownIcon, ChevronLeftIcon, ChevronRightIcon, CheckIcon, XIcon } from "@lucide/svelte";
@@ -7,6 +8,10 @@
 	let { data } = $props();
 
 	const weekdays = ["S", "M", "T", "W", "T", "F", "S"];
+
+	let theme = $derived(page.data.theme);
+	// Readable ink for board-colored surfaces (hero card, locked days)
+	let boardInk = $derived(theme ? getInkColor(theme.boardBackground, theme) : "#f9f6f2");
 
 	/**
 	 * @param {string | null} status
@@ -26,51 +31,27 @@
 	 * @param {{ status: string | null; isToday: boolean }} day
 	 */
 	function dayBackground(day) {
-		if (day.status === CHALLENGE_RUN_STATUS.WON) return page.data.theme?.challengeWon;
-		if (day.status === CHALLENGE_RUN_STATUS.LOST) return page.data.theme?.challengeLost;
-		if (day.isToday) return page.data.theme?.primary;
-		return page.data.theme?.boardBackground;
+		if (day.status === CHALLENGE_RUN_STATUS.WON) return theme?.challengeWon;
+		if (day.status === CHALLENGE_RUN_STATUS.LOST) return theme?.challengeLost;
+		if (day.isToday) return theme?.primary;
+		return theme?.boardBackground;
 	}
 
 	/**
-	 * Relative luminance of a hex color (0–1).
-	 * @param {string} hex
-	 */
-	function luminance(hex) {
-		const h = hex.replace("#", "");
-		const r = parseInt(h.substring(0, 2), 16) / 255;
-		const g = parseInt(h.substring(2, 4), 16) / 255;
-		const b = parseInt(h.substring(4, 6), 16) / 255;
-		const toLinear = (/** @type {number} */ c) =>
-			c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-		return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-	}
-
-	/**
-	 * Ink color for a calendar day. Status fills pick contrasting theme text;
-	 * today / open days keep the established light-on-board look.
-	 * @param {{ status: string | null; isToday: boolean }} day
-	 */
-	function dayColor(day) {
-		if (day.status === CHALLENGE_RUN_STATUS.WON || day.status === CHALLENGE_RUN_STATUS.LOST) {
-			const bg = dayBackground(day);
-			if (!bg) return "#ffffff";
-			// theme.textLight = dark ink (for light tiles); textDark = light ink
-			const lightInk = page.data.theme?.textDark ?? "#f9f6f2";
-			const darkInk = page.data.theme?.textLight ?? "#776e65";
-			return luminance(bg) > 0.45 ? darkInk : lightInk;
-		}
-		return page.data.theme?.textDark;
-	}
-
-	/**
+	 * Readable ink for a theme surface: Classic keeps its historical
+	 * light-on-board look, other themes pick the higher-contrast ink.
 	 * @param {string | undefined} bg
 	 */
 	function statusInk(bg) {
-		if (!bg) return "#ffffff";
-		const lightInk = page.data.theme?.textDark ?? "#f9f6f2";
-		const darkInk = page.data.theme?.textLight ?? "#776e65";
-		return luminance(bg) > 0.45 ? darkInk : lightInk;
+		if (!bg || !theme) return "#f9f6f2";
+		return getInkColor(bg, theme);
+	}
+
+	/**
+	 * @param {{ status: string | null; isToday: boolean }} day
+	 */
+	function dayColor(day) {
+		return statusInk(dayBackground(day));
 	}
 </script>
 
@@ -91,8 +72,8 @@
 	{#if data.todayChallenge}
 		<section
 			class="mb-6 rounded-xl p-4"
-			style:background-color={page.data.theme?.boardBackground}
-			style:color={page.data.theme?.textDark}
+			style:background-color={theme?.boardBackground}
+			style:color={boardInk}
 		>
 			<p class="mb-1 text-xs font-bold tracking-wide uppercase opacity-70">Today · {data.today}</p>
 			<h2 class="text-xl font-bold">{data.todayChallenge.title}</h2>
@@ -107,11 +88,8 @@
 	{/if}
 
 	{#if !data.isPro}
-		<div
-			class="mb-5 rounded-lg p-4 text-center"
-			style:background-color={page.data.theme?.boardBackground}
-		>
-			<p class="mb-3 text-sm" style:color={page.data.theme?.textDark}>
+		<div class="mb-5 rounded-lg p-4 text-center" style:background-color={theme?.boardBackground}>
+			<p class="mb-3 text-sm" style:color={boardInk}>
 				Browse today's challenge below. Starting any challenge — and opening past days — requires
 				Pro.
 			</p>
@@ -176,8 +154,8 @@
 					<a
 						href="/stripe"
 						class="day locked flex aspect-square flex-col items-center justify-center rounded-lg text-sm"
-						style:background-color={page.data.theme?.boardBackground}
-						style:color={page.data.theme?.textDark}
+						style:background-color={theme?.boardBackground}
+						style:color={boardInk}
 						title="Pro unlocks past challenges"
 					>
 						<span class="font-semibold">{day.day}</span>
@@ -209,16 +187,16 @@
 			<span class="inline-flex items-center gap-1.5">
 				<span
 					class="swatch"
-					style:background-color={page.data.theme?.primary}
-					style:box-shadow="0 0 0 2px color-mix(in srgb, {page.data.theme?.primary ?? '#000'} 70%, transparent)"
+					style:background-color={theme?.primary}
+					style:box-shadow="0 0 0 2px color-mix(in srgb, {theme?.primary ?? '#000'} 70%, transparent)"
 				></span>
 				Today
 			</span>
 			<span class="inline-flex items-center gap-1.5">
 				<span
 					class="swatch"
-					style:background-color={page.data.theme?.challengeWon}
-					style:color={statusInk(page.data.theme?.challengeWon)}
+					style:background-color={theme?.challengeWon}
+					style:color={statusInk(theme?.challengeWon)}
 				>
 					<CheckIcon size={8} strokeWidth={3} aria-hidden="true" />
 				</span>
@@ -227,8 +205,8 @@
 			<span class="inline-flex items-center gap-1.5">
 				<span
 					class="swatch"
-					style:background-color={page.data.theme?.challengeLost}
-					style:color={statusInk(page.data.theme?.challengeLost)}
+					style:background-color={theme?.challengeLost}
+					style:color={statusInk(theme?.challengeLost)}
 				>
 					<XIcon size={8} strokeWidth={3} aria-hidden="true" />
 				</span>

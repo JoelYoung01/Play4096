@@ -1,5 +1,6 @@
 <script>
 	import { page } from "$app/state";
+	import { getInkColor } from "$lib/assets/themes.js";
 
 	/**
 	 * Themed stat cards shared by the end-game dialogs (win, game over,
@@ -13,15 +14,15 @@
 
 	/** @type {{ stats: GameStat[], label?: string }} */
 	let { stats, label = "Game stats" } = $props();
+
+	const theme = $derived(page.data.theme);
+	// Readable ink for the board-colored stat cards
+	const boardInk = $derived(theme ? getInkColor(theme.boardBackground, theme) : "#f9f6f2");
 </script>
 
 <div class="game-stats" role="group" aria-label={label} style:--stat-columns={stats.length}>
 	{#each stats as stat (stat.label)}
-		<div
-			class="game-stat"
-			style:background-color={page.data.theme?.boardBackground}
-			style:color={page.data.theme?.textDark}
-		>
+		<div class="game-stat" style:background-color={theme?.boardBackground} style:color={boardInk}>
 			{#if stat.newBest}
 				<span class="game-stat-badge">New Best!</span>
 			{/if}
@@ -65,7 +66,7 @@
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
 		white-space: nowrap;
-		box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+		box-shadow: var(--shadow-pop);
 		animation: game-stat-badge-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms both;
 	}
 

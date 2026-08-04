@@ -3,6 +3,7 @@
 	import { goto } from "$app/navigation";
 	import { untrack } from "svelte";
 	import { page } from "$app/state";
+	import { contrastRatio, getInkColor } from "$lib/assets/themes.js";
 	import { Game } from "$lib/game.svelte.js";
 	import { DIRECTIONS } from "$lib/constants.js";
 	import { createSwipeHandlers } from "$lib/swipe.js";
@@ -37,6 +38,21 @@
 	const challenge = $derived(data.challenge);
 	const isTime = $derived(challenge.type === CHALLENGE_TYPES.TIME);
 	const isRecovery = $derived(challenge.type === CHALLENGE_TYPES.RECOVERY);
+
+	const theme = $derived(page.data.theme);
+	// Readable ink for the board-colored stat boxes
+	const boardInk = $derived(theme ? getInkColor(theme.boardBackground, theme) : "#f9f6f2");
+	// Urgent countdown red: keep the historical deep red unless the theme's
+	// destructive accent reads better on the board (dark boards need it)
+	const urgentInk = $derived.by(() => {
+		const fallback = "#b91c1c";
+		if (!theme) return fallback;
+		const themed = theme.destructive ?? fallback;
+		return contrastRatio(theme.boardBackground, themed) >
+			contrastRatio(theme.boardBackground, fallback)
+			? themed
+			: fallback;
+	});
 
 	const winTile = $derived(
 		isRecovery && "winTile" in challenge.params ? challenge.params.winTile : null
@@ -321,8 +337,8 @@
 			{#if isRecovery}
 				<div
 					class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
-					style:background-color={page.data.theme?.boardBackground}
-					style:color={page.data.theme?.textDark}
+					style:background-color={theme?.boardBackground}
+					style:color={boardInk}
 				>
 					<div class="text-xs font-bold uppercase">Moves</div>
 					<div class="font-bold">{game?.moveCount ?? 0}</div>
@@ -330,8 +346,8 @@
 				{#if winTile}
 					<div
 						class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
-						style:background-color={page.data.theme?.boardBackground}
-						style:color={page.data.theme?.textDark}
+						style:background-color={theme?.boardBackground}
+						style:color={boardInk}
 					>
 						<div class="text-xs font-bold uppercase">Goal</div>
 						<div class="font-bold">{winTile}</div>
@@ -340,8 +356,8 @@
 			{:else}
 				<div
 					class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
-					style:background-color={page.data.theme?.boardBackground}
-					style:color={page.data.theme?.textDark}
+					style:background-color={theme?.boardBackground}
+					style:color={boardInk}
 				>
 					<div class="text-xs font-bold uppercase">Score</div>
 					<div class="font-bold">{game?.score.toLocaleString() ?? "—"}</div>
@@ -349,8 +365,8 @@
 				{#if isTime}
 					<div
 						class="min-w-[4.5rem] rounded-md px-3 py-2 text-center"
-						style:background-color={page.data.theme?.boardBackground}
-						style:color={remainingMs <= 10000 ? "#b91c1c" : page.data.theme?.textDark}
+						style:background-color={theme?.boardBackground}
+						style:color={remainingMs <= 10000 ? urgentInk : boardInk}
 					>
 						<div class="text-xs font-bold uppercase">Time</div>
 						<div class="font-bold">{formatTime(remainingMs)}</div>
@@ -365,7 +381,7 @@
 	{:else}
 		<div
 			class="mb-4 flex aspect-square items-center justify-center rounded-lg"
-			style:background-color={page.data.theme?.boardBackground}
+			style:background-color={theme?.boardBackground}
 		>
 			Loading…
 		</div>

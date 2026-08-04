@@ -1,6 +1,7 @@
 <script>
 	import { enhance } from "$app/forms";
 	import { page } from "$app/state";
+	import { getInkColor } from "$lib/assets/themes.js";
 	import BoardPreview from "$lib/components/BoardPreview.svelte";
 	import {
 		CHALLENGE_RUN_STATUS,
@@ -15,6 +16,10 @@
 	let { data } = $props();
 
 	let starting = $state(false);
+
+	const theme = $derived(page.data.theme);
+	// Readable ink for board-colored surfaces (locked banner, leaderboard link)
+	const boardInk = $derived(theme ? getInkColor(theme.boardBackground, theme) : "#f9f6f2");
 
 	const challenge = $derived(data.challenge);
 	const typeLabel = $derived(formatChallengeTypeLabel(challenge.type));
@@ -77,11 +82,8 @@
 	<h1 class="text-3xl font-bold text-primary">{challenge.title}</h1>
 
 	{#if data.locked}
-		<div
-			class="mt-6 rounded-lg p-4 text-center"
-			style:background-color={page.data.theme?.boardBackground}
-		>
-			<p class="mb-3 text-sm" style:color={page.data.theme?.textDark}>
+		<div class="mt-6 rounded-lg p-4 text-center" style:background-color={theme?.boardBackground}>
+			<p class="mb-3 text-sm" style:color={boardInk}>
 				Past daily challenges are a Pro feature — same archive pattern as game history.
 			</p>
 			{#if data.user}
@@ -99,12 +101,12 @@
 		<p class="mb-1 text-sm text-muted-foreground">{challenge.difficulty} · {typeLabel}</p>
 		<p class="mb-6 text-base">{data.overview}</p>
 
-		{#if previewBoard && page.data.theme}
+		{#if previewBoard && theme}
 			<div class="mb-6">
 				<p class="mb-2 text-xs font-bold tracking-wide text-muted-foreground uppercase">
 					Starting board
 				</p>
-				<BoardPreview theme={page.data.theme} board={previewBoard} />
+				<BoardPreview {theme} board={previewBoard} />
 			</div>
 		{/if}
 
@@ -133,11 +135,8 @@
 				</Button>
 			</form>
 		{:else}
-			<div
-				class="rounded-lg p-4 text-center"
-				style:background-color={page.data.theme?.boardBackground}
-			>
-				<p class="mb-3 text-sm" style:color={page.data.theme?.textDark}>
+			<div class="rounded-lg p-4 text-center" style:background-color={theme?.boardBackground}>
+				<p class="mb-3 text-sm" style:color={boardInk}>
 					{#if data.user}
 						Upgrade to Pro to play daily challenges.
 					{:else}
@@ -160,8 +159,8 @@
 		<a
 			href={leaderboardHref}
 			class="mt-6 flex items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:brightness-95"
-			style:background-color={page.data.theme?.boardBackground}
-			style:color={page.data.theme?.textDark}
+			style:background-color={theme?.boardBackground}
+			style:color={boardInk}
 		>
 			<span
 				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"

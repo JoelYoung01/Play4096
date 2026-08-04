@@ -7,28 +7,32 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-	/* Defaults match Classic; runtime theme bridge overwrites these */
+	/* Defaults mirror what applyThemeTokens computes for Classic; the runtime
+	   theme bridge overwrites these */
 	--background: #fbf8ef;
 	--foreground: #776e65;
 	--card: #fbf8ef;
 	--card-foreground: #776e65;
-	--popover: #ffffff;
+	--popover: #fbf9f1;
 	--popover-foreground: #776e65;
-	--primary: #e88f4f;
+	--primary: #b8541a;
 	--primary-foreground: #f9f6f2;
 	--secondary: #c2d4b0;
 	--secondary-foreground: #3e5641;
-	--muted: #eee4d9;
+	--muted: #cdc1b4;
 	--muted-foreground: #776e65;
-	--accent: #ece0c8;
-	--accent-foreground: #776e65;
-	--destructive: #e95937;
+	--accent: #bbada0;
+	--accent-foreground: #f9f6f2;
+	--destructive: #c93d20;
 	--border: #cdc1b4;
 	--input: #cdc1b4;
-	--ring: #e88f4f;
+	--ring: #b8541a;
 	--radius: 0.5rem;
 
-	--chart-1: #e88f4f;
+	/* Small floating elements: blur = 2× the y-offset, per the depth scale */
+	--shadow-pop: 0 2px 4px rgb(0 0 0 / 0.25);
+
+	--chart-1: #b8541a;
 	--chart-2: #c2d4b0;
 	--chart-3: #f2b179;
 	--chart-4: #5eda92;
@@ -36,12 +40,12 @@
 
 	--sidebar: #fbf8ef;
 	--sidebar-foreground: #776e65;
-	--sidebar-primary: #e88f4f;
+	--sidebar-primary: #b8541a;
 	--sidebar-primary-foreground: #f9f6f2;
-	--sidebar-accent: #eee4d9;
+	--sidebar-accent: #cdc1b4;
 	--sidebar-accent-foreground: #776e65;
 	--sidebar-border: #cdc1b4;
-	--sidebar-ring: #e88f4f;
+	--sidebar-ring: #b8541a;
 
 	/* Game / board tokens (also set at runtime) */
 	--color-board-background: #bbada0;
@@ -52,6 +56,17 @@
 	--text-scale: 3;
 	--luminance-threshold: 0.7;
 	--movement-speed: 50ms;
+}
+
+/* One depth technique per theme: themes with `shadows: false` (dark UIs)
+   render flat, since drop shadows don't read against dark backgrounds —
+   elevation comes from lighter surfaces instead. Unlayered so it outranks
+   Tailwind's shadow-* utilities; rings/outlines are unaffected. */
+html[data-shadows="none"] * {
+	--tw-shadow: 0 0 #0000;
+}
+html[data-shadows="none"] {
+	--shadow-pop: 0 0 rgb(0 0 0 / 0);
 }
 
 @theme inline {
@@ -117,8 +132,10 @@
 	input:disabled,
 	textarea:disabled,
 	select:disabled {
-		background-color: #f3f3f3;
-		color: #b5b5b5;
+		/* Theme-tinted neutrals instead of pure greys, so disabled fields
+		   stay coherent on dark and tinted backgrounds alike */
+		background-color: var(--muted);
+		color: var(--muted-foreground);
 		opacity: 1;
 		cursor: default;
 	}

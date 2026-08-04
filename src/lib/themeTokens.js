@@ -2,6 +2,7 @@
  * Map play4096 theme presets onto shadcn semantic tokens + game tokens.
  * @typedef {import('$lib/assets/themes.js').Theme} Theme
  */
+import { contrastRatio, getInkColor, relativeLuminance } from "./assets/themes.js";
 
 /**
  * @param {string} hex
@@ -36,28 +37,26 @@ export function lightenColor(hex, amount = 0.2) {
 }
 
 /**
- * Relative luminance of a hex color (0–1).
- * @param {string} hex
- * @returns {number}
+ * Whether a theme is dark-surfaced (drives elevation + toast styling).
+ * @param {Theme} theme
+ * @returns {boolean}
  */
-function luminance(hex) {
-	hex = hex.replace("#", "");
-	const r = parseInt(hex.substring(0, 2), 16) / 255;
-	const g = parseInt(hex.substring(2, 4), 16) / 255;
-	const b = parseInt(hex.substring(4, 6), 16) / 255;
-	const toLinear = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-	return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+export function isDarkTheme(theme) {
+	return relativeLuminance(theme.background) < 0.45;
 }
 
 /**
- * Pick light or dark text for contrast against a background.
+ * Pick whichever theme ink (textLight vs textDark) reads better on a surface.
+ * Unlike getInkColor this never uses Classic's historical threshold — chrome
+ * accents like primary are midtones where only the max-contrast ink works.
  * @param {string} bg
- * @param {string} light
- * @param {string} dark
+ * @param {Theme} theme
  * @returns {string}
  */
-function contrastText(bg, light, dark) {
-	return luminance(bg) > 0.45 ? dark : light;
+function pickInk(bg, theme) {
+	return contrastRatio(bg, theme.textLight) >= contrastRatio(bg, theme.textDark)
+		? theme.textLight
+		: theme.textDark;
 }
 
 /**
@@ -66,13 +65,19 @@ function contrastText(bg, light, dark) {
  * @param {Theme} theme
  */
 export function applyThemeTokens(style, theme) {
-	const foreground = theme.text ?? theme.textLight;
-	const primaryFg = contrastText(theme.primary, theme.textDark, theme.textLight);
-	const secondaryFg = contrastText(theme.secondary, theme.textDark, theme.textLight);
+	const dark = isDarkTheme(theme);
+	const foreground = theme.text ?? pickInk(theme.background, theme);
+	const primaryFg = pickInk(theme.primary, theme);
+	// Some secondaries are midtones where neither ink clears AA — themes
+	// provide an explicit ink for those.
+	const secondaryFg = theme.secondaryForeground ?? pickInk(theme.secondary, theme);
 	const muted = theme.emptyTile;
-	const border = theme.emptyTile;
-	const card = theme.background;
-	const popover = lightenColor(theme.background, 0.15);
+	const border = theme.border ?? theme.emptyTile;
+	// Closer surfaces are lighter (in both light and dark themes). Dark themes
+	// get smaller lifts so raised surfaces stay within a narrow brightness
+	// band of the page — they also rely on this instead of drop shadows.
+	const card = dark ? lightenColor(theme.background, 0.035) : theme.background;
+	const popover = lightenColor(theme.background, dark ? 0.06 : 0.15);
 
 	// shadcn chrome tokens
 	style.setProperty("--background", theme.background);
@@ -86,13 +91,10 @@ export function applyThemeTokens(style, theme) {
 	style.setProperty("--secondary", theme.secondary);
 	style.setProperty("--secondary-foreground", secondaryFg);
 	style.setProperty("--muted", muted);
-	style.setProperty("--muted-foreground", theme.textLight);
+	style.setProperty("--muted-foreground", pickInk(theme.emptyTile, theme));
 	style.setProperty("--accent", theme.boardBackground);
-	style.setProperty(
-		"--accent-foreground",
-		contrastText(theme.boardBackground, theme.textDark, theme.textLight)
-	);
-	style.setProperty("--destructive", "#e95937");
+	style.setProperty("--accent-foreground", getInkColor(theme.boardBackground, theme));
+	style.setProperty("--destructive", theme.destructive ?? "#e95937");
 	style.setProperty("--border", border);
 	style.setProperty("--input", border);
 	style.setProperty("--ring", theme.primary);
