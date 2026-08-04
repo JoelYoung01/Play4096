@@ -14,6 +14,7 @@
 		formatChallengeElapsedMs,
 	} from "$lib/challenges.js";
 	import { Button } from "$lib/components/ui/button/index.js";
+	import GameStats from "$lib/components/GameStats.svelte";
 	import AnimatedBoard from "../../../game/components/AnimatedBoard.svelte";
 
 	let { data } = $props();
@@ -22,7 +23,7 @@
 	let game = $state(null);
 	let result = $state(/** @type {'won' | 'lost' | null} */ (null));
 	let remainingMs = $state(0);
-	/** Elapsed ms captured when the run finishes (time challenges). */
+	/** Elapsed ms captured when the run finishes. */
 	let finishedElapsedMs = $state(/** @type {number | null} */ (null));
 	let submitting = $state(false);
 	let retrying = $state(false);
@@ -103,9 +104,7 @@
 	function finish(status) {
 		if (result || submitting || data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) return;
 		result = status;
-		if (isTime) {
-			finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
-		}
+		finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
 		submitting = true;
 		queueMicrotask(() => completeForm?.requestSubmit());
 	}
@@ -232,6 +231,35 @@
 			await applyAction(actionResult);
 		};
 	};
+
+	/**
+	 * @param {unknown} value
+	 * @returns {number | null}
+	 */
+	function asFiniteNumber(value) {
+		return typeof value === "number" && Number.isFinite(value) ? value : null;
+	}
+
+	/** Stored metrics fallback for finished runs viewed after a reload (no live game). */
+	const runMetrics = $derived(
+		/** @type {{ moveCount?: unknown, mergeScore?: unknown, elapsedMs?: unknown }} */ (
+			data.run.metrics ?? {}
+		)
+	);
+
+	/** Stat cards for the result dialog, ranked metric first. */
+	let resultStats = $derived.by(() => {
+		const statMoves = game?.moveCount ?? asFiniteNumber(runMetrics.moveCount);
+		const statScore = game?.score ?? asFiniteNumber(runMetrics.mergeScore);
+
+		const moves = { label: "Moves", value: statMoves?.toLocaleString() ?? "—" };
+		const score = { label: "Score", value: statScore?.toLocaleString() ?? "—" };
+		const time = { label: "Time", value: formatChallengeElapsedMs(finishedElapsedMs) };
+
+		if (isRecovery) return [moves, score, time];
+		if (isTime) return [time, score, moves];
+		return [score, moves, time];
+	});
 </script>
 
 <svelte:head>
@@ -271,9 +299,7 @@
 		value={JSON.stringify({
 			moveCount: game?.moveCount ?? 0,
 			filledCells: game ? countFilledCells(game.board) : 0,
-			elapsedMs: isTime
-				? (finishedElapsedMs ?? Math.max(0, Date.now() - data.run.startedOn))
-				: undefined,
+			elapsedMs: finishedElapsedMs ?? Math.max(0, Date.now() - data.run.startedOn),
 			mergeScore: game?.score ?? 0,
 		})}
 	/>
@@ -361,22 +387,13 @@
 			<p>
 				{#if result === "won"}
 					Nice work — {data.objective.toLowerCase()}.
-				{:else if isTime && game && "targetScore" in challenge.params && game.score < challenge.params.targetScore}
-					Time's up (or game over) with {game.score.toLocaleString()} points.
+				{:else if isTime}
+					Time's up (or game over) before reaching the target score.
 				{:else}
 					Game over before the objective was met.
 				{/if}
 			</p>
-			<p class="mb-4 text-sm text-muted-foreground">
-				{#if isRecovery}
-					Moves: {game?.moveCount ?? 0}
-				{:else if isTime}
-					Time: {formatChallengeElapsedMs(finishedElapsedMs)}
-					· Score: {game?.score.toLocaleString() ?? 0}
-				{:else}
-					Score: {game?.score.toLocaleString() ?? 0}
-				{/if}
-			</p>
+			<GameStats stats={resultStats} label="Challenge stats" />
 			<div class="flex flex-wrap justify-center gap-2">
 				<form method="POST" action="?/start" use:enhance={onRetry}>
 					<Button type="submit" class="justify-center" disabled={retrying || submitting}>
