@@ -6,8 +6,6 @@ export const DEFAULT_BOARD_SIZE = 4;
 export const DEFAULT_STARTING_TILES = 2;
 /** Moves required after an undo before undo can be used again */
 export const UNDO_COOLDOWN_MOVES = 10;
-/** Board progress (moves) required past the active checkpoint before a new one can be set */
-export const CHECKPOINT_COOLDOWN_MOVES = 100;
 export const SPAWN_START_SCALE = 0.5;
 export const DEFAULT_LUMINANCE_THRESHOLD = 0.7;
 export const TILE_SPAWN_DURATION = 100;

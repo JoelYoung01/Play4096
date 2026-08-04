@@ -120,7 +120,10 @@ export type GameHistorySort = "date" | "score" | "moves";
 export type GameHistoryFilter = "all" | "active" | "won" | "lost";
 
 
-/** Snapshot payload used when setting a checkpoint */
+/**
+ * Snapshot payload used when saving a checkpoint — captured by the client
+ * right after a move whose merge created (or tied) the run's biggest tile.
+ */
 export interface CheckpointSaveData {
   gameId: string;
   board: number[][];
@@ -141,6 +144,8 @@ export interface CheckpointInfo {
   createdOn: number;
   score: number;
   moveCount: number;
+  /** Largest tile on the checkpoint board — the milestone the checkpoint represents */
+  maxTile: number;
 }
 
 /** Full checkpoint state used when restoring into the current game */

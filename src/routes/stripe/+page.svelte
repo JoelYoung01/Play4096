@@ -31,7 +31,7 @@
 			implemented: true,
 		},
 		{
-			name: "Checkpoints",
+			name: "Biggest-tile checkpoints",
 			implemented: true,
 		},
 		{
