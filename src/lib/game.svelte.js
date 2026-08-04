@@ -162,6 +162,20 @@ export class Game {
 	}
 
 	/**
+	 * Largest tile currently on the board
+	 * @returns {number}
+	 */
+	get maxTile() {
+		let max = 0;
+		for (const row of this.board) {
+			for (const cell of row) {
+				if (cell > max) max = cell;
+			}
+		}
+		return max;
+	}
+
+	/**
 	 * Initialize game state
 	 * @param {import("./types").GameState?} initialState
 	 * @param {number} startingTiles

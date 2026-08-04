@@ -4,7 +4,7 @@
 	import { toast } from "svelte-sonner";
 
 	import { Game, isSameGame } from "$lib/game.svelte.js";
-	import { DIRECTIONS } from "$lib/constants.js";
+	import { DIRECTIONS, USER_LEVELS } from "$lib/constants.js";
 	import { saveGame as localSaveGame } from "$lib/localStorage.svelte.js";
 
 	import AnimatedBoard from "./components/AnimatedBoard.svelte";
@@ -131,6 +131,7 @@
 		const applies = !!checkpoint && gameState.currentGame?.id === checkpoint.gameId;
 		gameState.hasCheckpoint = applies;
 		gameState.checkpointMoveCount = applies && checkpoint ? checkpoint.moveCount : null;
+		gameState.checkpointTile = applies && checkpoint ? (checkpoint.maxTile ?? null) : null;
 	}
 
 	/**
@@ -247,8 +248,10 @@
 		}
 
 		pendingEvents.splice(0, pendingEvents.length);
+		pendingCheckpoint = null;
 		gameState.hasCheckpoint = false;
 		gameState.checkpointMoveCount = null;
+		gameState.checkpointTile = null;
 		gameState.currentGame = new Game();
 	}
 
@@ -322,22 +325,84 @@
 	}
 
 	/**
-	 * Capture the current board as the active checkpoint for this run
+	 * Latest biggest-tile snapshot awaiting upload. Coalesced: a newer
+	 * biggest-tile moment replaces an older one that hasn't been sent yet.
+	 * @type {{
+	 *   game: import("$lib/game.svelte.js").Game,
+	 *   snapshot: Omit<import("$lib/types").GameSaveData, "playerId">,
+	 *   tile: number,
+	 * } | null}
 	 */
-	async function handleSetCheckpoint() {
-		const game = gameState.currentGame;
-		if (!game || !page.data.user) return;
+	let pendingCheckpoint = null;
+	let checkpointSaveInFlight = false;
+
+	/**
+	 * Largest tile created by merges in a move's event list (0 when nothing merged)
+	 * @param {import("$lib/types").GameEvent[]} events
+	 */
+	function largestMergedTile(events) {
+		let largest = 0;
+		for (const event of events) {
+			if (event.merged && typeof event.value === "number") {
+				// Merge events carry the pre-merge tile value; the created tile doubles it
+				largest = Math.max(largest, event.value * 2);
+			}
+		}
+		return largest;
+	}
+
+	/**
+	 * Auto-checkpoint: when a move's merge created (or tied) the run's biggest
+	 * tile, capture the post-move state so the player can return to it later.
+	 * Pro-only and silent — the most recent biggest-tile moment wins.
+	 *
+	 * @param {import("$lib/game.svelte.js").Game} game
+	 * @param {import("$lib/types").GameEvent[]} events
+	 * @param {number} maxTileBefore Largest tile on the board before the move
+	 */
+	function maybeCaptureCheckpoint(game, events, maxTileBefore) {
+		if (page.data.user?.level !== USER_LEVELS.PRO) return;
+		// A checkpoint at a dead board would be useless to restore
+		if (game.gameOver) return;
+
+		const createdTile = largestMergedTile(events);
+		if (createdTile === 0 || createdTile < maxTileBefore) return;
+
+		pendingCheckpoint = { game, snapshot: game.json(), tile: createdTile };
+		void flushCheckpointQueue();
+	}
+
+	/**
+	 * Upload pending checkpoints one at a time so an older snapshot can never
+	 * land after (and overwrite) a newer one.
+	 */
+	async function flushCheckpointQueue() {
+		if (checkpointSaveInFlight) return;
+		checkpointSaveInFlight = true;
+		try {
+			while (pendingCheckpoint) {
+				const { game, snapshot, tile } = pendingCheckpoint;
+				pendingCheckpoint = null;
+				await saveCheckpoint(game, snapshot, tile);
+			}
+		} finally {
+			checkpointSaveInFlight = false;
+		}
+	}
+
+	/**
+	 * Persist one biggest-tile snapshot as the run's active checkpoint
+	 * @param {import("$lib/game.svelte.js").Game} game
+	 * @param {Omit<import("$lib/types").GameSaveData, "playerId">} snapshot
+	 * @param {number} tile
+	 */
+	async function saveCheckpoint(game, snapshot, tile) {
+		// The run may have ended or been replaced while this save waited
+		if (gameState.currentGame !== game) return;
 
 		const gameId = await ensurePersistedGameId();
-		if (!gameId) {
-			console.error("Unable to set checkpoint: game is not saved");
-			toast.error("Couldn't set checkpoint", {
-				description: "The game hasn't synced to the server yet. Try again in a moment.",
-			});
-			return;
-		}
+		if (!gameId || gameState.currentGame !== game) return;
 
-		const snapshot = game.json();
 		try {
 			const response = await fetch("/api/game/checkpoint", {
 				method: "POST",
@@ -356,18 +421,16 @@
 			});
 			const result = await response.json();
 			if (!response.ok || !result.success) {
-				throw new Error(result.error || "Failed to set checkpoint");
+				throw new Error(result.error || "Failed to save checkpoint");
 			}
+
+			if (gameState.currentGame !== game) return;
 			gameState.hasCheckpoint = true;
 			gameState.checkpointMoveCount = result.checkpoint?.moveCount ?? snapshot.moveCount;
-			toast.success("Checkpoint saved", {
-				description: `Score ${snapshot.score.toLocaleString()} · move ${snapshot.moveCount.toLocaleString()}`,
-			});
+			gameState.checkpointTile = result.checkpoint?.maxTile ?? tile;
 		} catch (error) {
-			console.error("Failed to set checkpoint:", error);
-			toast.error("Couldn't set checkpoint", {
-				description: error instanceof Error ? error.message : "Please try again.",
-			});
+			// Auto-checkpoints fail silently; the next biggest-tile merge retries
+			console.error("Failed to save checkpoint:", error);
 		}
 	}
 
@@ -429,11 +492,14 @@
 	 * @param {number} direction
 	 */
 	function handleMove(direction) {
-		if (!gameState.currentGame) return;
+		const game = gameState.currentGame;
+		if (!game) return;
 
-		const events = gameState.currentGame.moveTiles(direction);
+		const maxTileBefore = game.maxTile;
+		const events = game.moveTiles(direction);
 		if (events.length > 0) {
 			pendingEvents.push(...events);
+			maybeCaptureCheckpoint(game, events, maxTileBefore);
 		}
 	}
 
@@ -534,7 +600,6 @@
 		{pendingEvents}
 		{popEvent}
 		onNewGame={handleNewGame}
-		onSetCheckpoint={handleSetCheckpoint}
 		onRestoreCheckpoint={handleRestoreCheckpoint}
 	/>
 

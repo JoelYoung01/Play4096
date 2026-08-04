@@ -14,8 +14,11 @@ export const gameState = $state({
 	/** Whether the current game has an active restorable checkpoint */
 	hasCheckpoint: false,
 
-	/** Move count when the active checkpoint was set — drives the set-checkpoint cooldown @type {number | null} */
+	/** Move count when the active checkpoint was captured — drives the "N moves back" copy @type {number | null} */
 	checkpointMoveCount: null,
+
+	/** Biggest tile the active checkpoint represents (e.g. 2048) @type {number | null} */
+	checkpointTile: null,
 });
 
 export const general = $state({

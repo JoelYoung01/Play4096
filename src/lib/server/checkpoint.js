@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import { and, desc, eq } from "drizzle-orm";
 
-import { CHECKPOINT_COOLDOWN_MOVES, USER_LEVELS } from "$lib/constants";
+import { USER_LEVELS } from "$lib/constants";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { getUser } from "$lib/server/user";
@@ -41,6 +41,20 @@ function requireOwnedGame(gameId, userId) {
 }
 
 /**
+ * Largest tile on a checkpoint board — the milestone the checkpoint represents.
+ * @param {number[][]} board
+ */
+function boardMaxTile(board) {
+	let max = 0;
+	for (const row of board) {
+		for (const cell of row) {
+			if (cell > max) max = cell;
+		}
+	}
+	return max;
+}
+
+/**
  * Map a checkpoint row to client-facing metadata.
  * @param {typeof table.gameCheckpoint.$inferSelect} row
  * @returns {import("$lib/types").CheckpointInfo}
@@ -52,6 +66,7 @@ function toCheckpointInfo(row) {
 		createdOn: row.createdOn.getTime(),
 		score: row.score,
 		moveCount: row.moveCount,
+		maxTile: boardMaxTile(row.board),
 	};
 }
 
@@ -79,7 +94,12 @@ export function getActiveCheckpoint(userId, gameId) {
 }
 
 /**
- * Set a checkpoint for the current game. Marks any prior active checkpoint as inactive.
+ * Set the checkpoint for the current game. Marks any prior active checkpoint as inactive.
+ *
+ * Checkpoints are automatic: the client saves one right after any move whose
+ * merge created (or tied) the run's biggest tile, so the active checkpoint
+ * always points at the most recent biggest-tile moment. There is no cooldown —
+ * a newer snapshot simply supersedes the old one.
  *
  * @param {string} userId
  * @param {import("$lib/types").CheckpointSaveData} snapshot
@@ -92,26 +112,6 @@ export async function setCheckpoint(userId, snapshot) {
 	assert(typeof snapshot.score === "number", "score is required");
 
 	const existingGame = requireOwnedGame(snapshot.gameId, userId);
-
-	// Checkpoints recharge with board progress: the next one unlocks
-	// CHECKPOINT_COOLDOWN_MOVES moves past the active checkpoint. Anchoring to
-	// the checkpoint's move count means undo/restore can't shortcut the wait.
-	const activeCheckpoint = getActiveCheckpoint(userId, snapshot.gameId);
-	if (activeCheckpoint) {
-		const movesSince =
-			(snapshot.moveCount ?? existingGame.moveCount ?? 0) - activeCheckpoint.moveCount;
-		if (movesSince < CHECKPOINT_COOLDOWN_MOVES) {
-			const remaining = Math.min(CHECKPOINT_COOLDOWN_MOVES, CHECKPOINT_COOLDOWN_MOVES - movesSince);
-			const error = new Error(
-				`Checkpoint available in ${remaining} move${remaining === 1 ? "" : "s"}`
-			);
-			// @ts-ignore attach status for API handlers
-			error.status = 429;
-			// @ts-ignore
-			error.code = "CHECKPOINT_COOLDOWN";
-			throw error;
-		}
-	}
 
 	await db
 		.update(table.gameCheckpoint)

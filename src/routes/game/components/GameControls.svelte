@@ -2,7 +2,7 @@
 	import { untrack } from "svelte";
 	import { page } from "$app/state";
 	import { getInkColor } from "$lib/assets/themes.js";
-	import { CHECKPOINT_COOLDOWN_MOVES, USER_LEVELS } from "$lib/constants.js";
+	import { USER_LEVELS } from "$lib/constants.js";
 	import { formatWinDuration } from "$lib/formatTime.js";
 	import { Game } from "$lib/game.svelte.js";
 	import { saveBestWinStats } from "$lib/localStorage.svelte.js";
@@ -11,7 +11,6 @@
 	import GameStats from "$lib/components/GameStats.svelte";
 	import { gameState } from "../state.svelte.js";
 	import {
-		BookmarkPlusIcon,
 		CrownIcon,
 		LoaderCircleIcon,
 		MoveHorizontalIcon,
@@ -36,7 +35,6 @@
 	 * @property {boolean} [animationIdle]
 	 * @property {(() => void) | undefined} [onUndo]
 	 * @property {(() => void | Promise<void>) | undefined} [onNewGame]
-	 * @property {(() => void | Promise<void>) | undefined} [onSetCheckpoint]
 	 * @property {(() => void | Promise<void>) | undefined} [onRestoreCheckpoint]
 	 */
 
@@ -45,7 +43,6 @@
 		animationIdle = true,
 		onUndo = undefined,
 		onNewGame = undefined,
-		onSetCheckpoint = undefined,
 		onRestoreCheckpoint = undefined,
 	} = $props();
 
@@ -70,9 +67,8 @@
 	let undoQueued = $state(false);
 	/** True while waiting for animations before restoring a checkpoint */
 	let restoreQueued = $state(false);
-	let checkpointBusy = $state(false);
-	/** Which checkpoint op is in flight, so only that button shows a spinner @type {"set" | "restore" | null} */
-	let checkpointAction = $state(null);
+	/** True while a checkpoint restore request is in flight */
+	let restoreBusy = $state(false);
 
 	$effect(() => {
 		if (!game) return;
@@ -179,7 +175,7 @@
 			return;
 		}
 
-		if (!animationIdle || checkpointBusy) return;
+		if (!animationIdle || restoreBusy) return;
 
 		restoreQueued = false;
 		void runRestoreCheckpoint();
@@ -200,6 +196,7 @@
 		}
 		gameState.hasCheckpoint = false;
 		gameState.checkpointMoveCount = null;
+		gameState.checkpointTile = null;
 		gameState.currentGame = new Game();
 	}
 
@@ -254,36 +251,22 @@
 		onUndo?.();
 	}
 
-	async function runSetCheckpoint() {
-		if (!isPro || !game || checkpointBusy || checkpointCooldownRemaining > 0) return;
-		checkpointBusy = true;
-		checkpointAction = "set";
-		try {
-			await onSetCheckpoint?.();
-		} finally {
-			checkpointBusy = false;
-			checkpointAction = null;
-		}
-	}
-
 	async function runRestoreCheckpoint() {
-		if (!isPro || !game || !gameState.hasCheckpoint || checkpointBusy) return;
-		checkpointBusy = true;
-		checkpointAction = "restore";
+		if (!isPro || !game || !gameState.hasCheckpoint || restoreBusy) return;
+		restoreBusy = true;
 		try {
 			await onRestoreCheckpoint?.();
 			showGameOver = false;
 			showWin = false;
 			winElapsedMs = null;
 		} finally {
-			checkpointBusy = false;
-			checkpointAction = null;
+			restoreBusy = false;
 		}
 	}
 
 	/** Ask before discarding progress since the checkpoint */
 	function requestRestoreCheckpoint() {
-		if (!isPro || !gameState.hasCheckpoint || checkpointBusy || restoreQueued) return;
+		if (!isPro || !gameState.hasCheckpoint || restoreBusy || restoreQueued) return;
 		confirmRestoreCheckpoint = true;
 	}
 
@@ -293,7 +276,7 @@
 	}
 
 	function handleRestoreCheckpoint() {
-		if (!isPro || !gameState.hasCheckpoint || checkpointBusy || restoreQueued) return;
+		if (!isPro || !gameState.hasCheckpoint || restoreBusy || restoreQueued) return;
 
 		if (!animationIdle) {
 			restoreQueued = true;
@@ -317,16 +300,7 @@
 						: "Nothing to undo"
 	);
 
-	let canRestoreCheckpoint = $derived(isPro && gameState.hasCheckpoint && !checkpointBusy);
-
-	// Checkpoints recharge with board progress: the next one unlocks
-	// CHECKPOINT_COOLDOWN_MOVES moves past the active checkpoint. Anchoring to the
-	// checkpoint's move count means undo/restore can't shortcut the wait.
-	let checkpointCooldownRemaining = $derived.by(() => {
-		if (!game || !gameState.hasCheckpoint || gameState.checkpointMoveCount == null) return 0;
-		const movesSince = game.moveCount - gameState.checkpointMoveCount;
-		return Math.min(CHECKPOINT_COOLDOWN_MOVES, Math.max(0, CHECKPOINT_COOLDOWN_MOVES - movesSince));
-	});
+	let canRestoreCheckpoint = $derived(isPro && gameState.hasCheckpoint && !restoreBusy);
 
 	/** How many board moves restoring the checkpoint will rewind */
 	let checkpointMovesBack = $derived.by(() => {
@@ -334,29 +308,25 @@
 		return Math.max(0, game.moveCount - gameState.checkpointMoveCount);
 	});
 
-	let setCheckpointBusy = $derived(checkpointBusy && checkpointAction === "set");
-	let restoreCheckpointBusy = $derived(
-		restoreQueued || (checkpointBusy && checkpointAction === "restore")
+	/** Biggest tile the checkpoint returns to, shown as it appears on the board (null when unknown) */
+	let checkpointTileLabel = $derived(
+		gameState.hasCheckpoint && gameState.checkpointTile ? String(gameState.checkpointTile) : null
 	);
 
-	let setCheckpointTitle = $derived(
-		setCheckpointBusy
-			? "Saving checkpoint…"
-			: game?.gameOver
-				? "Checkpoints can only be set during an active game"
-				: checkpointCooldownRemaining > 0
-					? `Checkpoint available in ${checkpointCooldownRemaining} move${checkpointCooldownRemaining === 1 ? "" : "s"}`
-					: "Set a checkpoint for this run"
-	);
-	let restoreCheckpointTitle = $derived(
-		restoreCheckpointBusy
-			? "Restoring checkpoint…"
-			: gameState.hasCheckpoint
-				? checkpointMovesBack === 0
-					? "Restore your last checkpoint"
-					: `Restore checkpoint (${checkpointMovesBack} move${checkpointMovesBack === 1 ? "" : "s"} back)`
-				: "No checkpoint set"
-	);
+	let restoreCheckpointBusy = $derived(restoreQueued || restoreBusy);
+
+	let restoreCheckpointTitle = $derived.by(() => {
+		if (restoreCheckpointBusy) return "Returning to your biggest tile…";
+		if (!gameState.hasCheckpoint) {
+			return "No checkpoint yet — one is saved automatically when you make your biggest tile";
+		}
+		const target = checkpointTileLabel
+			? `Go back to your biggest tile (${checkpointTileLabel})`
+			: "Go back to your biggest tile";
+		return checkpointMovesBack > 0
+			? `${target} — ${checkpointMovesBack} move${checkpointMovesBack === 1 ? "" : "s"} back`
+			: target;
+	});
 </script>
 
 <!-- Header -->
@@ -406,23 +376,6 @@
 	{#if isPro}
 		<button
 			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
-			onclick={() => void runSetCheckpoint()}
-			disabled={!game || game.gameOver || checkpointBusy || checkpointCooldownRemaining > 0}
-			title={setCheckpointTitle}
-			aria-label={setCheckpointTitle}
-			aria-busy={setCheckpointBusy}
-		>
-			{#if setCheckpointBusy}
-				<LoaderCircleIcon class="animate-spin" size={18} />
-			{:else}
-				<BookmarkPlusIcon size={18} />
-			{/if}
-			{#if checkpointCooldownRemaining > 0 && !setCheckpointBusy}
-				<span class="cooldown-badge">{checkpointCooldownRemaining}</span>
-			{/if}
-		</button>
-		<button
-			class="controls-btn relative bg-primary text-primary-foreground hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
 			onclick={requestRestoreCheckpoint}
 			disabled={!canRestoreCheckpoint && !restoreQueued}
 			title={restoreCheckpointTitle}
@@ -435,15 +388,18 @@
 			{:else}
 				<BookmarkUndoIcon size={18} />
 			{/if}
+			{#if checkpointTileLabel && !restoreCheckpointBusy}
+				<span class="tile-badge">{checkpointTileLabel}</span>
+			{/if}
 		</button>
 	{:else}
 		<a
 			href={isLoggedIn ? "/stripe" : "/login"}
 			class="controls-btn relative flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/80"
-			title="Checkpoints (Pro)"
-			aria-label="Checkpoints (Pro)"
+			title="Biggest-tile checkpoints (Pro)"
+			aria-label="Biggest-tile checkpoints (Pro)"
 		>
-			<BookmarkPlusIcon size={18} />
+			<BookmarkUndoIcon size={18} />
 			<span class="pro-badge"><CrownIcon size={10} /></span>
 		</a>
 	{/if}
@@ -516,13 +472,15 @@
 					class="m-1"
 					variant={game.canUndo ? "secondary" : "default"}
 					onclick={requestRestoreCheckpoint}
-					disabled={checkpointBusy || restoreQueued}
+					disabled={restoreBusy || restoreQueued}
 					aria-haspopup="dialog"
 				>
 					{#if restoreCheckpointBusy}
 						Restoring…
+					{:else if checkpointTileLabel}
+						Back to Your {checkpointTileLabel}
 					{:else}
-						Restore Checkpoint
+						Back to Your Biggest Tile
 					{/if}
 				</Button>
 			{:else if !isPro}
@@ -582,20 +540,26 @@
 <AlertDialog.Root bind:open={confirmRestoreCheckpoint}>
 	<AlertDialog.Content class="z-[1100]">
 		<AlertDialog.Header>
-			<AlertDialog.Title>Restore checkpoint?</AlertDialog.Title>
+			<AlertDialog.Title>
+				{#if checkpointTileLabel}
+					Go back to your {checkpointTileLabel} tile?
+				{:else}
+					Go back to your biggest tile?
+				{/if}
+			</AlertDialog.Title>
 			<AlertDialog.Description>
 				{#if checkpointMovesBack === 0}
-					This restores your board to the saved checkpoint.
+					This restores your board to right after the move that made your biggest tile.
 				{:else}
 					This goes back {checkpointMovesBack.toLocaleString()} move{checkpointMovesBack === 1
 						? ""
-						: "s"} and restores your board to the saved checkpoint.
+						: "s"}, to right after the move that made your biggest tile.
 				{/if}
 			</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-			<AlertDialog.Action onclick={confirmRestoreCheckpointAction}>Restore</AlertDialog.Action>
+			<AlertDialog.Action onclick={confirmRestoreCheckpointAction}>Go Back</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>
@@ -609,6 +573,11 @@
 
 	.cooldown-badge {
 		@apply absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-black/70 px-1 text-[10px] leading-none font-bold text-white;
+	}
+
+	/* Which biggest-tile moment the checkpoint returns to */
+	.tile-badge {
+		@apply absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] leading-none font-bold text-amber-950;
 	}
 
 	.pro-badge {
