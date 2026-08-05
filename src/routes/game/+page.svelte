@@ -424,7 +424,18 @@
 				throw new Error(result.error || "Failed to save checkpoint");
 			}
 
-			if (gameState.currentGame !== game) return;
+			// Restore (or new game) replaced this run — drop the stale snapshot
+			if (gameState.currentGame !== game) {
+				const staleId = result.checkpoint?.id;
+				if (staleId) {
+					void fetch("/api/game/checkpoint", {
+						method: "DELETE",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ checkpointId: staleId }),
+					}).catch(() => {});
+				}
+				return;
+			}
 			gameState.hasCheckpoint = true;
 			gameState.checkpointMoveCount = result.checkpoint?.moveCount ?? snapshot.moveCount;
 			gameState.checkpointTile = result.checkpoint?.maxTile ?? tile;
@@ -435,11 +446,15 @@
 	}
 
 	/**
-	 * Restore the latest active checkpoint into the current game
+	 * Restore the latest active checkpoint into the current game.
+	 * Consumes it — restore stays unavailable until the next biggest-tile save.
 	 */
 	async function handleRestoreCheckpoint() {
 		const game = gameState.currentGame;
 		if (!game?.id || !page.data.user) return;
+
+		// Drop any queued post-checkpoint snapshot so it can't revive a consumed one
+		pendingCheckpoint = null;
 
 		try {
 			const response = await fetch("/api/game/checkpoint/restore", {
@@ -456,8 +471,10 @@
 				id: result.game.id,
 				initialState: result.game,
 			});
-			gameState.hasCheckpoint = true;
-			gameState.checkpointMoveCount = result.game.moveCount ?? null;
+			// Restore consumes the checkpoint; a new one appears on the next biggest tile
+			gameState.hasCheckpoint = false;
+			gameState.checkpointMoveCount = null;
+			gameState.checkpointTile = null;
 			localSaveGame(gameState.currentGame.json());
 			queueMicrotask(() => flushSaveToServer());
 		} catch (error) {
