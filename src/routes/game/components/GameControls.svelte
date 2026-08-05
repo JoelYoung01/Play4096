@@ -318,7 +318,7 @@
 	let restoreCheckpointTitle = $derived.by(() => {
 		if (restoreCheckpointBusy) return "Returning to your biggest tile…";
 		if (!gameState.hasCheckpoint) {
-			return "No checkpoint yet — one is saved automatically when you make your biggest tile";
+			return "No checkpoint available — one is saved when you make a new biggest tile (each restore uses it up)";
 		}
 		const target = checkpointTileLabel
 			? `Go back to your biggest tile (${checkpointTileLabel})`
@@ -549,11 +549,13 @@
 			</AlertDialog.Title>
 			<AlertDialog.Description>
 				{#if checkpointMovesBack === 0}
-					This restores your board to right after the move that made your biggest tile.
+					This restores your board to right after the move that made your biggest tile. Each
+					checkpoint can only be used once — make a new biggest tile to save another.
 				{:else}
 					This goes back {checkpointMovesBack.toLocaleString()} move{checkpointMovesBack === 1
 						? ""
-						: "s"}, to right after the move that made your biggest tile.
+						: "s"}, to right after the move that made your biggest tile. Each checkpoint can only be
+					used once — make a new biggest tile to save another.
 				{/if}
 			</AlertDialog.Description>
 		</AlertDialog.Header>

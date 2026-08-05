@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { USER_LEVELS } from "$lib/constants";
-import { getActiveCheckpoint, setCheckpoint } from "$lib/server/checkpoint";
+import { deactivateCheckpoint, getActiveCheckpoint, setCheckpoint } from "$lib/server/checkpoint";
 import { getUser } from "$lib/server/user";
 
 /**
@@ -58,6 +58,31 @@ export async function POST({ request, locals }) {
 			moves: body.moves,
 		});
 		return json({ success: true, checkpoint });
+	} catch (error) {
+		const { message, status, code } = normalizeError(error);
+		return json({ error: message, code }, { status });
+	}
+}
+
+/** @type {import("./$types").RequestHandler} */
+export async function DELETE({ request, locals }) {
+	if (!locals.user) {
+		return json({ error: "Not logged in" }, { status: 401 });
+	}
+
+	const user = getUser(locals.user.id);
+	if (!user || user.level !== USER_LEVELS.PRO) {
+		return json({ error: "Checkpoints are a Pro feature", code: "PRO_REQUIRED" }, { status: 403 });
+	}
+
+	const body = await request.json();
+	if (!body?.checkpointId) {
+		return json({ error: "checkpointId is required" }, { status: 400 });
+	}
+
+	try {
+		const deactivated = deactivateCheckpoint(locals.user.id, body.checkpointId);
+		return json({ success: true, deactivated });
 	} catch (error) {
 		const { message, status, code } = normalizeError(error);
 		return json({ error: message, code }, { status });

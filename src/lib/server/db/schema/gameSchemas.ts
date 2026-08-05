@@ -35,8 +35,9 @@ export const game = sqliteTable("game", {
  * Checkpoints are captured automatically right after a move whose merge created
  * (or tied) the run's biggest tile, so the active row always points at the most
  * recent biggest-tile moment. Only one row per game should have isActive=true at
- * a time (the restore target). Superseded rows are retained for analytics and
- * are not restorable in the UI.
+ * a time (the restore target). Restoring consumes that row (isActive=false);
+ * the next biggest-tile capture creates a new restorable checkpoint. Superseded
+ * and consumed rows are retained for analytics and are not restorable in the UI.
  */
 export const gameCheckpoint = sqliteTable("game_checkpoint", {
 	id: text("id").primaryKey(),

@@ -99,7 +99,8 @@ export function getActiveCheckpoint(userId, gameId) {
  * Checkpoints are automatic: the client saves one right after any move whose
  * merge created (or tied) the run's biggest tile, so the active checkpoint
  * always points at the most recent biggest-tile moment. There is no cooldown —
- * a newer snapshot simply supersedes the old one.
+ * a newer snapshot simply supersedes the old one. Restoring consumes the
+ * active checkpoint; only a later biggest-tile save makes restore available again.
  *
  * @param {string} userId
  * @param {import("$lib/types").CheckpointSaveData} snapshot
@@ -166,7 +167,29 @@ export async function setCheckpoint(userId, snapshot) {
 }
 
 /**
+ * Deactivate a checkpoint owned by the user (e.g. a stale save after restore).
+ * @param {string} userId
+ * @param {string} checkpointId
+ * @returns {boolean} true when a row was deactivated
+ */
+export function deactivateCheckpoint(userId, checkpointId) {
+	assert(checkpointId, "checkpointId is required");
+	const updated = db
+		.update(table.gameCheckpoint)
+		.set({ isActive: false })
+		.where(
+			and(eq(table.gameCheckpoint.id, checkpointId), eq(table.gameCheckpoint.playerId, userId))
+		)
+		.returning({ id: table.gameCheckpoint.id })
+		.get();
+	return !!updated;
+}
+
+/**
  * Restore the active checkpoint into the current game row and return the restored state.
+ *
+ * Checkpoints are single-use: restoring consumes the active row (isActive=false).
+ * A new restorable checkpoint appears only after the next biggest-tile capture.
  *
  * @param {string} userId
  * @param {string} gameId
@@ -219,6 +242,19 @@ export async function restoreCheckpoint(userId, gameId) {
 			updatedOn: new Date(),
 		})
 		.where(eq(table.game.id, gameId));
+
+	// Consume all active checkpoints for this run (the one restored plus any
+	// superseding snapshot that may have landed just before restore).
+	await db
+		.update(table.gameCheckpoint)
+		.set({ isActive: false })
+		.where(
+			and(
+				eq(table.gameCheckpoint.playerId, userId),
+				eq(table.gameCheckpoint.gameId, gameId),
+				eq(table.gameCheckpoint.isActive, true)
+			)
+		);
 
 	return {
 		id: gameId,
