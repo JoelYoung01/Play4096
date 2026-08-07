@@ -1,4 +1,3 @@
-import "react-native-gesture-handler";
 import { AppLockGate } from "@/components/AppLockGate";
 import { queryClient } from "@/lib/query-client";
 import { useAppLockStore } from "@/stores/app-lock";
