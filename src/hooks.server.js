@@ -51,9 +51,23 @@ export const handleLogging = async ({ event, resolve }) => {
 	});
 };
 
+/**
+ * Prefer Authorization: Bearer for mobile / API clients; fall back to cookie sessions.
+ * @param {import('@sveltejs/kit').RequestEvent} event
+ */
+function getSessionTokenFromRequest(event) {
+	const header = event.request.headers.get("authorization");
+	if (header) {
+		const match = /^Bearer\s+(.+)$/i.exec(header.trim());
+		if (match?.[1]) return match[1].trim();
+	}
+	return event.cookies.get(auth.sessionCookieName) ?? null;
+}
+
 /** @type {import('@sveltejs/kit').Handle} */
 const handleAuth = async ({ event, resolve }) => {
-	const sessionToken = event.cookies.get(auth.sessionCookieName);
+	const sessionToken = getSessionTokenFromRequest(event);
+	const usedBearer = Boolean(event.request.headers.get("authorization"));
 
 	if (!sessionToken) {
 		event.locals.user = null;
@@ -63,9 +77,9 @@ const handleAuth = async ({ event, resolve }) => {
 
 	const { session, user } = await auth.validateSessionToken(sessionToken);
 
-	if (session) {
+	if (session && !usedBearer) {
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
-	} else {
+	} else if (!session && !usedBearer) {
 		auth.deleteSessionTokenCookie(event);
 	}
 

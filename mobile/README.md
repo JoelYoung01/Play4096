@@ -36,10 +36,20 @@ Native/iOS build config:
 - `PLAY4096_IOS_BUILD_NUMBER` - defaults to `1`.
 - `APPLE_TEAM_ID` - Apple Developer team id used by local/CI signing.
 
-App Store Connect / StoreKit CI secrets:
+App Store Connect / StoreKit CI secrets (same as Sous Kit / Jamez):
 
 - `ASC_KEY_ID`
 - `ASC_ISSUER_ID`
 - `ASC_PRIVATE_KEY`
+- `APPLE_TEAM_ID`
+
+Optional GitHub variables: `PLAY4096_IOS_BUNDLE_ID`, `MOBILE_API_URL`.
+
+Full ASC + IAP setup: see [`docs/ASC_Setup.md`](../docs/ASC_Setup.md).
 
 The Pro product id is `com.joelyoung.play4096.pro`. Purchases are verified by posting the StoreKit signed transaction to `/api/v1/iap/apple/verify`.
+
+## CI / TestFlight
+
+- **Mobile CI** (`.github/workflows/MobileCI.yaml`) — lint, typecheck, test, `expo prebuild`, JS bundle on PRs touching `mobile/**`.
+- **Mobile Release** (`.github/workflows/MobileRelease.yaml`) — on `main` (or manual): `expo prebuild` → `xcodebuild` archive/export → `altool` upload to TestFlight. Skips cleanly when ASC secrets are missing.

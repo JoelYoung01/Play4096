@@ -73,6 +73,7 @@
 		"better-sqlite3": "^11.8.0",
 		"drizzle-kit": "^0.30.2",
 		"drizzle-orm": "^0.40.0",
+		"jose": "^6.2.8",
 		"nodemailer": "^7.0.6",
 		"pino": "^9.11.0",
 		"sqlite3": "^5.1.7",
