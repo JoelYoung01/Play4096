@@ -19,8 +19,8 @@ const appleStoreJwks = createRemoteJWKSet(
  */
 export function getIapConfig() {
 	return {
-		productId: env.APPLE_IAP_PRODUCT_ID || "com.joelyoung.play4096.pro",
-		bundleId: env.APPLE_IAP_BUNDLE_ID || env.APPLE_CLIENT_ID || "com.joelyoung.play4096",
+		productId: env.APPLE_IAP_PRODUCT_ID || "com.joelyoung.play4096.pro.unlock",
+		bundleId: env.APPLE_IAP_BUNDLE_ID || env.APPLE_CLIENT_ID || "com.joelyoung.play4096.pro",
 	};
 }
 

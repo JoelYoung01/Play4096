@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: "automatic",
   backgroundColor: "#fbf8ef",
   ios: {
-    bundleIdentifier: process.env.PLAY4096_IOS_BUNDLE_ID || "com.joelyoung.play4096",
+    bundleIdentifier: process.env.PLAY4096_IOS_BUNDLE_ID || "com.joelyoung.play4096.pro",
     buildNumber: process.env.PLAY4096_IOS_BUILD_NUMBER || "1",
     supportsTablet: false,
     usesAppleSignIn: true,

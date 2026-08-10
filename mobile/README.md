@@ -35,7 +35,7 @@ Runtime JS config:
 
 Native/iOS build config:
 
-- `PLAY4096_IOS_BUNDLE_ID` - defaults to `com.joelyoung.play4096`.
+- `PLAY4096_IOS_BUNDLE_ID` - defaults to `com.joelyoung.play4096.pro` (matches ASC app **4096: A Tile Game**).
 - `PLAY4096_IOS_BUILD_NUMBER` - defaults to `1`.
 - `APPLE_TEAM_ID` - Apple Developer team id used by local/CI signing.
 
@@ -50,7 +50,7 @@ Optional GitHub variables: `PLAY4096_IOS_BUNDLE_ID`, `MOBILE_API_URL`.
 
 Full ASC + IAP setup: see [`docs/ASC_Setup.md`](../docs/ASC_Setup.md).
 
-The Pro product id is `com.joelyoung.play4096.pro`. Purchases are verified by posting the StoreKit signed transaction to `/api/v1/iap/apple/verify`.
+The Pro StoreKit product id is `com.joelyoung.play4096.pro.unlock` (verified via `/api/v1/iap/apple/verify`).
 
 ## CI / TestFlight
 

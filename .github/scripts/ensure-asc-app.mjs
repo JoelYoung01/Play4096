@@ -5,19 +5,17 @@
  *
  * Env:
  *   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY  (or ASC_PRIVATE_KEY_PATH)
- *   ASC_BUNDLE_ID   (default com.joelyoung.play4096)
- *   ASC_APP_NAME    (default Play4096)
- *   ASC_APP_SKU     (default play4096)
+ *   ASC_BUNDLE_ID   (default com.joelyoung.play4096.pro)
+ *   ASC_APP_NAME    (default 4096: A Tile Game)
+ *   ASC_APP_SKU     (default play4096-app)
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
 
 const keyId = process.env.ASC_KEY_ID;
 const issuerId = process.env.ASC_ISSUER_ID;
-const bundleId = process.env.ASC_BUNDLE_ID || "com.joelyoung.play4096";
-const appName = process.env.ASC_APP_NAME || "Play4096";
-// Distinct from any accidental ASC app that used the IAP product id
-// (com.joelyoung.play4096.pro) as its bundle.
+const bundleId = process.env.ASC_BUNDLE_ID || "com.joelyoung.play4096.pro";
+const appName = process.env.ASC_APP_NAME || "4096: A Tile Game";
 const sku = process.env.ASC_APP_SKU || "play4096-app";
 
 function loadPrivateKey() {
@@ -204,6 +202,11 @@ async function createApp(bundleResourceId) {
 		});
 		return created.data;
 	} catch (err) {
+		if (err.status === 403) {
+			throw new Error(
+				`ASC API key cannot create apps (forbidden). Create an App Store Connect app with bundle id "${bundleId}" in the portal, or set PLAY4096_IOS_BUNDLE_ID to an existing app's bundle. Original: ${err.message}`
+			);
+		}
 		if (err.status !== 409 && err.status !== 400) throw err;
 		console.error("Relationship create failed; retrying with bundleId attribute…");
 		const created = await asc("/v1/apps", {

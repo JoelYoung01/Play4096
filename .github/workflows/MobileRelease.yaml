@@ -181,10 +181,10 @@ jobs:
         env:
           ASC_PRIVATE_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
           ASC_BUNDLE_ID: ${{ vars.PLAY4096_IOS_BUNDLE_ID }}
-          ASC_APP_NAME: Play4096
+          ASC_APP_NAME: "4096: A Tile Game"
           ASC_APP_SKU: play4096-app
         run: |
-          export ASC_BUNDLE_ID="${ASC_BUNDLE_ID:-com.joelyoung.play4096}"
+          export ASC_BUNDLE_ID="${ASC_BUNDLE_ID:-com.joelyoung.play4096.pro}"
           APPLE_ID=$(node .github/scripts/ensure-asc-app.mjs)
           echo "apple_id=$APPLE_ID" >> "$GITHUB_OUTPUT"
           echo "Using ASC Apple ID $APPLE_ID for bundle $ASC_BUNDLE_ID"
