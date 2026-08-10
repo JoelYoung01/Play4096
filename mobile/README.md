@@ -10,6 +10,9 @@ pnpm install
 EXPO_PUBLIC_API_URL=http://localhost:5173 pnpm start
 ```
 
+`mobile/.npmrc` sets `node-linker=hoisted` so Metro/Babel can resolve presets during
+Xcode archive (pnpm’s default isolated layout breaks the RN bundle phase).
+
 The backend REST API is the SvelteKit server on the same host under `/api/v1/*`. Point `EXPO_PUBLIC_API_URL` at the server origin, not the `/api/v1` path. For an iOS simulator talking to a backend on the same Mac, `http://localhost:5173` works; for a physical device, use your LAN URL.
 
 Useful commands:
