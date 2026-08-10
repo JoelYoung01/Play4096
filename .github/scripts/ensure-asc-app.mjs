@@ -16,7 +16,9 @@ const keyId = process.env.ASC_KEY_ID;
 const issuerId = process.env.ASC_ISSUER_ID;
 const bundleId = process.env.ASC_BUNDLE_ID || "com.joelyoung.play4096";
 const appName = process.env.ASC_APP_NAME || "Play4096";
-const sku = process.env.ASC_APP_SKU || "play4096";
+// Distinct from any accidental ASC app that used the IAP product id
+// (com.joelyoung.play4096.pro) as its bundle.
+const sku = process.env.ASC_APP_SKU || "play4096-app";
 
 function loadPrivateKey() {
 	if (process.env.ASC_PRIVATE_KEY_PATH) {
@@ -74,22 +76,54 @@ async function asc(pathname, { method = "GET", body } = {}) {
 	return json;
 }
 
+/**
+ * Exact-match only. ASC's filter[bundleId] can surface sibling ids
+ * (e.g. com.joelyoung.play4096.pro when querying com.joelyoung.play4096).
+ */
 async function findApp() {
 	const q = new URLSearchParams({
 		"filter[bundleId]": bundleId,
-		limit: "5",
+		limit: "50",
 	});
-	const data = await asc(`/v1/apps?${q}`);
-	return data?.data?.[0] ?? null;
+	const filtered = await asc(`/v1/apps?${q}`);
+	for (const app of filtered?.data ?? []) {
+		const bid = app.attributes?.bundleId;
+		console.error(
+			`filter candidate ${app.id}: bundleId=${bid} name=${app.attributes?.name}`
+		);
+		if (bid === bundleId) return app;
+	}
+
+	// Fallback: scan the account (paginated) for an exact bundle match.
+	let next = "/v1/apps?limit=200";
+	while (next) {
+		const page = await asc(next.startsWith("http") ? new URL(next).pathname + new URL(next).search : next);
+		for (const app of page?.data ?? []) {
+			const bid = app.attributes?.bundleId;
+			if (bid === bundleId) {
+				console.error(`scan found ${app.id}: bundleId=${bid}`);
+				return app;
+			}
+		}
+		next = page?.links?.next ?? null;
+		if (next?.startsWith("http")) {
+			const u = new URL(next);
+			next = u.pathname + u.search;
+		}
+	}
+	return null;
 }
 
 async function findBundleIdResource() {
 	const q = new URLSearchParams({
 		"filter[identifier]": bundleId,
-		limit: "5",
+		limit: "50",
 	});
 	const data = await asc(`/v1/bundleIds?${q}`);
-	return data?.data?.[0] ?? null;
+	for (const row of data?.data ?? []) {
+		if (row.attributes?.identifier === bundleId) return row;
+	}
+	return null;
 }
 
 async function ensureBundleId() {

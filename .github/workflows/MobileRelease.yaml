@@ -182,7 +182,7 @@ jobs:
           ASC_PRIVATE_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
           ASC_BUNDLE_ID: ${{ vars.PLAY4096_IOS_BUNDLE_ID }}
           ASC_APP_NAME: Play4096
-          ASC_APP_SKU: play4096
+          ASC_APP_SKU: play4096-app
         run: |
           export ASC_BUNDLE_ID="${ASC_BUNDLE_ID:-com.joelyoung.play4096}"
           APPLE_ID=$(node .github/scripts/ensure-asc-app.mjs)
