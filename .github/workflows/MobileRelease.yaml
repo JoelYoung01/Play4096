@@ -15,6 +15,7 @@ on:
     paths:
       - "mobile/**"
       - ".github/workflows/MobileRelease.yaml"
+      - ".github/scripts/ensure-asc-app.mjs"
   workflow_dispatch:
 
 concurrency:
@@ -169,12 +170,32 @@ jobs:
           path: ${{ runner.temp }}/export/*.ipa
           retention-days: 30
 
+      # altool resolves the ASC "Apple ID" from the bundle id. If the App Store
+      # Connect app record does not exist yet, upload fails with:
+      #   Cannot determine the Apple ID from Bundle ID '…'
+      # Create/find the app via the ASC API and pass --apple-id explicitly.
+      - name: Ensure App Store Connect app
+        if: steps.creds.outputs.configured == 'true'
+        id: asc_app
+        working-directory: ${{ github.workspace }}
+        env:
+          ASC_PRIVATE_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
+          ASC_BUNDLE_ID: ${{ vars.PLAY4096_IOS_BUNDLE_ID }}
+          ASC_APP_NAME: Play4096
+          ASC_APP_SKU: play4096
+        run: |
+          export ASC_BUNDLE_ID="${ASC_BUNDLE_ID:-com.joelyoung.play4096}"
+          APPLE_ID=$(node .github/scripts/ensure-asc-app.mjs)
+          echo "apple_id=$APPLE_ID" >> "$GITHUB_OUTPUT"
+          echo "Using ASC Apple ID $APPLE_ID for bundle $ASC_BUNDLE_ID"
+
       - name: Upload to TestFlight
         if: steps.creds.outputs.configured == 'true'
         run: |
           IPA_PATH=$(ls "$RUNNER_TEMP"/export/*.ipa | head -n 1)
-          echo "Uploading $IPA_PATH"
+          echo "Uploading $IPA_PATH (apple-id ${{ steps.asc_app.outputs.apple_id }})"
           xcrun altool --upload-app --type ios \
             --file "$IPA_PATH" \
+            --apple-id "${{ steps.asc_app.outputs.apple_id }}" \
             --apiKey "$ASC_KEY_ID" \
             --apiIssuer "$ASC_ISSUER_ID"

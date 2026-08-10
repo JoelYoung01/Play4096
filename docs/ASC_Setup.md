@@ -8,8 +8,12 @@ One-time Apple + GitHub config so `.github/workflows/MobileRelease.yaml` can sig
 2. **ASC API key** — [Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api) → **Team key**, role **Admin**.
    - Save **Key ID**, **Issuer ID**, and the `.p8` (downloadable once).
    - Admin is required for Xcode cloud signing. App Manager → `"Cloud signing permission error"`.
-3. **App record** — [Apps → + → New App](https://appstoreconnect.apple.com/apps): iOS, name **Play4096**, bundle ID `com.joelyoung.play4096` (register if prompted), SKU e.g. `play4096`.
-4. **Sign in with Apple** — enable the capability on the App ID.
+3. **App record** — optional to create by hand. The Mobile Release workflow calls
+   `.github/scripts/ensure-asc-app.mjs` to find/create the App Store Connect app
+   for `com.joelyoung.play4096` (and enable Sign in with Apple on the Bundle ID)
+   before `altool` upload. You can still create it manually under
+   [Apps → + → New App](https://appstoreconnect.apple.com/apps) if you prefer.
+4. **Sign in with Apple** — enable on the App ID if you create it manually (CI also tries).
 5. **In-App Purchase** — create a non-consumable product `com.joelyoung.play4096.pro` (Play4096 Pro).
 6. **Team ID** — [Membership](https://developer.apple.com/account#MembershipDetailsCard) → 10-char string.
 
