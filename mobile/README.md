@@ -7,13 +7,15 @@ Expo SDK 57 / React Native iOS app for Play4096. The native project is generated
 ```sh
 cd mobile
 pnpm install
-EXPO_PUBLIC_API_URL=http://localhost:5173 pnpm start
+EXPO_PUBLIC_API_URL=http://localhost:5173 \
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client.apps.googleusercontent.com \
+pnpm start
 ```
 
 `mobile/.npmrc` sets `node-linker=hoisted` so Metro/Babel can resolve presets during
 Xcode archive (pnpm’s default isolated layout breaks the RN bundle phase).
 
-The backend REST API is the SvelteKit server on the same host under `/api/v1/*`. Point `EXPO_PUBLIC_API_URL` at the server origin, not the `/api/v1` path. For an iOS simulator talking to a backend on the same Mac, `http://localhost:5173` works; for a physical device, use your LAN URL.
+The backend REST API is the SvelteKit server under `/api/v1/*`. Point `EXPO_PUBLIC_API_URL` at the server origin, not the `/api/v1` path. For an iOS simulator talking to a backend on the same Mac, `http://localhost:5173` works; for a physical device, use your LAN URL.
 
 Useful commands:
 
@@ -25,17 +27,24 @@ pnpm prebuild:ios
 pnpm ios
 ```
 
+## Identifiers
+
+| | |
+|---|---|
+| App bundle | `com.joelyoung.4096` |
+| Pro IAP | `com.joelyoung.4096.pro` |
+
 ## Environment variables
 
 Runtime JS config:
 
 - `EXPO_PUBLIC_API_URL` - backend origin, defaults to `http://localhost:5173`.
-- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` - Google OAuth iOS client id.
+- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` - Google OAuth iOS client id (bundle must be `com.joelyoung.4096`).
 - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` - Google OAuth web client id for development/web.
 
 Native/iOS build config:
 
-- `PLAY4096_IOS_BUNDLE_ID` - defaults to `com.joelyoung.play4096.pro` (matches ASC app **4096: A Tile Game**).
+- `PLAY4096_IOS_BUNDLE_ID` - defaults to `com.joelyoung.4096`.
 - `PLAY4096_IOS_BUILD_NUMBER` - defaults to `1`.
 - `APPLE_TEAM_ID` - Apple Developer team id used by local/CI signing.
 
@@ -45,12 +54,14 @@ App Store Connect / StoreKit CI secrets (same as Sous Kit / Jamez):
 - `ASC_ISSUER_ID`
 - `ASC_PRIVATE_KEY`
 - `APPLE_TEAM_ID`
+- `GOOGLE_IOS_CLIENT_ID` → baked as `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
+- `GOOGLE_CLIENT_ID` → baked as `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (optional)
 
 Optional GitHub variables: `PLAY4096_IOS_BUNDLE_ID`, `MOBILE_API_URL`.
 
 Full ASC + IAP setup: see [`docs/ASC_Setup.md`](../docs/ASC_Setup.md).
 
-The Pro StoreKit product id is `com.joelyoung.play4096.pro.unlock` (verified via `/api/v1/iap/apple/verify`).
+Pro purchases post the StoreKit signed transaction to `/api/v1/iap/apple/verify`.
 
 ## CI / TestFlight
 

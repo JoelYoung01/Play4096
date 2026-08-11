@@ -15,7 +15,7 @@ const googleJwks = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2
  * @returns {string[]}
  */
 function appleAudiences() {
-	const primary = env.APPLE_CLIENT_ID || "com.joelyoung.play4096.pro";
+	const primary = env.APPLE_CLIENT_ID || "com.joelyoung.4096";
 	const extras = (env.APPLE_CLIENT_IDS || "")
 		.split(",")
 		.map((s) => s.trim())

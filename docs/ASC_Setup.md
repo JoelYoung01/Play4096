@@ -2,67 +2,64 @@
 
 One-time Apple + GitHub config so `.github/workflows/MobileRelease.yaml` can sign and upload to TestFlight. Same secrets as Sous Kit / Jamez — reuse them if you already ship those apps.
 
-## Identifiers (important)
+## Identifiers
 
 | What | ID | Notes |
 |---|---|---|
-| **iOS app bundle** | `com.joelyoung.play4096.pro` | Matches the existing ASC app **“4096: A Tile Game”** |
-| **Pro IAP product** | `com.joelyoung.play4096.pro.unlock` | Non-consumable **under** that app (create in ASC → Monetization → In-App Purchases) |
-| Dev Portal App ID `com.joelyoung.play4096` | (XC auto) | From cloud signing; not the ASC app record |
+| **iOS app bundle** (signing / Google / Sign in with Apple) | `com.joelyoung.4096` | Must match the Google iOS OAuth client’s bundle id |
+| **Pro IAP product** | `com.joelyoung.4096.pro` | Non-consumable **under** that app in ASC → Monetization → In-App Purchases |
 
-The `.pro` suffix on the **app** bundle is historical (the ASC listing was created with that id). It is **not** the IAP product — the product id is `….pro.unlock`.
+Older ids (`com.joelyoung.play4096*`) are retired; leave any leftover Dev Portal App IDs alone.
 
 ## 1. Apple side
 
 1. **Apple Developer Program** — active membership ($99/yr): https://developer.apple.com/programs/
 2. **ASC API key** — [Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api) → **Team key**, role **Admin**.
    - Save **Key ID**, **Issuer ID**, and the `.p8` (downloadable once).
-   - Admin is required for Xcode cloud signing. App Manager → `"Cloud signing permission error"`.
-3. **App record** — already present as **4096: A Tile Game** (`com.joelyoung.play4096.pro`). CI looks this up and passes `--apple-id` to `altool`. (ASC API keys cannot *create* apps — only GET/UPDATE.)
-4. **Sign in with Apple** — enable on App ID `com.joelyoung.play4096.pro`.
-5. **In-App Purchase** — create a non-consumable `com.joelyoung.play4096.pro.unlock` (Play4096 Pro).
+   - Admin is required for Xcode cloud signing.
+3. **App ID** — register `com.joelyoung.4096` under [Identifiers](https://developer.apple.com/account/resources/identifiers/list) with **Sign in with Apple** enabled.
+4. **App Store Connect app** — [Apps → + → New App](https://appstoreconnect.apple.com/apps): iOS, name **Play4096** (or similar), bundle ID `com.joelyoung.4096`, SKU e.g. `play4096`.
+   - ASC API keys **cannot create apps** (only GET/UPDATE). CI looks up this record and passes `--apple-id` to `altool`.
+5. **In-App Purchase** — create a non-consumable `com.joelyoung.4096.pro` (Play4096 Pro) on that app.
 6. **Team ID** — [Membership](https://developer.apple.com/account#MembershipDetailsCard) → 10-char string.
 
-No need to create/export certs or profiles by hand — the workflow uses cloud-managed signing at export time.
+## 2. Google OAuth
 
-## 2. GitHub secrets & variables
+1. [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials): **iOS** OAuth client with bundle ID `com.joelyoung.4096`.
+2. Store the client id as GitHub secret `GOOGLE_IOS_CLIENT_ID` (already wired into Mobile Release as `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` at prebuild **and** archive).
+3. Optional web client → secret `GOOGLE_CLIENT_ID`.
+4. On the **backend**, set `GOOGLE_CLIENT_IDS` to the same iOS (and web) client id(s), comma-separated — the API verifies the ID token `aud` against that list.
 
-**Settings → Secrets and variables → Actions → Secrets**
+## 3. GitHub secrets & variables
+
+**Secrets**
 
 | Secret | From |
 |---|---|
 | `APPLE_TEAM_ID` | Membership → Team ID |
-| `ASC_KEY_ID` | API key → Key ID |
-| `ASC_ISSUER_ID` | API key → Issuer ID |
-| `ASC_PRIVATE_KEY` | Full `.p8` contents (multiline OK) |
-| `GOOGLE_CLIENT_ID` | Google OAuth web client id (optional) |
-| `GOOGLE_IOS_CLIENT_ID` | Google OAuth iOS client id (optional) |
+| `ASC_KEY_ID` / `ASC_ISSUER_ID` / `ASC_PRIVATE_KEY` | ASC API key |
+| `GOOGLE_IOS_CLIENT_ID` | Google iOS OAuth client |
+| `GOOGLE_CLIENT_ID` | Google web OAuth client (optional) |
 
 **Variables**
 
 | Variable | Purpose |
 |---|---|
-| `PLAY4096_IOS_BUNDLE_ID` | Optional override (default `com.joelyoung.play4096.pro`) |
+| `PLAY4096_IOS_BUNDLE_ID` | Optional override (default `com.joelyoung.4096`) |
 | `MOBILE_API_URL` | Production API origin baked into the JS bundle |
 
-Build number = `github.run_number`.
-
-## 3. Backend env (production)
-
-Set on the server / deploy environment:
+## 4. Backend env (production)
 
 | Env | Purpose |
 |---|---|
-| `APPLE_CLIENT_ID` | Sign in with Apple audience (= app bundle id) |
-| `GOOGLE_CLIENT_IDS` | Comma-separated Google client ids accepted as token `aud` |
-| `APPLE_IAP_PRODUCT_ID` | `com.joelyoung.play4096.pro.unlock` |
-| `APPLE_IAP_BUNDLE_ID` | `com.joelyoung.play4096.pro` |
+| `APPLE_CLIENT_ID` | `com.joelyoung.4096` |
+| `GOOGLE_CLIENT_IDS` | Same as `GOOGLE_IOS_CLIENT_ID` (+ web if used) |
+| `APPLE_IAP_PRODUCT_ID` | `com.joelyoung.4096.pro` |
+| `APPLE_IAP_BUNDLE_ID` | `com.joelyoung.4096` |
 
-## 4. Ship
+## 5. Ship
 
 - Auto: push to `main` touching `mobile/**`
 - Manual: **Actions → Mobile Release (iOS) → Run workflow**
 
-Without the ASC secrets, the job warns and skips (stays green). With them: IPA → TestFlight (plus a workflow artifact).
-
-Then: TestFlight app on phone → App Store Connect → TestFlight → add yourself as internal tester → install.
+Without ASC secrets, the job warns and skips (stays green). With them: IPA → TestFlight.

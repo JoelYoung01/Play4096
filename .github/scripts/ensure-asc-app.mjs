@@ -5,18 +5,18 @@
  *
  * Env:
  *   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY  (or ASC_PRIVATE_KEY_PATH)
- *   ASC_BUNDLE_ID   (default com.joelyoung.play4096.pro)
- *   ASC_APP_NAME    (default 4096: A Tile Game)
- *   ASC_APP_SKU     (default play4096-app)
+ *   ASC_BUNDLE_ID   (default com.joelyoung.4096)
+ *   ASC_APP_NAME    (default Play4096)
+ *   ASC_APP_SKU     (default play4096)
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
 
 const keyId = process.env.ASC_KEY_ID;
 const issuerId = process.env.ASC_ISSUER_ID;
-const bundleId = process.env.ASC_BUNDLE_ID || "com.joelyoung.play4096.pro";
-const appName = process.env.ASC_APP_NAME || "4096: A Tile Game";
-const sku = process.env.ASC_APP_SKU || "play4096-app";
+const bundleId = process.env.ASC_BUNDLE_ID || "com.joelyoung.4096";
+const appName = process.env.ASC_APP_NAME || "Play4096";
+const sku = process.env.ASC_APP_SKU || "play4096";
 
 function loadPrivateKey() {
 	if (process.env.ASC_PRIVATE_KEY_PATH) {
@@ -76,7 +76,7 @@ async function asc(pathname, { method = "GET", body } = {}) {
 
 /**
  * Exact-match only. ASC's filter[bundleId] can surface sibling ids
- * (e.g. com.joelyoung.play4096.pro when querying com.joelyoung.play4096).
+ * (e.g. a …4096.pro IAP-adjacent app when querying …4096).
  */
 async function findApp() {
 	const q = new URLSearchParams({

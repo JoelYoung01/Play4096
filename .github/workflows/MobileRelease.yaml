@@ -39,6 +39,11 @@ jobs:
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      # Baked into JS at Metro bundle time (archive), not only prebuild.
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      EXPO_PUBLIC_API_URL: ${{ vars.MOBILE_API_URL }}
+      PLAY4096_IOS_BUNDLE_ID: ${{ vars.PLAY4096_IOS_BUNDLE_ID }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -85,12 +90,16 @@ jobs:
       - name: Generate native iOS project (expo prebuild)
         if: steps.creds.outputs.configured == 'true'
         env:
-          PLAY4096_IOS_BUNDLE_ID: ${{ vars.PLAY4096_IOS_BUNDLE_ID }}
           PLAY4096_IOS_BUILD_NUMBER: ${{ github.run_number }}
-          EXPO_PUBLIC_API_URL: ${{ vars.MOBILE_API_URL }}
-          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
-        run: pnpm exec expo prebuild --platform ios
+        run: |
+          export PLAY4096_IOS_BUNDLE_ID="${PLAY4096_IOS_BUNDLE_ID:-com.joelyoung.4096}"
+          echo "Prebuilding with bundle id $PLAY4096_IOS_BUNDLE_ID"
+          if [ -z "$EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID" ]; then
+            echo "::warning::GOOGLE_IOS_CLIENT_ID secret is empty — Google sign-in will be disabled in this build."
+          else
+            echo "GOOGLE_IOS_CLIENT_ID is set (Google sign-in enabled)."
+          fi
+          pnpm exec expo prebuild --platform ios
 
       - name: Write App Store Connect API key
         if: steps.creds.outputs.configured == 'true'
@@ -181,10 +190,10 @@ jobs:
         env:
           ASC_PRIVATE_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
           ASC_BUNDLE_ID: ${{ vars.PLAY4096_IOS_BUNDLE_ID }}
-          ASC_APP_NAME: "4096: A Tile Game"
-          ASC_APP_SKU: play4096-app
+          ASC_APP_NAME: Play4096
+          ASC_APP_SKU: play4096
         run: |
-          export ASC_BUNDLE_ID="${ASC_BUNDLE_ID:-com.joelyoung.play4096.pro}"
+          export ASC_BUNDLE_ID="${ASC_BUNDLE_ID:-com.joelyoung.4096}"
           APPLE_ID=$(node .github/scripts/ensure-asc-app.mjs)
           echo "apple_id=$APPLE_ID" >> "$GITHUB_OUTPUT"
           echo "Using ASC Apple ID $APPLE_ID for bundle $ASC_BUNDLE_ID"
