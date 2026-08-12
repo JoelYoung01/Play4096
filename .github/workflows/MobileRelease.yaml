@@ -42,7 +42,9 @@ jobs:
       # Baked into JS at Metro bundle time (archive), not only prebuild.
       EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      EXPO_PUBLIC_API_URL: ${{ vars.MOBILE_API_URL }}
+      # Match CI_CD HEALTH_CHECK_URL default. Empty vars.MOBILE_API_URL used to
+      # bake "" → mobile falls back to http://localhost:5173 on device.
+      EXPO_PUBLIC_API_URL: ${{ vars.MOBILE_API_URL != '' && vars.MOBILE_API_URL || 'https://play-4096.com' }}
       PLAY4096_IOS_BUNDLE_ID: ${{ vars.PLAY4096_IOS_BUNDLE_ID }}
     steps:
       - name: Checkout code
@@ -56,6 +58,29 @@ jobs:
             echo "::warning::Apple signing secrets (ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY, APPLE_TEAM_ID) are not configured — skipping the signed iOS build. See mobile/README.md."
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate mobile API URL
+        if: steps.creds.outputs.configured == 'true'
+        run: |
+          echo "EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL"
+          if [ -z "$EXPO_PUBLIC_API_URL" ]; then
+            echo "::error::EXPO_PUBLIC_API_URL is empty. Set GitHub Actions variable MOBILE_API_URL (production API origin, no /api/v1)."
+            exit 1
+          fi
+          case "$EXPO_PUBLIC_API_URL" in
+            http://localhost*|http://127.0.0.1*|https://localhost*|https://127.0.0.1*)
+              echo "::error::EXPO_PUBLIC_API_URL points at localhost ($EXPO_PUBLIC_API_URL). TestFlight builds cannot reach it. Set MOBILE_API_URL to https://play-4096.com (or your production origin)."
+              exit 1
+              ;;
+          esac
+          if [[ "$EXPO_PUBLIC_API_URL" != http://* && "$EXPO_PUBLIC_API_URL" != https://* ]]; then
+            echo "::error::EXPO_PUBLIC_API_URL must be an absolute http(s) origin (got: $EXPO_PUBLIC_API_URL)."
+            exit 1
+          fi
+          if [[ "$EXPO_PUBLIC_API_URL" == */api/v1 || "$EXPO_PUBLIC_API_URL" == */api/v1/ ]]; then
+            echo "::error::EXPO_PUBLIC_API_URL should be the site origin only (e.g. https://play-4096.com), not .../api/v1."
+            exit 1
           fi
 
       - name: Select Xcode (26.4+)

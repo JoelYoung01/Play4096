@@ -46,7 +46,7 @@ Older ids (`com.joelyoung.play4096*`) are retired; leave any leftover Dev Portal
 | Variable | Purpose |
 |---|---|
 | `PLAY4096_IOS_BUNDLE_ID` | Optional override (default `com.joelyoung.4096`) |
-| `MOBILE_API_URL` | Production API origin baked into the JS bundle |
+| `MOBILE_API_URL` | Production API origin baked into the JS bundle (default `https://play-4096.com` if unset). Origin only — no `/api/v1`. |
 
 ## 4. Backend env (production)
 
