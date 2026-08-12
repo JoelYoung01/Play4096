@@ -1,5 +1,6 @@
 import { loginWithGoogle } from "@/api/auth";
 import { getErrorMessage } from "@/api/errors";
+import { friendlyAuthNetworkError } from "@/lib/auth-errors";
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "@/config";
 import { useSessionStore } from "@/stores/session";
 import * as Google from "expo-auth-session/providers/google";
@@ -14,14 +15,6 @@ type Props = {
   onPendingChange: (pending: boolean) => void;
   onError: (message: string) => void;
 };
-
-/** Exported for unit tests. */
-export function friendlyGoogleError(message: string): string {
-  if (/could not connect|network request failed|fetch failed|timed?\s*out/i.test(message)) {
-    return "Could not reach the server. Check your connection and API URL, then try again.";
-  }
-  return message;
-}
 
 export function GoogleLoginButton(props: Props) {
   const available = Platform.OS === "web" ? Boolean(GOOGLE_WEB_CLIENT_ID) : Boolean(GOOGLE_IOS_CLIENT_ID);
@@ -57,7 +50,9 @@ function ConfiguredGoogleLoginButton({ onPendingChange, onError }: Props) {
       handledResponse.current = response;
       loginWithGoogle({ credential: idToken })
         .then((payload) => useSessionStore.getState().setSession(payload.access_token, payload.user))
-        .catch((err) => onError(friendlyGoogleError(getErrorMessage(err, "Google sign-in failed"))))
+        .catch((err) =>
+          onError(friendlyAuthNetworkError(getErrorMessage(err, "Google sign-in failed")))
+        )
         .finally(() => {
           exchanging.current = false;
           onPendingChange(false);
@@ -65,7 +60,7 @@ function ConfiguredGoogleLoginButton({ onPendingChange, onError }: Props) {
     } else if (response.type === "error") {
       handledResponse.current = response;
       onPendingChange(false);
-      onError(friendlyGoogleError(response.error?.message ?? "Google sign-in failed"));
+      onError(friendlyAuthNetworkError(response.error?.message ?? "Google sign-in failed"));
     } else if (response.type === "cancel" || response.type === "dismiss") {
       handledResponse.current = response;
       onPendingChange(false);

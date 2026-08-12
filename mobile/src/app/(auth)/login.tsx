@@ -4,6 +4,7 @@ import { AppleLoginButton } from "@/components/AppleLoginButton";
 import { Button } from "@/components/Button";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { Screen } from "@/components/Screen";
+import { alertOnce } from "@/lib/alert";
 import { useSessionStore } from "@/stores/session";
 import { useThemeStore } from "@/stores/theme";
 import { Link, useRouter } from "expo-router";
@@ -17,10 +18,10 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const onAppleError = useCallback((message: string) => {
-    Alert.alert("Apple sign-in", message);
+    alertOnce("Apple sign-in", message);
   }, []);
   const onGoogleError = useCallback((message: string) => {
-    Alert.alert("Google sign-in", message);
+    alertOnce("Google sign-in", message);
   }, []);
 
   const submit = async () => {
