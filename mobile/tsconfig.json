@@ -9,5 +9,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "app.config.ts", "babel.config.js", "metro.config.js"]
+  "include": ["src", "app.config.ts", "babel.config.js", "metro.config.js"],
+  "exclude": ["**/__tests__/**"]
 }
