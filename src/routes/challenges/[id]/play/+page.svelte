@@ -329,7 +329,7 @@
 <form
 	bind:this={completeForm}
 	method="POST"
-	action="?/complete"
+	action="?run={data.run.id}&/complete"
 	class="hidden"
 	use:enhance={() => {
 		return async ({ update }) => {
