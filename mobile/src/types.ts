@@ -56,6 +56,7 @@ export type Theme = {
   movementSpeed: number;
   challengeWon?: string;
   challengeLost?: string;
+  challengeToday?: string;
   tiles: Record<number, string>;
 };
 

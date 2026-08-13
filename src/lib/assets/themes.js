@@ -36,11 +36,13 @@
  * @property {number} luminanceThreshold
  * @property {number} movementSpeed
  * @property {Record<number, string>} tiles
- * Calendar day fills for cleared / failed runs. Chosen per theme so they stay
- * distinct from `primary` (today) under common color-vision deficiencies —
- * e.g. classic orange today vs green cleared was hard to tell apart.
+ * Calendar day fills for cleared / failed runs. Cleared days use a success
+ * green; per-theme hues stay distinct from `primary` (today) and
+ * `challengeLost` (failed) where those accents collide (e.g. light's blue today).
  * @property {string} challengeWon
  * @property {string} challengeLost
+ * Soft blue fill for the Today challenge hero card on /challenges.
+ * @property {string} challengeToday
  */
 
 /**
@@ -152,9 +154,11 @@ export const classicTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.7,
 	movementSpeed: 50,
-	// Blue vs orange reads clearly for red–green color vision deficiency
-	challengeWon: "#1d4ed8",
+	// Emerald success green — clear "cleared" signal vs orange today / rose failed
+	challengeWon: "#059669",
 	challengeLost: "#9f1239",
+	// Soft sky blue for the Today challenge card (calmer than board brown)
+	challengeToday: "#7eb3d4",
 	tiles: { ...classicTiles },
 };
 
@@ -185,8 +189,10 @@ export const darkTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.45,
 	movementSpeed: 50,
-	challengeWon: "#3b82f6",
+	// Brighter emerald so cleared days pop on the warm near-black page
+	challengeWon: "#34d399",
 	challengeLost: "#e11d48",
+	challengeToday: "#4a7fa8",
 	tiles: {
 		2: "#4a4a55",
 		4: "#5c5348",
@@ -241,9 +247,11 @@ export const lightTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.65,
 	movementSpeed: 50,
-	// Primary is already blue — amber cleared stays distinct from today
-	challengeWon: "#c2410c",
+	// Emerald cleared stays distinct from blue today and rose failed
+	challengeWon: "#059669",
 	challengeLost: "#9f1239",
+	// Softer than primary blue so the hero card stays light
+	challengeToday: "#9bc4e2",
 	tiles: {
 		2: "#f7f9fc",
 		4: "#e8eef5",
@@ -296,8 +304,10 @@ export const highContrastTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.5,
 	movementSpeed: 50,
-	challengeWon: "#00e5ff",
+	// Neon success green (matches tile-2048) vs yellow today / magenta failed
+	challengeWon: "#00ff88",
 	challengeLost: "#ff0066",
+	challengeToday: "#66b3ff",
 	tiles: {
 		2: "#ffffff",
 		4: "#eeeeee",
@@ -349,8 +359,9 @@ export const softTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.65,
 	movementSpeed: 50,
-	challengeWon: "#1d4ed8",
+	challengeWon: "#059669",
 	challengeLost: "#9f1239",
+	challengeToday: "#8aadc4",
 	tiles: {
 		2: "#f0ebe6",
 		4: "#e4dbd2",
@@ -402,9 +413,10 @@ export const coralTheme = {
 	textScale: 3,
 	luminanceThreshold: 0.6,
 	movementSpeed: 50,
-	// Blue cleared vs coral today; purple lost stays off the coral primary
-	challengeWon: "#1d4ed8",
+	// Emerald cleared vs coral today; purple lost stays off the coral primary
+	challengeWon: "#059669",
 	challengeLost: "#7e22ce",
+	challengeToday: "#7eb3d4",
 	tiles: {
 		2: "#fff0eb",
 		4: "#ffe0d6",
