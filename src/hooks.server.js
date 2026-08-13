@@ -6,6 +6,31 @@ import { getLogger, withRequestContext } from "$lib/server/requestContext.js";
 import { basicLogger } from "$lib/server/logger.js";
 import { env } from "$env/dynamic/private";
 
+/**
+ * Drop oversized `Link` preload headers before they hit a reverse proxy.
+ *
+ * SvelteKit SSR responses (especially `/game` and challenge play) emit a large
+ * `Link: … rel=modulepreload` list. Authenticated responses also refresh the
+ * session `Set-Cookie`. Together those headers often exceed nginx's default
+ * `proxy_buffer_size` (~4kb), which surfaces as **502 Bad Gateway**
+ * (`upstream sent too big header`) — commonly noticed after challenge complete
+ * when the play page is re-rendered. See sveltejs/kit#11084.
+ *
+ * Keep small Link headers (early hints still help); strip once they crowd the
+ * proxy buffer when combined with cookies and other response headers.
+ */
+const LINK_HEADER_MAX_LEN = 2048;
+
+/** @type {import('@sveltejs/kit').Handle} */
+const handleProxySafeHeaders = async ({ event, resolve }) => {
+	const response = await resolve(event);
+	const link = response.headers.get("link");
+	if (link && link.length > LINK_HEADER_MAX_LEN) {
+		response.headers.delete("link");
+	}
+	return response;
+};
+
 /** @type {import('@sveltejs/kit').Handle} */
 export const handleLogging = async ({ event, resolve }) => {
 	return withRequestContext(event.request, async () => {
@@ -95,4 +120,4 @@ const checkSus = async ({ event, resolve }) => {
 };
 
 /** @type {import('@sveltejs/kit').Handle} */
-export const handle = sequence(handleLogging, checkSus, handleAuth);
+export const handle = sequence(handleProxySafeHeaders, handleLogging, checkSus, handleAuth);
