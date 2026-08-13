@@ -19,8 +19,8 @@
 	import AnimatedBoard from "../../../game/components/AnimatedBoard.svelte";
 	import { RotateCcwIcon } from "@lucide/svelte";
 
-	/** Match classic game-over beat so a stuck board is readable before the fail overlay. */
-	const GAME_OVER_DELAY_MS = 600;
+	/** Pause on the stuck board after animations so the loss is readable before the overlay. */
+	const GAME_OVER_DELAY_MS = 1000;
 
 	let { data } = $props();
 
@@ -131,7 +131,9 @@
 		if (result || submitting || data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) return;
 		pendingLoss = false;
 		result = status;
-		finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
+		if (finishedElapsedMs == null) {
+			finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
+		}
 		submitting = true;
 		queueMicrotask(() => completeForm?.requestSubmit());
 	}
@@ -155,6 +157,8 @@
 			finish("won");
 		} else if (outcome === "lost") {
 			// Hold the fail overlay so the stuck / timed-out board can register.
+			// Freeze elapsed now so the delay doesn't inflate time-challenge stats.
+			finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
 			pendingLoss = true;
 		}
 	}
