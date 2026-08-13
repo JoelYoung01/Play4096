@@ -41,6 +41,8 @@
  * `challengeLost` (failed) where those accents collide (e.g. light's blue today).
  * @property {string} challengeWon
  * @property {string} challengeLost
+ * Soft blue fill for the Today challenge hero card on /challenges.
+ * @property {string} challengeToday
  */
 
 /**
@@ -155,6 +157,8 @@ export const classicTheme = {
 	// Emerald success green — clear "cleared" signal vs orange today / rose failed
 	challengeWon: "#059669",
 	challengeLost: "#9f1239",
+	// Soft sky blue for the Today challenge card (calmer than board brown)
+	challengeToday: "#7eb3d4",
 	tiles: { ...classicTiles },
 };
 
@@ -188,6 +192,7 @@ export const darkTheme = {
 	// Brighter emerald so cleared days pop on the warm near-black page
 	challengeWon: "#34d399",
 	challengeLost: "#e11d48",
+	challengeToday: "#4a7fa8",
 	tiles: {
 		2: "#4a4a55",
 		4: "#5c5348",
@@ -245,6 +250,8 @@ export const lightTheme = {
 	// Emerald cleared stays distinct from blue today and rose failed
 	challengeWon: "#059669",
 	challengeLost: "#9f1239",
+	// Softer than primary blue so the hero card stays light
+	challengeToday: "#9bc4e2",
 	tiles: {
 		2: "#f7f9fc",
 		4: "#e8eef5",
@@ -300,6 +307,7 @@ export const highContrastTheme = {
 	// Neon success green (matches tile-2048) vs yellow today / magenta failed
 	challengeWon: "#00ff88",
 	challengeLost: "#ff0066",
+	challengeToday: "#66b3ff",
 	tiles: {
 		2: "#ffffff",
 		4: "#eeeeee",
@@ -353,6 +361,7 @@ export const softTheme = {
 	movementSpeed: 50,
 	challengeWon: "#059669",
 	challengeLost: "#9f1239",
+	challengeToday: "#8aadc4",
 	tiles: {
 		2: "#f0ebe6",
 		4: "#e4dbd2",
@@ -407,6 +416,7 @@ export const coralTheme = {
 	// Emerald cleared vs coral today; purple lost stays off the coral primary
 	challengeWon: "#059669",
 	challengeLost: "#7e22ce",
+	challengeToday: "#7eb3d4",
 	tiles: {
 		2: "#fff0eb",
 		4: "#ffe0d6",

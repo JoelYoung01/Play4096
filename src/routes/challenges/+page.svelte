@@ -10,8 +10,12 @@
 	const weekdays = ["S", "M", "T", "W", "T", "F", "S"];
 
 	let theme = $derived(page.data.theme);
-	// Readable ink for board-colored surfaces (hero card, locked days)
+	// Readable ink for board-colored surfaces (locked days, pro upsell)
 	let boardInk = $derived(theme ? getInkColor(theme.boardBackground, theme) : "#f9f6f2");
+	let todayCardBg = $derived(theme?.challengeToday ?? theme?.boardBackground);
+	let todayCardInk = $derived(
+		theme && todayCardBg ? getInkColor(todayCardBg, theme) : boardInk
+	);
 
 	/**
 	 * @param {string | null} status
@@ -72,8 +76,8 @@
 	{#if data.todayChallenge}
 		<section
 			class="mb-6 rounded-xl p-4"
-			style:background-color={theme?.boardBackground}
-			style:color={boardInk}
+			style:background-color={todayCardBg}
+			style:color={todayCardInk}
 		>
 			<p class="mb-1 text-xs font-bold tracking-wide uppercase opacity-70">Today · {data.today}</p>
 			<h2 class="text-xl font-bold">{data.todayChallenge.title}</h2>
