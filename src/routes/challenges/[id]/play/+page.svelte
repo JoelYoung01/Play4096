@@ -17,17 +17,25 @@
 	import { Button } from "$lib/components/ui/button/index.js";
 	import GameStats from "$lib/components/GameStats.svelte";
 	import AnimatedBoard from "../../../game/components/AnimatedBoard.svelte";
+	import { RotateCcwIcon } from "@lucide/svelte";
+
+	/** Match classic game-over beat so a stuck board is readable before the fail overlay. */
+	const GAME_OVER_DELAY_MS = 600;
 
 	let { data } = $props();
 
 	/** @type {Game | null} */
 	let game = $state(null);
 	let result = $state(/** @type {'won' | 'lost' | null} */ (null));
+	/** Set when a loss is detected; overlay waits for animations + GAME_OVER_DELAY_MS. */
+	let pendingLoss = $state(false);
 	let remainingMs = $state(0);
 	/** Elapsed ms captured when the run finishes. */
 	let finishedElapsedMs = $state(/** @type {number | null} */ (null));
 	let submitting = $state(false);
 	let retrying = $state(false);
+	/** Bound from AnimatedBoard — true when move animations have settled. */
+	let animationIdle = $state(true);
 
 	/** @type {import("$lib/types").GameEvent[]} */
 	let pendingEvents = $state([]);
@@ -94,9 +102,11 @@
 		pendingEvents = [];
 		game = createChallengeGame();
 		result = null;
+		pendingLoss = false;
 		finishedElapsedMs = null;
 		submitting = false;
 		retrying = false;
+		animationIdle = true;
 
 		if (isTime && "durationSec" in challenge.params) {
 			const durationMs = challenge.params.durationSec * 1000;
@@ -119,6 +129,7 @@
 	 */
 	function finish(status) {
 		if (result || submitting || data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) return;
+		pendingLoss = false;
 		result = status;
 		finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
 		submitting = true;
@@ -129,7 +140,7 @@
 	 * @param {number} [startedOn]
 	 */
 	function checkOutcome(startedOn = data.run.startedOn) {
-		if (!game || result) return;
+		if (!game || result || pendingLoss) return;
 
 		const elapsedMs = isTime ? Date.now() - startedOn : undefined;
 		const outcome = evaluateChallenge(challenge, {
@@ -140,8 +151,11 @@
 			elapsedMs,
 		});
 
-		if (outcome === "won" || outcome === "lost") {
-			finish(outcome);
+		if (outcome === "won") {
+			finish("won");
+		} else if (outcome === "lost") {
+			// Hold the fail overlay so the stuck / timed-out board can register.
+			pendingLoss = true;
 		}
 	}
 
@@ -156,7 +170,7 @@
 	 * @param {number} direction
 	 */
 	function handleMove(direction) {
-		if (!game || result) return;
+		if (!game || result || pendingLoss) return;
 		const events = game.moveTiles(direction);
 		if (events.length > 0) {
 			pendingEvents.push(...events);
@@ -236,7 +250,9 @@
 	});
 
 	/** @type {import("@sveltejs/kit").SubmitFunction} */
-	const onRetry = () => {
+	const onReset = () => {
+		// Cancel a pending fail overlay / complete submit if the player resets first.
+		pendingLoss = false;
 		retrying = true;
 		return async ({ result: actionResult }) => {
 			if (actionResult.type === "redirect") {
@@ -247,6 +263,13 @@
 			await applyAction(actionResult);
 		};
 	};
+
+	// After the last move animates, pause briefly on the stuck board, then fail.
+	$effect(() => {
+		if (!pendingLoss || !animationIdle || result) return;
+		const timeout = setTimeout(() => finish("lost"), GAME_OVER_DELAY_MS);
+		return () => clearTimeout(timeout);
+	});
 
 	/**
 	 * @param {unknown} value
@@ -377,7 +400,13 @@
 	</div>
 
 	{#if game}
-		<AnimatedBoard {game} {pendingEvents} {popEvent} showControls={false} />
+		<AnimatedBoard
+			{game}
+			{pendingEvents}
+			{popEvent}
+			showControls={false}
+			bind:animationIdle
+		/>
 	{:else}
 		<div
 			class="mb-4 flex aspect-square items-center justify-center rounded-lg"
@@ -387,12 +416,28 @@
 		</div>
 	{/if}
 
-	<p class="text-center text-sm text-muted-foreground">
-		Arrow keys or swipe to move. Challenge progress is saved when you finish.
-	</p>
+	<div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+		<form method="POST" action="?/start" use:enhance={onReset}>
+			<Button
+				type="submit"
+				variant="secondary"
+				class="justify-center gap-1.5"
+				disabled={retrying || submitting || data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS}
+			>
+				<RotateCcwIcon size={16} />
+				{retrying ? "Resetting…" : "Reset"}
+			</Button>
+		</form>
+		<a
+			href="/challenges/{challenge.id}"
+			class="text-sm text-primary hover:underline"
+		>
+			Abandon & back
+		</a>
+	</div>
 
-	<p class="mt-3 text-center text-sm">
-		<a href="/challenges/{challenge.id}" class="text-primary hover:underline"> Abandon & back </a>
+	<p class="mt-3 text-center text-sm text-muted-foreground">
+		Arrow keys or swipe to move. Challenge progress is saved when you finish.
 	</p>
 </div>
 
@@ -411,8 +456,9 @@
 			</p>
 			<GameStats stats={resultStats} label="Challenge stats" />
 			<div class="flex flex-wrap justify-center gap-2">
-				<form method="POST" action="?/start" use:enhance={onRetry}>
-					<Button type="submit" class="justify-center" disabled={retrying || submitting}>
+				<form method="POST" action="?/start" use:enhance={onReset}>
+					<Button type="submit" class="justify-center gap-1.5" disabled={retrying || submitting}>
+						<RotateCcwIcon size={16} />
 						{retrying ? "Starting…" : "Retry"}
 					</Button>
 				</form>
