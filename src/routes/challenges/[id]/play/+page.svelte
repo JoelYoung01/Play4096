@@ -19,29 +19,29 @@
 	import AnimatedBoard from "../../../game/components/AnimatedBoard.svelte";
 	import { RotateCcwIcon } from "@lucide/svelte";
 
-	/** Pause on the stuck board after animations so the loss is readable before the overlay. */
-	const GAME_OVER_DELAY_MS = 1000;
+	/** Keep the stuck board visible this long before the fail overlay. */
+	const GAME_OVER_DELAY_MS = 1200;
 
 	let { data } = $props();
 
 	/** @type {Game | null} */
 	let game = $state(null);
 	let result = $state(/** @type {'won' | 'lost' | null} */ (null));
-	/** Set when a loss is detected; overlay waits for animations + GAME_OVER_DELAY_MS. */
+	/** Set when a loss is detected; overlay opens after GAME_OVER_DELAY_MS. */
 	let pendingLoss = $state(false);
 	let remainingMs = $state(0);
 	/** Elapsed ms captured when the run finishes. */
 	let finishedElapsedMs = $state(/** @type {number | null} */ (null));
 	let submitting = $state(false);
 	let retrying = $state(false);
-	/** Bound from AnimatedBoard — true when move animations have settled. */
-	let animationIdle = $state(true);
 
 	/** @type {import("$lib/types").GameEvent[]} */
 	let pendingEvents = $state([]);
 
 	/** @type {HTMLFormElement | null} */
 	let completeForm = $state(null);
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let lossDelayTimer = null;
 
 	const challenge = $derived(data.challenge);
 	const isTime = $derived(challenge.type === CHALLENGE_TYPES.TIME);
@@ -98,7 +98,18 @@
 	/**
 	 * @param {number} startedOn
 	 */
+	function clearLossDelay() {
+		if (lossDelayTimer != null) {
+			clearTimeout(lossDelayTimer);
+			lossDelayTimer = null;
+		}
+	}
+
+	/**
+	 * @param {number} startedOn
+	 */
 	function initGame(startedOn) {
+		clearLossDelay();
 		pendingEvents = [];
 		game = createChallengeGame();
 		result = null;
@@ -106,7 +117,6 @@
 		finishedElapsedMs = null;
 		submitting = false;
 		retrying = false;
-		animationIdle = true;
 
 		if (isTime && "durationSec" in challenge.params) {
 			const durationMs = challenge.params.durationSec * 1000;
@@ -129,6 +139,7 @@
 	 */
 	function finish(status) {
 		if (result || submitting || data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS) return;
+		clearLossDelay();
 		pendingLoss = false;
 		result = status;
 		if (finishedElapsedMs == null) {
@@ -136,6 +147,20 @@
 		}
 		submitting = true;
 		queueMicrotask(() => completeForm?.requestSubmit());
+	}
+
+	/**
+	 * Show the stuck board briefly, then open the fail overlay.
+	 */
+	function scheduleLossFinish() {
+		if (pendingLoss || result) return;
+		finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
+		pendingLoss = true;
+		clearLossDelay();
+		lossDelayTimer = setTimeout(() => {
+			lossDelayTimer = null;
+			if (pendingLoss && !result) finish("lost");
+		}, GAME_OVER_DELAY_MS);
 	}
 
 	/**
@@ -156,10 +181,7 @@
 		if (outcome === "won") {
 			finish("won");
 		} else if (outcome === "lost") {
-			// Hold the fail overlay so the stuck / timed-out board can register.
-			// Freeze elapsed now so the delay doesn't inflate time-challenge stats.
-			finishedElapsedMs = Math.max(0, Date.now() - data.run.startedOn);
-			pendingLoss = true;
+			scheduleLossFinish();
 		}
 	}
 
@@ -250,12 +272,14 @@
 		return () => {
 			window.removeEventListener("keydown", handleKeydown);
 			if (timer) clearInterval(timer);
+			clearLossDelay();
 		};
 	});
 
 	/** @type {import("@sveltejs/kit").SubmitFunction} */
 	const onReset = () => {
 		// Cancel a pending fail overlay / complete submit if the player resets first.
+		clearLossDelay();
 		pendingLoss = false;
 		retrying = true;
 		return async ({ result: actionResult }) => {
@@ -267,13 +291,6 @@
 			await applyAction(actionResult);
 		};
 	};
-
-	// After the last move animates, pause briefly on the stuck board, then fail.
-	$effect(() => {
-		if (!pendingLoss || !animationIdle || result) return;
-		const timeout = setTimeout(() => finish("lost"), GAME_OVER_DELAY_MS);
-		return () => clearTimeout(timeout);
-	});
 
 	/**
 	 * @param {unknown} value
@@ -404,13 +421,7 @@
 	</div>
 
 	{#if game}
-		<AnimatedBoard
-			{game}
-			{pendingEvents}
-			{popEvent}
-			showControls={false}
-			bind:animationIdle
-		/>
+		<AnimatedBoard {game} {pendingEvents} {popEvent} showControls={false} />
 	{:else}
 		<div
 			class="mb-4 flex aspect-square items-center justify-center rounded-lg"
@@ -420,13 +431,19 @@
 		</div>
 	{/if}
 
+	{#if pendingLoss}
+		<p class="mt-3 text-center text-sm font-semibold" style:color={urgentInk}>
+			{game?.gameOver ? "No moves left…" : isTime ? "Time's up…" : "Challenge over…"}
+		</p>
+	{/if}
+
 	<div class="mt-3 flex flex-wrap items-center justify-center gap-2">
 		<form method="POST" action="?/start" use:enhance={onReset}>
 			<Button
 				type="submit"
 				variant="secondary"
 				class="justify-center gap-1.5"
-				disabled={retrying || submitting || data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS}
+				disabled={retrying || submitting || !!result || data.run.status !== CHALLENGE_RUN_STATUS.IN_PROGRESS}
 			>
 				<RotateCcwIcon size={16} />
 				{retrying ? "Resetting…" : "Reset"}
