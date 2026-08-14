@@ -3,7 +3,14 @@ import { queryClient } from "@/lib/query-client";
 import { useSessionStore } from "@/stores/session";
 import { parseApiErrorBody } from "./errors";
 
-const NETWORK_MESSAGE = "Network error. Check your connection and try again.";
+function networkErrorMessage(): string {
+  try {
+    const host = new URL(API_BASE_URL).host;
+    return `Could not reach ${host}. Check your connection and try again.`;
+  } catch {
+    return "Network error. Check your connection and try again.";
+  }
+}
 
 export class ApiError extends Error {
   status: number;
@@ -52,7 +59,7 @@ export async function doFetch<T>(url: string, options?: RequestInit): Promise<T>
   try {
     response = await fetch(resolveUrl(url), { ...options, headers });
   } catch {
-    throw new ApiError(NETWORK_MESSAGE, 503, { userMessage: NETWORK_MESSAGE });
+    throw new ApiError(networkErrorMessage(), 503, { userMessage: networkErrorMessage() });
   }
 
   if (!response.ok) {

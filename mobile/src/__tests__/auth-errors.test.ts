@@ -15,6 +15,12 @@ describe("friendlyAuthNetworkError", () => {
   it("leaves unrelated auth errors intact", () => {
     expect(friendlyAuthNetworkError("access_denied")).toBe("access_denied");
   });
+
+  it("preserves host-aware Could not reach messages", () => {
+    expect(friendlyAuthNetworkError("Could not reach play-4096.com. Check your connection and try again.")).toBe(
+      "Could not reach play-4096.com. Check your connection and try again."
+    );
+  });
 });
 
 describe("alertOnce", () => {
@@ -50,16 +56,16 @@ describe("oauth login network failures", () => {
     global.fetch = originalFetch;
   });
 
-  it("maps Google fetch failures to a stable AuthApiError message", async () => {
+  it("maps Google fetch failures to a host-aware AuthApiError message", async () => {
     global.fetch = jest.fn().mockRejectedValue(new TypeError("Network request failed")) as typeof fetch;
     await expect(loginWithGoogle({ credential: "token" })).rejects.toMatchObject({
       name: "AuthApiError",
       status: 503,
-      userMessage: "Network error. Check your connection and try again."
+      userMessage: expect.stringMatching(/^Could not reach .+\. Check your connection and try again\.$/)
     });
   });
 
-  it("maps Apple fetch failures to a stable AuthApiError message", async () => {
+  it("maps Apple fetch failures to a host-aware AuthApiError message", async () => {
     global.fetch = jest.fn().mockRejectedValue(
       new TypeError(
         "fetch failed: UnexpectedException: Could not connect to the server. (at ExpoModulesCore/Promise.swift:56)"
@@ -68,7 +74,7 @@ describe("oauth login network failures", () => {
     await expect(loginWithApple({ identity_token: "token" })).rejects.toMatchObject({
       name: "AuthApiError",
       status: 503,
-      userMessage: "Network error. Check your connection and try again."
+      userMessage: expect.stringMatching(/^Could not reach .+\. Check your connection and try again\.$/)
     });
   });
 });

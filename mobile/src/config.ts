@@ -1,5 +1,6 @@
 export const APP_NAME = "Play4096";
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5173";
+/** Production origin; local/dev should set EXPO_PUBLIC_API_URL explicitly (see mobile/README.md). */
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://play-4096.com";
 export const API_BASE_URL = `${API_URL.replace(/\/$/, "")}/api/v1`;
 export const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "";
 export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "";

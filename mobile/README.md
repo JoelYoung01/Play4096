@@ -38,7 +38,7 @@ pnpm ios
 
 Runtime JS config:
 
-- `EXPO_PUBLIC_API_URL` - backend origin, defaults to `http://localhost:5173`.
+- `EXPO_PUBLIC_API_URL` - backend origin, defaults to `https://play-4096.com` (set `http://localhost:5173` for local backend).
 - `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` - Google OAuth iOS client id (bundle must be `com.joelyoung.4096`).
 - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` - Google OAuth web client id for development/web.
 

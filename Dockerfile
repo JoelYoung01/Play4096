@@ -22,6 +22,15 @@ WORKDIR /app
 ENV CI=true
 ENV NODE_ENV=production
 
+# Google OAuth client ids are public (also embedded in the iOS app). Bake them into
+# the image so /api/v1/auth/google works even when the host .env omits GOOGLE_CLIENT_IDS.
+ARG GOOGLE_CLIENT_IDS=
+ARG GOOGLE_CLIENT_ID=
+ARG GOOGLE_IOS_CLIENT_ID=
+ENV GOOGLE_CLIENT_IDS=$GOOGLE_CLIENT_IDS \
+    GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID \
+    GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+
 RUN corepack enable
 
 COPY package.json .npmrc ./

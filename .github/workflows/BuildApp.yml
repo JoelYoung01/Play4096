@@ -17,8 +17,14 @@ on:
 
     secrets:
       GOOGLE_CLIENT_ID:
-        description: "Google client ID of app"
+        description: "Google web OAuth client ID (optional; also used as an accepted ID-token audience)"
         required: true
+      GOOGLE_IOS_CLIENT_ID:
+        description: "Google iOS OAuth client ID (ID-token aud for the mobile app)"
+        required: false
+      GOOGLE_CLIENT_IDS:
+        description: "Comma-separated Google OAuth client ids (overrides iOS+web composition when set)"
+        required: false
       DATABASE_URL:
         description: "The URL of the database"
         required: true
@@ -52,8 +58,16 @@ jobs:
           BUILD_VERSION: ${{ github.sha }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          # Prefer explicit list; fall back to iOS + web client ids (comma-joined).
+          GOOGLE_CLIENT_IDS: ${{ secrets.GOOGLE_CLIENT_IDS }}
         run: |
           pnpm install --frozen-lockfile
+          if [ -z "$GOOGLE_CLIENT_IDS" ]; then
+            GOOGLE_CLIENT_IDS="$(printf '%s,%s' "${GOOGLE_IOS_CLIENT_ID:-}" "${GOOGLE_CLIENT_ID:-}" | sed 's/^,//;s/,$//;s/,,/,/g')"
+            export GOOGLE_CLIENT_IDS
+          fi
+          echo "Google OAuth audiences configured: $([ -n "$GOOGLE_CLIENT_IDS" ] && echo yes || echo NO)"
           pnpm run build
 
       - name: Upload Svelte build artifacts
@@ -91,10 +105,33 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Resolve Google OAuth build args
+        id: google_oauth
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          GOOGLE_CLIENT_IDS: ${{ secrets.GOOGLE_CLIENT_IDS }}
+        run: |
+          if [ -z "$GOOGLE_CLIENT_IDS" ]; then
+            GOOGLE_CLIENT_IDS="$(printf '%s,%s' "${GOOGLE_IOS_CLIENT_ID:-}" "${GOOGLE_CLIENT_ID:-}" | sed 's/^,//;s/,$//;s/,,/,/g')"
+          fi
+          {
+            echo "client_id=$GOOGLE_CLIENT_ID"
+            echo "ios_client_id=$GOOGLE_IOS_CLIENT_ID"
+            echo "client_ids=$GOOGLE_CLIENT_IDS"
+          } >> "$GITHUB_OUTPUT"
+          if [ -z "$GOOGLE_CLIENT_IDS" ]; then
+            echo "::warning::No Google OAuth client ids available at image build — /api/v1/auth/google will fail until GOOGLE_CLIENT_IDS (or GOOGLE_IOS_CLIENT_ID) is set on the host."
+          fi
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
+          build-args: |
+            GOOGLE_CLIENT_ID=${{ steps.google_oauth.outputs.client_id }}
+            GOOGLE_IOS_CLIENT_ID=${{ steps.google_oauth.outputs.ios_client_id }}
+            GOOGLE_CLIENT_IDS=${{ steps.google_oauth.outputs.client_ids }}
           tags: |
             ghcr.io/${{ inputs.ghcr_namespace }}/${{ inputs.image_name }}:latest

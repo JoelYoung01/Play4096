@@ -3,7 +3,14 @@ import type { TokenPayload } from "@/types";
 import { get, post } from "./client";
 import { parseApiErrorBody } from "./errors";
 
-const NETWORK_MESSAGE = "Network error. Check your connection and try again.";
+function networkErrorMessage(): string {
+  try {
+    const host = new URL(API_BASE_URL).host;
+    return `Could not reach ${host}. Check your connection and try again.`;
+  } catch {
+    return "Network error. Check your connection and try again.";
+  }
+}
 
 export class AuthApiError extends Error {
   status: number;
@@ -27,7 +34,7 @@ async function authPost<T>(path: string, body: object): Promise<T> {
       body: JSON.stringify(body)
     });
   } catch (err) {
-    throw new AuthApiError(NETWORK_MESSAGE, 503, err);
+    throw new AuthApiError(networkErrorMessage(), 503, err);
   }
   const text = await response.text();
   let data: unknown = null;
