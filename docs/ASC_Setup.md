@@ -29,6 +29,7 @@ Older ids (`com.joelyoung.play4096*`) are retired; leave any leftover Dev Portal
 2. Store the client id as GitHub secret `GOOGLE_IOS_CLIENT_ID` (already wired into Mobile Release as `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` at prebuild **and** archive).
 3. Optional web client → secret `GOOGLE_CLIENT_ID`.
 4. On the **backend**, set `GOOGLE_CLIENT_IDS` to the same iOS (and web) client id(s), comma-separated — the API verifies the ID token `aud` against that list.
+   - CI also bakes `GOOGLE_IOS_CLIENT_ID` / `GOOGLE_CLIENT_ID` into the Docker image, and the API accepts those env names individually if `GOOGLE_CLIENT_IDS` is unset.
 
 ## 3. GitHub secrets & variables
 
@@ -53,7 +54,7 @@ Older ids (`com.joelyoung.play4096*`) are retired; leave any leftover Dev Portal
 | Env | Purpose |
 |---|---|
 | `APPLE_CLIENT_ID` | `com.joelyoung.4096` |
-| `GOOGLE_CLIENT_IDS` | Same as `GOOGLE_IOS_CLIENT_ID` (+ web if used) |
+| `GOOGLE_CLIENT_IDS` | Same as `GOOGLE_IOS_CLIENT_ID` (+ web if used). Optional if `GOOGLE_IOS_CLIENT_ID` / `GOOGLE_CLIENT_ID` are set (CI bakes these into the image). |
 | `APPLE_IAP_PRODUCT_ID` | `com.joelyoung.4096.pro` |
 | `APPLE_IAP_BUNDLE_ID` | `com.joelyoung.4096` |
 

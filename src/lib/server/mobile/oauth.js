@@ -7,6 +7,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { generateUserId } from "$lib/server/auth/utils";
 import { USER_STATUS } from "$lib/constants";
+import { resolveGoogleAudiences } from "$lib/server/mobile/googleAudiences";
 
 const appleJwks = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
 const googleJwks = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
@@ -27,10 +28,7 @@ function appleAudiences() {
  * @returns {string[]}
  */
 function googleAudiences() {
-	return (env.GOOGLE_CLIENT_IDS || "")
-		.split(",")
-		.map((s) => s.trim())
-		.filter(Boolean);
+	return resolveGoogleAudiences(env);
 }
 
 /**
@@ -64,7 +62,9 @@ export async function verifyAppleIdentityToken(identityToken) {
 export async function verifyGoogleIdToken(idToken) {
 	const audiences = googleAudiences();
 	if (audiences.length === 0) {
-		throw new Error("GOOGLE_CLIENT_IDS is not configured");
+		throw new Error(
+			"Google sign-in is not configured on the server (set GOOGLE_CLIENT_IDS or GOOGLE_IOS_CLIENT_ID)"
+		);
 	}
 	const { payload } = await jwtVerify(idToken, googleJwks, {
 		issuer: ["https://accounts.google.com", "accounts.google.com"],

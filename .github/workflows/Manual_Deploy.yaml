@@ -16,6 +16,8 @@ jobs:
       image_name: ${{ inputs.image_name }}
     secrets:
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+      GOOGLE_CLIENT_IDS: ${{ secrets.GOOGLE_CLIENT_IDS }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
   DeployApp:
