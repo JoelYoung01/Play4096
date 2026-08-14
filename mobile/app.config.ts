@@ -37,17 +37,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       config: {
         usesNonExemptEncryption: false
       },
-      ...(googleScheme
-        ? {
-            infoPlist: {
-              CFBundleURLTypes: [
-                {
-                  CFBundleURLSchemes: [googleScheme]
-                }
-              ]
-            }
-          }
-        : {})
+      infoPlist: {
+        CFBundleURLTypes: [
+          { CFBundleURLSchemes: ["play4096"] },
+          { CFBundleURLSchemes: [bundleIdentifier] },
+          ...(googleScheme ? [{ CFBundleURLSchemes: [googleScheme] }] : [])
+        ]
+      }
     },
     web: {
       output: "static",

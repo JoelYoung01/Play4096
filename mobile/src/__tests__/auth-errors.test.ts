@@ -1,5 +1,5 @@
 import { loginWithApple, loginWithGoogle } from "@/api/auth";
-import { alertOnce, resetAlertOnceForTests } from "@/lib/alert";
+import { ALERT_DELAY_MS, alertOnce, resetAlertOnceForTests } from "@/lib/alert";
 import { friendlyAuthNetworkError } from "@/lib/auth-errors";
 import { Alert } from "react-native";
 
@@ -27,8 +27,13 @@ describe("alertOnce", () => {
   const alertSpy = jest.spyOn(Alert, "alert");
 
   beforeEach(() => {
+    jest.useFakeTimers();
     resetAlertOnceForTests();
     alertSpy.mockClear();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   afterAll(() => {
@@ -39,13 +44,24 @@ describe("alertOnce", () => {
     alertOnce("Apple sign-in", "Network error");
     alertOnce("Apple sign-in", "Network error");
     alertOnce("Apple sign-in", "Network error");
+    jest.advanceTimersByTime(ALERT_DELAY_MS);
     expect(alertSpy).toHaveBeenCalledTimes(1);
   });
 
   it("allows a different message through", () => {
     alertOnce("Apple sign-in", "Network error");
     alertOnce("Apple sign-in", "Something else");
+    jest.advanceTimersByTime(ALERT_DELAY_MS);
     expect(alertSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("delays presentation so iOS can finish dismissing the auth session", () => {
+    alertOnce("Google sign-in", "Could not reach play-4096.com. Check your connection and try again.");
+    expect(alertSpy).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(ALERT_DELAY_MS - 1);
+    expect(alertSpy).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    expect(alertSpy).toHaveBeenCalledTimes(1);
   });
 });
 
