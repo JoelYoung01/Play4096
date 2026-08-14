@@ -1,3 +1,15 @@
+const mockExchangeCodeAsync = jest.fn();
+
+jest.mock("expo-auth-session", () => {
+  const actual = jest.requireActual("expo-auth-session") as typeof import("expo-auth-session");
+  return {
+    ...actual,
+    exchangeCodeAsync: (...args: unknown[]) => mockExchangeCodeAsync(...args)
+  };
+});
+
+/* eslint-disable import/first -- jest.mock must be registered before importing the module under test */
+
 import * as AuthSession from "expo-auth-session";
 import { Platform } from "react-native";
 import { authedHomeHref, AUTHED_HOME_HREF } from "@/lib/auth-navigation";
@@ -68,12 +80,16 @@ describe("googleAuthRequestConfig", () => {
 });
 
 describe("exchangeGoogleCodeForIdToken", () => {
+  beforeEach(() => {
+    mockExchangeCodeAsync.mockReset();
+  });
+
   it("returns the id token from Google's token endpoint", async () => {
-    const spy = jest.spyOn(AuthSession, "exchangeCodeAsync").mockResolvedValue({
+    mockExchangeCodeAsync.mockResolvedValue({
       idToken: "jwt",
       accessToken: "access",
       tokenType: "bearer"
-    } as AuthSession.TokenResponse);
+    });
     await expect(
       exchangeGoogleCodeForIdToken({
         clientId: "123-abc.apps.googleusercontent.com",
@@ -82,7 +98,7 @@ describe("exchangeGoogleCodeForIdToken", () => {
         codeVerifier: "verifier"
       })
     ).resolves.toBe("jwt");
-    expect(spy).toHaveBeenCalledWith(
+    expect(mockExchangeCodeAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         clientId: "123-abc.apps.googleusercontent.com",
         code: "auth-code",
@@ -90,14 +106,13 @@ describe("exchangeGoogleCodeForIdToken", () => {
       }),
       expect.objectContaining({ tokenEndpoint: "https://oauth2.googleapis.com/token" })
     );
-    spy.mockRestore();
   });
 
   it("throws when Google omits the id token", async () => {
-    const spy = jest.spyOn(AuthSession, "exchangeCodeAsync").mockResolvedValue({
+    mockExchangeCodeAsync.mockResolvedValue({
       accessToken: "access",
       tokenType: "bearer"
-    } as AuthSession.TokenResponse);
+    });
     await expect(
       exchangeGoogleCodeForIdToken({
         clientId: "123-abc.apps.googleusercontent.com",
@@ -105,6 +120,5 @@ describe("exchangeGoogleCodeForIdToken", () => {
         redirectUri: "com.googleusercontent.apps.123-abc:/oauthredirect"
       })
     ).rejects.toThrow("Google sign-in did not return a credential.");
-    spy.mockRestore();
   });
 });

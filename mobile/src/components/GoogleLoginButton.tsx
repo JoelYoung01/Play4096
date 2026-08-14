@@ -51,9 +51,11 @@ function ConfiguredGoogleLoginButton({ onPendingChange, onError }: Props) {
     onErrorRef.current = onError;
   }, [onPendingChange, onError]);
 
+  // completeGoogleResponse is recreated each render; handledKey prevents duplicates.
   useEffect(() => {
     if (!response) return;
     void completeGoogleResponse(response);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [response]);
 
   async function completeGoogleResponse(authResponse: NonNullable<typeof response>) {
@@ -133,5 +135,5 @@ function ConfiguredGoogleLoginButton({ onPendingChange, onError }: Props) {
     >
       Continue with Google
     </Button>
-  >
+  );
 }
