@@ -63,6 +63,10 @@ Optional GitHub variables: `PLAY4096_IOS_BUNDLE_ID`, `MOBILE_API_URL`.
 Mobile Release defaults it to `https://play-4096.com` (same host as the web deploy
 health check). Leaving it blank used to ship `localhost`, which cannot work on device.
 
+Google sign-in on iOS uses the reversed iOS client-id URL scheme
+(`com.googleusercontent.apps.<id>:/oauthredirect`). That scheme is registered in
+`app.config.ts` and must match the redirect URI passed to `expo-auth-session`.
+
 Full ASC + IAP setup: see [`docs/ASC_Setup.md`](../docs/ASC_Setup.md).
 
 Pro purchases post the StoreKit signed transaction to `/api/v1/iap/apple/verify`.

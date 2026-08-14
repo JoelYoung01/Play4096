@@ -3,8 +3,11 @@ import { Alert } from "react-native";
 type RecentAlert = { title: string; message: string; at: number };
 
 let recent: RecentAlert | null = null;
+const alertTimers: ReturnType<typeof setTimeout>[] = [];
 
 const DEDUPE_MS = 1500;
+/** iOS drops Alert.alert while ASWebAuthenticationSession is still dismissing. */
+export const ALERT_DELAY_MS = 400;
 
 /**
  * Show an Alert, ignoring duplicate title+message calls within a short window.
@@ -21,10 +24,16 @@ export function alertOnce(title: string, message: string): void {
     return;
   }
   recent = { title, message, at: now };
-  Alert.alert(title, message);
+  alertTimers.push(
+    setTimeout(() => {
+      Alert.alert(title, message);
+    }, ALERT_DELAY_MS)
+  );
 }
 
 /** Test helper. */
 export function resetAlertOnceForTests(): void {
   recent = null;
+  for (const timer of alertTimers) clearTimeout(timer);
+  alertTimers.length = 0;
 }
