@@ -78,3 +78,66 @@ export type ChallengeDefinition = {
   difficulty: string;
   params: Record<string, unknown>;
 };
+
+export type CheckpointInfo = {
+  id: string;
+  gameId: string;
+  createdOn: number;
+  score: number;
+  moveCount: number;
+  maxTile: number;
+};
+
+export type CheckpointRestoreState = GameState & {
+  id: string;
+  board: number[][];
+  score: number;
+  moveCount: number;
+  undoCooldownRemaining: number;
+  won: boolean;
+  complete?: boolean;
+};
+
+export type VisualTile = {
+  id: string;
+  value: number;
+  logicalPos: { x: number; y: number };
+  currentPos: { x: number; y: number };
+  targetPos: { x: number; y: number };
+  alpha: number;
+  scale: number;
+  spawning: boolean;
+  merging: boolean;
+  mergePop: boolean;
+  mergePopProgress: number;
+  mergeSurvivorId: string | null;
+  pendingMergeValue: number | null;
+  hidden: boolean;
+};
+
+export type GameEvent = {
+  type?: number;
+  start?: { x: number; y: number } | number;
+  end?: { x: number; y: number } | number;
+  value?: number;
+  merged?: boolean;
+  newTileValue?: number;
+  snapshot?: number[][];
+  resync?: boolean;
+  gameWon?: boolean;
+  gameLost?: boolean;
+  [key: string]: unknown;
+};
+
+export type ChallengeUserStats = {
+  attempts?: number;
+  wins?: number;
+  bestStatus?: string | null;
+  bestMoveCount?: number | null;
+  bestElapsedMs?: number | null;
+};
+
+export type BestWinStats = {
+  moves?: number | null;
+  timeMs?: number | null;
+};

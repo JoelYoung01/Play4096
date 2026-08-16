@@ -1,4 +1,4 @@
-import type { ChallengeDefinition, LeaderboardEntry } from "@/types";
+import type { ChallengeDefinition, ChallengeUserStats, LeaderboardEntry } from "@/types";
 import { get, post } from "./client";
 
 export type ChallengesResponse = {
@@ -15,7 +15,9 @@ export type ChallengeResponse = {
   isPast?: boolean;
   locked?: boolean;
   isPro?: boolean;
-  userStats?: unknown;
+  userStats?: ChallengeUserStats | null;
+  overview?: string;
+  isToday?: boolean;
 };
 export type ChallengeStartResponse = { runId: string; challenge: ChallengeDefinition };
 export type ChallengeLeaderboardResponse = {

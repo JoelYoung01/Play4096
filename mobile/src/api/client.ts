@@ -85,4 +85,9 @@ export const patch = <T>(url: string, body?: object) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body ?? {})
   });
-export const del = <T>(url: string) => doFetch<T>(url, { method: "DELETE" });
+export const del = <T>(url: string, body?: object) =>
+  doFetch<T>(url, {
+    method: "DELETE",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined
+  });

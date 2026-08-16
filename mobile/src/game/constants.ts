@@ -5,6 +5,17 @@ export const UNDO_COOLDOWN_MOVES = 10;
 export const DEFAULT_WIN_TILE = 4096;
 export const LOCAL_STORAGE_CURRENT_GAME = "play-4096.currentGame";
 export const LOCAL_STORAGE_BEST_SCORE = "play-4096.bestScore";
+export const LOCAL_STORAGE_BEST_WIN = "play-4096.bestWin";
+
+export const SPAWN_START_SCALE = 0.5;
+export const TILE_SPAWN_DURATION = 100;
+export const TILE_MERGE_DURATION = 100;
+export const TILE_MOVE_DURATION_MS = 12;
+export const BOARD_GAP = 10;
+export const BOARD_PADDING = 10;
+export const TILE_BORDER_RADIUS = 6;
+export const BOARD_BORDER_RADIUS = 8;
+export const TAB_BAR_RESERVE = 88;
 
 export const EVENT_TYPES = {
   MOVE: 10,

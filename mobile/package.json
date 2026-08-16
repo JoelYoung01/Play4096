@@ -13,6 +13,7 @@
     "prebuild:ios": "expo prebuild --platform ios"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@tanstack/react-query": "^5.101.4",
     "expo": "~57.0.9",
