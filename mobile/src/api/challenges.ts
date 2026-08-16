@@ -24,7 +24,8 @@ export type ChallengeLeaderboardResponse = {
   challenge: ChallengeDefinition;
   entries: LeaderboardEntry[];
   entryCount: number;
-  userRank?: unknown;
+  userRank?: number | null;
+  userBestScore?: number | null;
 };
 
 export const getChallenges = (month?: string) => get<ChallengesResponse>(`/challenges${month ? `?month=${month}` : ""}`);

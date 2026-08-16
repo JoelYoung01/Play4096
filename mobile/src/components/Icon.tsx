@@ -22,7 +22,13 @@ export type IconName =
   | "arrowLeft"
   | "trophy"
   | "stats"
-  | "history";
+  | "history"
+  | "play"
+  | "pause"
+  | "skip"
+  | "pencil"
+  | "lock"
+  | "help";
 
 const glyph: Record<IconName, keyof typeof MaterialCommunityIcons.glyphMap> = {
   home: "home-outline",
@@ -45,7 +51,13 @@ const glyph: Record<IconName, keyof typeof MaterialCommunityIcons.glyphMap> = {
   arrowLeft: "arrow-left",
   trophy: "trophy-outline",
   stats: "chart-bar",
-  history: "history"
+  history: "history",
+  play: "play",
+  pause: "pause",
+  skip: "skip-next",
+  pencil: "pencil-outline",
+  lock: "lock-outline",
+  help: "help-circle-outline"
 };
 
 export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color?: string }) {

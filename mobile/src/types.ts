@@ -141,3 +141,47 @@ export type BestWinStats = {
   moves?: number | null;
   timeMs?: number | null;
 };
+
+export type PlayStats = {
+  totalGames: number;
+  completedGames: number;
+  activeGames: number;
+  wins: number;
+  losses: number;
+  winRate: number | null;
+  bestScore: number | null;
+  averageScore: number | null;
+  highestTile: number;
+  leastMovesToWin: number | null;
+  fastestWinMs: number | null;
+  totalMoves: number;
+  averageMovesPerWin: number | null;
+  longestWinStreak: number;
+  currentWinStreak: number;
+  challengeAttempts: number;
+  challengeWins: number;
+  challengeLosses: number;
+  challengeWinRate: number | null;
+  averageDailyChallengeRank: number | null;
+  rankedChallengeClears: number;
+  bestChallengeElapsedMs: number | null;
+  bestChallengeMoveCount: number | null;
+};
+
+export type HistoryStatus = "active" | "finished";
+export type HistorySort = "date" | "score" | "moves";
+export type HistoryFilter = "all" | "active" | "won" | "lost";
+
+export type HistoryEntry = {
+  id: string;
+  score: number;
+  won: boolean;
+  complete: boolean;
+  status: HistoryStatus;
+  moveCount: number;
+  createdOn?: string | number | Date | null;
+  updatedOn?: string | number | Date | null;
+  completedOn?: string | number | Date | null;
+  hasReplay: boolean;
+  replayUnavailableReason?: string | null;
+};

@@ -8,7 +8,6 @@ import {
   CHALLENGE_TYPES,
   formatChallengeElapsedMs,
   formatChallengeOverview,
-  formatChallengeRankValue,
   formatChallengeTypeLabel
 } from "@/game/challenges";
 import { getInkColor } from "@/theme/themes";
@@ -38,7 +37,6 @@ export default function ChallengeDetailScreen() {
   const user = useSessionStore((s) => s.user);
   const router = useRouter();
   const [starting, setStarting] = useState(false);
-  const [showLeaders, setShowLeaders] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["challenge", challengeId],
     queryFn: () => getChallenge(challengeId),
@@ -143,7 +141,7 @@ export default function ChallengeDetailScreen() {
           )}
 
           <Pressable
-            onPress={() => setShowLeaders((open) => !open)}
+            onPress={() => router.push(`/(app)/challenge/${challengeId}/leaderboard`)}
             style={[styles.leaderboard, { backgroundColor: theme.boardBackground }]}
           >
             <View style={[styles.trophy, { backgroundColor: theme.secondary }]}>
@@ -157,18 +155,8 @@ export default function ChallengeDetailScreen() {
                   : "No clears yet — be the first"}
               </Text>
             </View>
-            <Icon name={showLeaders ? "close" : "chevronRight"} color={boardInk} />
+            <Icon name="chevronRight" color={boardInk} />
           </Pressable>
-          {showLeaders
-            ? (leaders.data?.entries?.length
-                ? leaders.data.entries.map((entry, i) => (
-                    <Text key={`${entry.username}-${i}`} style={{ color: theme.textLight }}>
-                      {entry.rank ?? i + 1}. {entry.displayName || entry.username || "Player"} ·{" "}
-                      {formatChallengeRankValue(challenge.type, Number(entry.score ?? entry.value ?? 0))}
-                    </Text>
-                  ))
-                : <Text style={{ color: theme.textLight }}>No entries yet.</Text>)
-            : null}
         </>
       )}
     </Screen>

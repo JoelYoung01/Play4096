@@ -8,7 +8,9 @@ const tabs: { name: IconName; href: string; match: (path: string) => boolean }[]
   { name: "home", href: "/(app)/(tabs)/home", match: (path) => path === "/" || path.endsWith("/home") },
   { name: "game", href: "/(app)/(tabs)/game", match: (path) => path.includes("/game") },
   { name: "challenges", href: "/(app)/(tabs)/challenges", match: (path) => path.includes("challenge") },
-  { name: "leaderboard", href: "/(app)/(tabs)/leaderboard", match: (path) => path.includes("leaderboard") },
+  { name: "leaderboard", href: "/(app)/(tabs)/leaderboard", match: (path) => path.includes("leaderboard") && !path.includes("challenge") },
+  { name: "stats", href: "/(app)/stats", match: (path) => path.includes("stats") },
+  { name: "history", href: "/(app)/history", match: (path) => path.includes("history") },
   { name: "account", href: "/(app)/(tabs)/account", match: (path) => path.includes("account") }
 ];
 
@@ -45,7 +47,7 @@ export function TabBar() {
                 { backgroundColor: focused ? theme.primary : theme.background }
               ]}
             >
-              <Icon name={tab.name} size={22} color={focused ? theme.textDark : theme.text ?? theme.textLight} />
+              <Icon name={tab.name} size={20} color={focused ? theme.textDark : theme.text ?? theme.textLight} />
             </Pressable>
           );
         })}
@@ -66,9 +68,9 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 2,
     borderRadius: 999,
-    padding: 4,
+    padding: 3,
     borderWidth: 1,
     shadowOpacity: 0.18,
     shadowRadius: 10,
@@ -76,9 +78,9 @@ const styles = StyleSheet.create({
     elevation: 6
   },
   item: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center"
   }
