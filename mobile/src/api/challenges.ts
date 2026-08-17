@@ -1,4 +1,4 @@
-import type { ChallengeDefinition, LeaderboardEntry } from "@/types";
+import type { ChallengeDefinition, ChallengeUserStats, LeaderboardEntry } from "@/types";
 import { get, post } from "./client";
 
 export type ChallengesResponse = {
@@ -15,14 +15,17 @@ export type ChallengeResponse = {
   isPast?: boolean;
   locked?: boolean;
   isPro?: boolean;
-  userStats?: unknown;
+  userStats?: ChallengeUserStats | null;
+  overview?: string;
+  isToday?: boolean;
 };
 export type ChallengeStartResponse = { runId: string; challenge: ChallengeDefinition };
 export type ChallengeLeaderboardResponse = {
   challenge: ChallengeDefinition;
   entries: LeaderboardEntry[];
   entryCount: number;
-  userRank?: unknown;
+  userRank?: number | null;
+  userBestScore?: number | null;
 };
 
 export const getChallenges = (month?: string) => get<ChallengesResponse>(`/challenges${month ? `?month=${month}` : ""}`);

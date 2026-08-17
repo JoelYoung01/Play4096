@@ -16,8 +16,11 @@ export async function GET({ locals, params, url }) {
 	const entryCount = getDailyChallengeEntryCount(params.id, challenge.type);
 
 	let userRank = null;
+	let userBestScore = null;
 	if (locals.user) {
-		userRank = getDailyChallengeUserRank(locals.user.id, params.id, challenge.type);
+		const rank = getDailyChallengeUserRank(locals.user.id, params.id, challenge.type);
+		userRank = rank?.rank ?? null;
+		userBestScore = rank?.bestScore ?? null;
 	}
 
 	return ok({
@@ -25,5 +28,6 @@ export async function GET({ locals, params, url }) {
 		entries,
 		entryCount,
 		userRank,
+		userBestScore,
 	});
 }
