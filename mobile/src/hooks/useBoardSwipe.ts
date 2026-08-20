@@ -1,4 +1,4 @@
-import { directionFromSwipe } from "@/lib/swipe";
+import { directionFromSwipe, SWIPE_THRESHOLD } from "@/lib/swipe";
 import { useMemo } from "react";
 import { Gesture } from "react-native-gesture-handler";
 
@@ -9,8 +9,8 @@ export function createBoardSwipe(onMove: (direction: number) => void, enabled = 
   return Gesture.Pan()
     .runOnJS(true)
     .enabled(enabled)
-    .activeOffsetX([-16, 16])
-    .activeOffsetY([-16, 16])
+    .activeOffsetX([-SWIPE_THRESHOLD, SWIPE_THRESHOLD])
+    .activeOffsetY([-SWIPE_THRESHOLD, SWIPE_THRESHOLD])
     .onEnd((event) => {
       const direction = directionFromSwipe(event.translationX, event.translationY);
       if (direction != null) onMove(direction);

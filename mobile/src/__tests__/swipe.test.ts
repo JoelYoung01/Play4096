@@ -15,7 +15,11 @@ describe("directionFromSwipe", () => {
     expect(directionFromSwipe(-3, 90)).toBe(DIRECTIONS.DOWN);
   });
 
+  it("maps a short swipe that meets the web threshold", () => {
+    expect(directionFromSwipe(-6, 2)).toBe(DIRECTIONS.LEFT);
+  });
+
   it("ignores tiny movements", () => {
-    expect(directionFromSwipe(-10, 4)).toBeNull();
+    expect(directionFromSwipe(-4, 3)).toBeNull();
   });
 });

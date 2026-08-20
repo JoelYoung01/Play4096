@@ -1,6 +1,9 @@
 import { DIRECTIONS } from "@/game/constants";
 
-export function directionFromSwipe(dx: number, dy: number, threshold = 24) {
+/** Matches the web app `createSwipeHandlers` default in `src/lib/swipe.js`. */
+export const SWIPE_THRESHOLD = 5;
+
+export function directionFromSwipe(dx: number, dy: number, threshold = SWIPE_THRESHOLD) {
   const ax = Math.abs(dx);
   const ay = Math.abs(dy);
   if (Math.max(ax, ay) < threshold) return null;
