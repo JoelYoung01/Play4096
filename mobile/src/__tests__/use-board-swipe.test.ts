@@ -20,12 +20,17 @@ jest.mock("react-native-gesture-handler", () => {
     Gesture: {
       Pan: () => chain
     },
-    __swipeMocks: { runOnJS, onEndHandlers }
+    __swipeMocks: { runOnJS, onEndHandlers, activeOffsetX: chain.activeOffsetX, activeOffsetY: chain.activeOffsetY }
   };
 });
 
 const { __swipeMocks: swipeMocks } = jest.requireMock("react-native-gesture-handler") as {
-  __swipeMocks: { runOnJS: jest.Mock; onEndHandlers: EndHandler[] };
+  __swipeMocks: {
+    runOnJS: jest.Mock;
+    onEndHandlers: EndHandler[];
+    activeOffsetX: jest.Mock;
+    activeOffsetY: jest.Mock;
+  };
 };
 
 describe("createBoardSwipe", () => {
@@ -48,10 +53,23 @@ describe("createBoardSwipe", () => {
     expect(onMove).toHaveBeenCalledWith(DIRECTIONS.LEFT);
   });
 
+  it("activates the pan at the web swipe threshold", () => {
+    createBoardSwipe(jest.fn());
+    expect(swipeMocks.activeOffsetX).toHaveBeenCalledWith([-5, 5]);
+    expect(swipeMocks.activeOffsetY).toHaveBeenCalledWith([-5, 5]);
+  });
+
+  it("maps a short swipe that meets the web threshold", () => {
+    const onMove = jest.fn();
+    createBoardSwipe(onMove);
+    swipeMocks.onEndHandlers[0]({ translationX: -6, translationY: 2 });
+    expect(onMove).toHaveBeenCalledWith(DIRECTIONS.LEFT);
+  });
+
   it("ignores tiny movements", () => {
     const onMove = jest.fn();
     createBoardSwipe(onMove);
-    swipeMocks.onEndHandlers[0]({ translationX: -10, translationY: 4 });
+    swipeMocks.onEndHandlers[0]({ translationX: -4, translationY: 3 });
     expect(onMove).not.toHaveBeenCalled();
   });
 });
