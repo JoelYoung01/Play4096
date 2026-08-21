@@ -14,9 +14,12 @@ export async function GET({ locals, request }) {
 	const accessToken = match?.[1]?.trim() ?? null;
 
 	if (accessToken) {
+		// Keep the caller's existing refresh token; only echo the current access token.
 		return ok({
 			access_token: accessToken,
 			expires_at: locals.session?.expiresAt?.toISOString?.() ?? null,
+			refresh_token: null,
+			refresh_expires_at: null,
 			user,
 		});
 	}

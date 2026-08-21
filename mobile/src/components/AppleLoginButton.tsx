@@ -57,7 +57,7 @@ export function AppleLoginButton({ onPendingChange, onError }: Props) {
         identity_token: credential.identityToken,
         full_name: fullName || null
       });
-      await useSessionStore.getState().setSession(payload.access_token, payload.user);
+      await useSessionStore.getState().setSession(payload);
     } catch (err) {
       if ((err as { code?: string }).code !== "ERR_REQUEST_CANCELED") {
         onErrorRef.current(

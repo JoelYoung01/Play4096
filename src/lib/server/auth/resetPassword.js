@@ -20,7 +20,7 @@ export async function createPasswordResetSession(token, userId, email) {
 		id: sessionId,
 		userId,
 		email,
-		expiresAt: new Date(Date.now() + 1000 * 60 * 10),
+		expiresAt: new Date(Date.now() + 1000 * 60 * 60),
 		code: generateRandomOTP(),
 		emailVerified: false,
 		twoFactorVerified: false,

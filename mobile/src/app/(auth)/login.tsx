@@ -32,7 +32,7 @@ export default function LoginScreen() {
     setPending(true);
     try {
       const payload = await loginWithPassword({ username, password });
-      await useSessionStore.getState().setSession(payload.access_token, payload.user);
+      await useSessionStore.getState().setSession(payload);
       router.replace("/(app)/(tabs)/home");
     } catch (err) {
       Alert.alert("Login failed", getErrorMessage(err));

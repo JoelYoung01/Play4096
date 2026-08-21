@@ -10,6 +10,18 @@ export const session = sqliteTable("session", {
 	expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 });
 
+/** Long-lived rotating refresh tokens for mobile / API clients. */
+export const refreshToken = sqliteTable("refresh_token", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+	sessionId: text("session_id")
+		.notNull()
+		.references(() => session.id, { onDelete: "cascade" }),
+	expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});
+
 export const emailVerificationRequest = sqliteTable("email_verification_request", {
 	id: text("id").primaryKey(),
 	userId: text("user_id")
