@@ -103,6 +103,8 @@ const handleAuth = async ({ event, resolve }) => {
 	const { session, user } = await auth.validateSessionToken(sessionToken);
 
 	if (session && !usedBearer) {
+		// Slide cookie sessions only — Bearer access tokens stay short and use refresh.
+		await auth.renewSessionIfNeeded(session);
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 	} else if (!session && !usedBearer) {
 		auth.deleteSessionTokenCookie(event);

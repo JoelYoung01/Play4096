@@ -50,7 +50,8 @@ export async function createEmailVerificationRequest(userId, email) {
 	const id = encodeBase32(idBytes).toLowerCase();
 
 	const code = generateRandomOTP();
-	const expiresAt = new Date(Date.now() + 1000 * 60 * 10);
+	// Generous window so players can leave the app and still verify when they return.
+	const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
 
 	const newRequest = {
 		id,
@@ -118,4 +119,4 @@ export function getUserEmailVerificationRequestFromRequest(event) {
 }
 
 /** @type {ExpiringTokenBucket<string>} */
-export const sendVerificationEmailBucket = new ExpiringTokenBucket(3, 60 * 10);
+export const sendVerificationEmailBucket = new ExpiringTokenBucket(5, 60 * 30);

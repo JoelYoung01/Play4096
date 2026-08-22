@@ -106,7 +106,7 @@ function ConfiguredGoogleLoginButton({ onPendingChange, onError }: Props) {
       if (!payload?.access_token || !payload?.user) {
         throw new Error("Google sign-in did not return a session.");
       }
-      await useSessionStore.getState().setSession(payload.access_token, payload.user);
+      await useSessionStore.getState().setSession(payload);
     } catch (err) {
       onErrorRef.current(friendlyAuthNetworkError(getErrorMessage(err, "Google sign-in failed")));
     } finally {

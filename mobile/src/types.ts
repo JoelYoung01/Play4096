@@ -14,6 +14,8 @@ export type User = {
 export type TokenPayload = {
   access_token: string;
   expires_at?: string | null;
+  refresh_token?: string | null;
+  refresh_expires_at?: string | null;
   user: User;
 };
 

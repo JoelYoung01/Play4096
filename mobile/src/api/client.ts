@@ -48,22 +48,35 @@ function handleUnauthorized() {
   queryClient.clear();
 }
 
-export async function doFetch<T>(url: string, options?: RequestInit): Promise<T> {
+async function fetchOnce(url: string, options?: RequestInit): Promise<Response> {
   const token = useSessionStore.getState().token;
   const headers: Record<string, string> = {
     ...((options?.headers as Record<string, string>) ?? {})
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  let response: Response;
   try {
-    response = await fetch(resolveUrl(url), { ...options, headers });
+    return await fetch(resolveUrl(url), { ...options, headers });
   } catch {
     throw new ApiError(networkErrorMessage(), 503, { userMessage: networkErrorMessage() });
   }
+}
+
+export async function doFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const hadToken = Boolean(useSessionStore.getState().token);
+  let response = await fetchOnce(url, options);
+
+  if (response.status === 401 && hadToken) {
+    const refreshed = await useSessionStore.getState().tryRefresh();
+    if (refreshed) {
+      response = await fetchOnce(url, options);
+    } else {
+      handleUnauthorized();
+    }
+  }
 
   if (!response.ok) {
-    if (response.status === 401 && token) handleUnauthorized();
+    if (response.status === 401 && hadToken) handleUnauthorized();
     const parsed = parseApiErrorBody(await readBody(response));
     throw new ApiError(parsed.userMessage, response.status, parsed);
   }

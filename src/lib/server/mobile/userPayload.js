@@ -29,20 +29,21 @@ export function buildUserPayload(userId) {
 }
 
 /**
- * Issue a new session token + user payload for API clients.
+ * Issue access + refresh tokens + user payload for API clients.
  * @param {string} userId
  */
 export async function issueTokenResponse(userId) {
-	const { generateSessionToken, createSession } = await import("$lib/server/auth/session.js");
-	const accessToken = generateSessionToken();
-	const session = await createSession(accessToken, userId);
+	const { issueAccessAndRefresh } = await import("$lib/server/auth/refresh.js");
+	const issued = await issueAccessAndRefresh(userId);
 	const user = buildUserPayload(userId);
 	if (!user) {
 		throw new Error("User not found after session create");
 	}
 	return {
-		access_token: accessToken,
-		expires_at: session.expiresAt.toISOString(),
+		access_token: issued.accessToken,
+		expires_at: issued.session.expiresAt.toISOString(),
+		refresh_token: issued.refreshToken,
+		refresh_expires_at: issued.refresh.expiresAt.toISOString(),
 		user,
 	};
 }

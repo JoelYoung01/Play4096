@@ -72,6 +72,10 @@ export function getMe() {
   return get<TokenPayload>("/auth/me");
 }
 
+export function refreshSession(refreshToken: string) {
+  return authPost<TokenPayload>("/auth/refresh", { refresh_token: refreshToken });
+}
+
 export function logout() {
   return post<{ success?: boolean }>("/auth/logout");
 }
