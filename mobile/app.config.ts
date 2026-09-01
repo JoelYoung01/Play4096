@@ -64,7 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-local-authentication",
         {
-          faceIDPermission: "Play4096 uses Face ID to unlock the app."
+          faceIDPermission: "Play4096 uses Face ID for optional sign-in."
         }
       ]
     ],

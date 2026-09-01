@@ -1,6 +1,5 @@
 import { deleteAccount } from "@/api/account";
 import { getErrorMessage } from "@/api/errors";
-import { AppLockToggle } from "@/components/AppLockToggle";
 import { BiometricLoginToggle } from "@/components/BiometricLoginToggle";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -65,7 +64,6 @@ export default function AccountScreen() {
           Add and verify an email so you can recover this Pro account if you forget your password.
         </Text>
       ) : null}
-      <AppLockToggle />
       {user?.username ? <BiometricLoginToggle username={user.username} /> : null}
       <Link href="/(app)/account/edit" asChild>
         <Button>Edit Profile</Button>
