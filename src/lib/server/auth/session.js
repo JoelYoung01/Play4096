@@ -17,8 +17,11 @@ export const WEB_SESSION_RENEW_WINDOW_MS = DAY_IN_MS * 15;
  */
 export const ACCESS_TOKEN_TTL_MS = DAY_IN_MS * 1;
 
-/** Refresh tokens last a week; each successful refresh issues a fresh week. */
-export const REFRESH_TOKEN_TTL_MS = DAY_IN_MS * 7;
+/**
+ * Refresh tokens last 90 days for casual mobile play. Each successful refresh
+ * issues a fresh 90-day window so regular players almost never re-authenticate.
+ */
+export const REFRESH_TOKEN_TTL_MS = DAY_IN_MS * 90;
 
 export const sessionCookieName = "auth-session";
 
