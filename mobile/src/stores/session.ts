@@ -37,20 +37,29 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     const refreshToken = await secureStorage.get(REFRESH_KEY);
     const userText = await secureStorage.get(USER_KEY);
     const cachedUser = userText ? (JSON.parse(userText) as User) : null;
-    if (!token) {
+
+    if (!token && !refreshToken) {
       set({ status: "guest", token: null, refreshToken: null, user: null });
       return;
     }
+
+    // Optimistic UI while we validate / refresh — never leave a zombie "authed"
+    // session if refresh ultimately fails.
     set({ status: "authed", token, refreshToken, user: cachedUser });
-    try {
-      const payload = await getMe();
-      await get().setSession(payload);
-    } catch {
-      // Access may have expired — try refresh before giving up to cached session.
-      const refreshed = await get().tryRefresh();
-      if (!refreshed) {
-        set({ status: "authed", token, refreshToken, user: cachedUser });
+
+    if (token) {
+      try {
+        const payload = await getMe();
+        await get().setSession(payload);
+        return;
+      } catch {
+        // Access may have expired — fall through to refresh.
       }
+    }
+
+    const refreshed = await get().tryRefresh();
+    if (!refreshed) {
+      await get().clear();
     }
   },
   async setSession(payload) {

@@ -1,9 +1,11 @@
 import { deleteAccount } from "@/api/account";
 import { getErrorMessage } from "@/api/errors";
-import { AppLockToggle } from "@/components/AppLockToggle";
+import { BiometricLoginToggle } from "@/components/BiometricLoginToggle";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Screen } from "@/components/Screen";
+import { GUEST_HOME_HREF } from "@/lib/auth-navigation";
+import { disableBiometricLogin } from "@/lib/biometric-login";
 import { queryClient } from "@/lib/query-client";
 import { useSessionStore } from "@/stores/session";
 import { useThemeStore } from "@/stores/theme";
@@ -21,15 +23,16 @@ export default function AccountScreen() {
   const signOut = async () => {
     await useSessionStore.getState().logout();
     queryClient.clear();
-    router.replace("/(auth)/login");
+    router.replace(GUEST_HOME_HREF);
   };
 
   const remove = async () => {
     try {
       await deleteAccount();
+      await disableBiometricLogin();
       await useSessionStore.getState().clear();
       queryClient.clear();
-      router.replace("/(auth)/login");
+      router.replace(GUEST_HOME_HREF);
     } catch (err) {
       Alert.alert("Could not delete account", getErrorMessage(err));
     }
@@ -37,7 +40,7 @@ export default function AccountScreen() {
 
   if (status !== "authed") {
     return (
-      <Screen title="Account" subtitle="Create an account to sync progress and unlock Pro.">
+      <Screen title="Account" subtitle="Playing as a guest is fine. Sign in only if you want synced scores, history, and Pro.">
         <Link href="/(auth)/login" asChild>
           <Button>Sign in</Button>
         </Link>
@@ -61,7 +64,7 @@ export default function AccountScreen() {
           Add and verify an email so you can recover this Pro account if you forget your password.
         </Text>
       ) : null}
-      <AppLockToggle />
+      {user?.username ? <BiometricLoginToggle username={user.username} /> : null}
       <Link href="/(app)/account/edit" asChild>
         <Button>Edit Profile</Button>
       </Link>

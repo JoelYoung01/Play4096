@@ -5,10 +5,17 @@ import { Button } from "@/components/Button";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { Screen } from "@/components/Screen";
 import { alertOnce } from "@/lib/alert";
+import { AUTHED_HOME_HREF, GUEST_HOME_HREF } from "@/lib/auth-navigation";
+import {
+  canUseBiometricLogin,
+  loadBiometricLoginCredentials,
+  promptEnableBiometricLogin
+} from "@/lib/biometric-login";
+import { getBiometricSupport } from "@/lib/biometrics";
 import { useSessionStore } from "@/stores/session";
 import { useThemeStore } from "@/stores/theme";
 import { Link, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function LoginScreen() {
@@ -17,12 +24,54 @@ export default function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
+  const [bioLabel, setBioLabel] = useState("Face ID");
+  const [bioAvailable, setBioAvailable] = useState(false);
+
   const onAppleError = useCallback((message: string) => {
     alertOnce("Apple sign-in", message);
   }, []);
   const onGoogleError = useCallback((message: string) => {
     alertOnce("Google sign-in", message);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const support = await getBiometricSupport();
+      const enabled = await canUseBiometricLogin();
+      if (!cancelled) {
+        setBioLabel(support.label);
+        setBioAvailable(support.available && enabled);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const goHome = () => {
+    router.replace(AUTHED_HOME_HREF);
+  };
+
+  const finishPasswordLogin = async (user: string, pass: string, offerBiometrics: boolean) => {
+    const payload = await loginWithPassword({ username: user, password: pass });
+    await useSessionStore.getState().setSession(payload);
+    if (!offerBiometrics) {
+      goHome();
+      return;
+    }
+    const support = await getBiometricSupport();
+    if (!support.available || (await canUseBiometricLogin())) {
+      goHome();
+      return;
+    }
+    promptEnableBiometricLogin({
+      label: support.label,
+      username: user,
+      password: pass,
+      onDone: goHome
+    });
+  };
 
   const submit = async () => {
     if (!username || !password) {
@@ -31,9 +80,29 @@ export default function LoginScreen() {
     }
     setPending(true);
     try {
-      const payload = await loginWithPassword({ username, password });
-      await useSessionStore.getState().setSession(payload);
-      router.replace("/(app)/(tabs)/home");
+      await finishPasswordLogin(username, password, true);
+    } catch (err) {
+      Alert.alert("Login failed", getErrorMessage(err));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const submitBiometric = async () => {
+    if (pending) return;
+    setPending(true);
+    try {
+      const creds = await loadBiometricLoginCredentials(`Sign in with ${bioLabel}`);
+      if (!creds) {
+        Alert.alert(
+          `${bioLabel} unavailable`,
+          "Sign in with your password once to set up biometric sign-in again."
+        );
+        setBioAvailable(false);
+        return;
+      }
+      setUsername(creds.username);
+      await finishPasswordLogin(creds.username, creds.password, false);
     } catch (err) {
       Alert.alert("Login failed", getErrorMessage(err));
     } finally {
@@ -44,9 +113,14 @@ export default function LoginScreen() {
   return (
     <Screen
       title="Play4096"
-      subtitle="Sign in to sync games, leaderboards, Pro themes, challenges, and history."
+      subtitle="Optional — sync scores and compete. Or just play as a guest."
     >
       <View style={styles.card}>
+        {bioAvailable ? (
+          <Button disabled={pending} onPress={() => void submitBiometric()}>
+            {pending ? "Signing in..." : `Sign in with ${bioLabel}`}
+          </Button>
+        ) : null}
         <TextInput
           autoCapitalize="none"
           placeholder="Username"
@@ -68,7 +142,7 @@ export default function LoginScreen() {
         </Button>
         <AppleLoginButton onPendingChange={setPending} onError={onAppleError} />
         <GoogleLoginButton onPendingChange={setPending} onError={onGoogleError} />
-        <Button variant="ghost" onPress={() => router.replace("/(app)/(tabs)/game")}>
+        <Button variant="ghost" onPress={() => router.replace(GUEST_HOME_HREF)}>
           Continue as guest
         </Button>
         <Text style={{ color: theme.textLight, textAlign: "center" }}>
